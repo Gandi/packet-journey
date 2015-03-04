@@ -44,12 +44,7 @@ APP = l3fwd
 # all source are stored in SRCS-y
 SRCS-y := main.c 
 SRCS-y += control.c
-SRCS-y += router.pb-c.c
-
-CFLAGS += $(shell pkg-config --cflags libprotobuf-c)
-LDFLAGS += $(shell pkg-config --libs libprotobuf-c)
-CFLAGS += $(shell pkg-config --cflags libprotobuf-c-rpc)
-LDFLAGS += $(shell pkg-config --libs libprotobuf-c-rpc)
+SRCS-y += lib/libnetlink/netlink.c
 
 CFLAGS += -I$(RTE_SRCDIR)/include
 
@@ -64,19 +59,7 @@ endif
 
 all: build
 
-%.pb-c.c %.pb-c.h: %.proto
-	protoc-c --c_out=$(RTE_SRCDIR) -I$(RTE_SRCDIR) $<
-	# Hack
-	protoc-c --c_out=$(RTE_OUTPUT) -I$(RTE_SRCDIR) $<
-
 include $(RTE_SDK)/mk/rte.extapp.mk
-DEP_control.o += router.pb-c.h
-dep_control.o += router.pb-c.h
-control.o: router.pb-c.h
-
-
-
-
 
 
 .PHONY: reindent

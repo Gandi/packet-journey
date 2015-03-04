@@ -1383,72 +1383,6 @@ static void setup_lpm(int socketid)
 	if (ipv4_l3fwd_lookup_struct[socketid] == NULL)
 		rte_exit(EXIT_FAILURE, "Unable to create the l3fwd LPM table"
 				 " on socket %d\n", socketid);
-
-	rte_lpm_add(ipv4_l3fwd_lookup_struct[socketid],
-		IPv4(0, 0, 0, 0), 0, 1);
-	rte_lpm_add(ipv4_l3fwd_lookup_struct[socketid],
-		IPv4(128, 0, 0, 0), 0, 1);
-
-	/* populate the LPM table */
-	//for (i = 0; i < IPV4_L3FWD_NUM_ROUTES; i++) {
-
-	//  /* skip unused ports */
-	//  if ((1 << ipv4_l3fwd_route_array[i].if_out &
-	//          enabled_port_mask) == 0)
-	//      continue;
-
-	//  ret = rte_lpm_add(ipv4_l3fwd_lookup_struct[socketid],
-	//      ipv4_l3fwd_route_array[i].ip,
-	//      ipv4_l3fwd_route_array[i].depth,
-	//      ipv4_l3fwd_route_array[i].if_out);
-
-	//  if (ret < 0) {
-	//      rte_exit(EXIT_FAILURE, "Unable to add entry %u to the "
-	//          "l3fwd LPM table on socket %d\n",
-	//          i, socketid);
-	//  }
-
-	//  printf("LPM: Adding route 0x%08x / %d (%d)\n",
-	//      (unsigned)ipv4_l3fwd_route_array[i].ip,
-	//      ipv4_l3fwd_route_array[i].depth,
-	//      ipv4_l3fwd_route_array[i].if_out);
-	//}
-
-	/* create the LPM6 table */
-	//snprintf(s, sizeof(s), "IPV6_L3FWD_LPM_%d", socketid);
-
-	//config.max_rules = IPV6_L3FWD_LPM_MAX_RULES;
-	//config.number_tbl8s = IPV6_L3FWD_LPM_NUMBER_TBL8S;
-	//config.flags = 0;
-	//_l3fwd_lookup_struct()[socketid] = rte_lpm6_create(s, socketid,
-	//														   &config);
-	//if (get_ipv6_l3fwd_lookup_struct()[socketid] == NULL)
-	//	rte_exit(EXIT_FAILURE, "Unable to create the l3fwd LPM table"
-	//			 " on socket %d\n", socketid);
-
-	///* populate the LPM table */
-	//for (i = 0; i < IPV6_L3FWD_NUM_ROUTES; i++) {
-
-	//	/* skip unused ports */
-	//	if ((1 << ipv6_l3fwd_route_array[i].if_out &
-	//		 enabled_port_mask) == 0)
-	//		continue;
-
-	//	ret = rte_lpm6_add(get_ipv6_l3fwd_lookup_struct()[socketid],
-	//					   ipv6_l3fwd_route_array[i].ip,
-	//					   ipv6_l3fwd_route_array[i].depth,
-	//					   ipv6_l3fwd_route_array[i].if_out);
-
-	//	if (ret < 0) {
-	//		rte_exit(EXIT_FAILURE, "Unable to add entry %u to the "
-	//				 "l3fwd LPM table on socket %d\n", i, socketid);
-	//	}
-
-	//	printf("LPM: Adding route %s / %d (%d)\n",
-	//		   "IPV6",
-	//		   ipv6_l3fwd_route_array[i].depth,
-	//		   ipv6_l3fwd_route_array[i].if_out);
-	//}
 }
 
 static int init_mem(unsigned nb_mbuf)
@@ -1669,20 +1603,6 @@ int main(int argc, char **argv)
 		rte_exit(EXIT_FAILURE, "check_port_config failed\n");
 
 	nb_lcores = rte_lcore_count();
-
-	/* initialize control thread */
-	pthread_t control = NULL;
-	control_args_t control_args;
-	int backlog = 5;
-	control_args_bind_t addr;
-	const char *path = "/tmp/control.sock";
-
-	memcpy(&addr.sun_path, path, 17);
-	control_args_listen(&control_args, &addr, backlog);
-
-	ret = pthread_create(&control, NULL, &control_main, &control_args);
-	if (ret > 0)
-		rte_exit(EXIT_FAILURE, "Couldn't start control thread\n");
 
 	/* initialize all ports */
 	for (portid = 0; portid < nb_ports; portid++) {
