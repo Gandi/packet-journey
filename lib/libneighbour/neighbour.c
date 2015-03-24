@@ -1,5 +1,5 @@
 #include <rte_malloc.h>
-#include "neighbour.h"
+#include <libneighbour.h>
 #include <string.h>
 
 
