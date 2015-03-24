@@ -11,6 +11,7 @@ export CFLAGS
 
 DIRS-y += lib
 DIRS-y += app
+DIRS-y += tests
 
 
 include $(RTE_SDK)/mk/rte.extsubdir.mk
