@@ -7,6 +7,6 @@ CFLAGS += -I$(SRCDIR)
 
 SRCS-y += neighbour.c
 
-SYMLINK-y-include := libneighbour.h
+SYMLINK-FILES-y := libneighbour.h
 
 include $(RTE_SDK)/mk/rte.extshared.mk

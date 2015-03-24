@@ -7,9 +7,8 @@
 #include <rte_lpm6.h>
 #include <rte_ethdev.h>
 
-#include <router-dpdk/control.h>
-#include "lib/libnetlink/libnetlink.h"
-#include "lib/libneighbour/neighbour.h"
+#include <libnetlink.h>
+#include <libneighbour.h>
 
 #include "routing.h"
 

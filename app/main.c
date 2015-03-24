@@ -31,6 +31,12 @@
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+//#define RTE_MAX_LCORE 128
+//#define RTE_PKTMBUF_HEADROOM 128
+//#define RTE_ETHDEV_QUEUE_STAT_CNTRS 16
+//#define RTE_MAX_ETHPORTS 32
+//#define RTE_LOG_LEVEL 8
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -79,6 +85,7 @@
 lookup_struct_t *ipv4_l3fwd_lookup_struct[NB_SOCKETS];
 
 #define DO_RFC_1812_CHECKS
+
 
 /*
  *  When set to zero, simple forwaring path is eanbled.
