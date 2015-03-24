@@ -7,6 +7,17 @@ CFLAGS += -I$(SRCDIR)
 
 SRCS-y += neighbour.c
 
-SYMLINK-FILES-y := libneighbour.h
+HEADERS-y += libneighbour.h
+
+POSTBUILD += install-headers
+
+.PHONY: install-headers
+install-headers: $(HEADERS-y)
+	mkdir -p $(BASE_OUTPUT)/include
+	for file in $(HEADERS-y); do\
+		rm -f $(BASE_OUTPUT)/include/$$file;\
+		cp -f $$file $(BASE_OUTPUT)/include;\
+	done
+
 
 include $(RTE_SDK)/mk/rte.extshared.mk

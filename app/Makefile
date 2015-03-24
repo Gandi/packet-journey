@@ -1,7 +1,3 @@
-ifeq ($(RTE_SDK),)
-$(error "Please define RTE_SDK environment variable")
-endif
-
 # Default target, can be overriden by command line or environment
 RTE_TARGET ?= x86_64-native-linuxapp-gcc
 
@@ -22,17 +18,16 @@ SRCS-y += control.c
 CFLAGS += -O3 $(USER_FLAGS)
 CFLAGS += $(WERROR_FLAGS)
 CFLAGS += -I$(RTE_SDK)/$(RTE_TARGET)/include
+CFLAGS += -I$(BASE_OUTPUT)/include
 #LDFLAGS += -lneighbour -L$(RTE_OUTPUT)/lib
 
-DEPDIRS-y += lib
+DEPDIR-y := lib
 
 # workaround for a gcc bug with noreturn attribute
 # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12603
 ifeq ($(CONFIG_RTE_TOOLCHAIN_GCC),y)
 CFLAGS_main.o += -Wno-return-type
 endif
-
-all: build
 
 include $(RTE_SDK)/mk/rte.extapp.mk
 

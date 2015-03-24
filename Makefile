@@ -1,3 +1,8 @@
+ifeq ($(RTE_SDK),)
+$(error "Please define RTE_SDK environment variable")
+endif
+
+
 include $(RTE_SDK)/mk/rte.extvars.mk
 
 O ?= $(RTE_SRCDIR)/build

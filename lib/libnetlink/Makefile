@@ -7,6 +7,16 @@ CFLAGS += -I$(SRCDIR)
 
 SRCS-y += netlink.c
 
-SYMLINK-y-include := libnetlink.h
+HEADERS-y += libnetlink.h
+
+POSTBUILD += install-headers
+
+.PHONY: install-headers
+install-headers: $(HEADERS-y)
+	mkdir -p $(BASE_OUTPUT)/include
+	for file in $(HEADERS-y); do\
+		rm -f $(BASE_OUTPUT)/include/$$file;\
+		cp -f $$file $(BASE_OUTPUT)/include;\
+	done
 
 include $(RTE_SDK)/mk/rte.extshared.mk
