@@ -45,6 +45,8 @@ APP = l3fwd
 SRCS-y := main.c 
 SRCS-y += control.c
 SRCS-y += lib/libnetlink/netlink.c
+SRCS-y += lib/libneighbour/neighbour.c
+
 
 CFLAGS += -I$(RTE_SRCDIR)/include
 

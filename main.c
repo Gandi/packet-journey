@@ -73,8 +73,8 @@
 #include <rte_udp.h>
 #include <rte_string_fns.h>
 #include <rte_spinlock.h>
+#include <rte_kni.h>
 
-#include <router-dpdk/control.h>
 #include "routing.h"
 lookup_struct_t *ipv4_l3fwd_lookup_struct[NB_SOCKETS];
 
@@ -244,17 +244,6 @@ struct ipv6_l3fwd_route {
 	uint8_t depth;
 	uint8_t if_out;
 };
-
-//static struct ipv6_l3fwd_route ipv6_l3fwd_route_array[] = {
-//	{{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, 48, 0},
-//	{{2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, 48, 1},
-//	{{3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, 48, 2},
-//	{{4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, 48, 3},
-//	{{5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, 48, 4},
-//	{{6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, 48, 5},
-//	{{7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, 48, 6},
-//	{{8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, 48, 7},
-//};
 
 #define IPV4_L3FWD_NUM_ROUTES \
 	(sizeof(ipv4_l3fwd_route_array) / sizeof(ipv4_l3fwd_route_array[0]))
