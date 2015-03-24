@@ -2,7 +2,7 @@
 include $(RTE_SDK)/mk/rte.extvars.mk
 SHARED = libnetlink.so
 
-CFLAGS += -I$(RTE_SDK)/build/include
+CFLAGS += -I$(RTE_SDK)/$(RTE_TARGET)/include
 CFLAGS += -I$(SRCDIR)
 
 SRCS-y += netlink.c
