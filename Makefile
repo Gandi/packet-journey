@@ -1,7 +1,8 @@
-include $(RTE_SDK)/mk/rte.vars.mk
+include $(RTE_SDK)/mk/rte.extvars.mk
 
-#ROOTDIRS-y += $(RTE_SDK)/lib
-ROOTDIRS-y += lib
+O ?= $(RTE_SRCDIR)/build
 
-include $(RTE_SDK)/mk/rte.sdkroot.mk
+DIRS-y += lib
+
+include $(RTE_SDK)/mk/rte.extsubdir.mk
 

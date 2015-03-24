@@ -1,6 +1,6 @@
-include $(RTE_SDK)/mk/rte.vars.mk
+include $(RTE_SDK)/mk/rte.extvars.mk
 
 DIRS-y += libneighbour
 DIRS-y += libnetlink
 
-include $(RTE_SDK)/mk/rte.subdir.mk
+include $(RTE_SDK)/mk/rte.extsubdir.mk
