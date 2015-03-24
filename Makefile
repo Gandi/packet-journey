@@ -12,5 +12,6 @@ export CFLAGS
 DIRS-y += lib
 DIRS-y += app
 
+
 include $(RTE_SDK)/mk/rte.extsubdir.mk
 

@@ -1,23 +1,13 @@
 
-include $(RTE_SDK)/mk/rte.extvars.mk
-SHARED = libneighbour.so
+include $(RTE_SDK)/mk/rte.vars.mk
+
+LIB = libneighbour.a
 
 CFLAGS += -I$(RTE_SDK)/$(RTE_TARGET)/include
 CFLAGS += -I$(SRCDIR)
 
 SRCS-y += neighbour.c
 
-HEADERS-y += libneighbour.h
+SYMLINK-y-include += libneighbour.h
 
-POSTBUILD += install-headers
-
-.PHONY: install-headers
-install-headers: $(HEADERS-y)
-	mkdir -p $(BASE_OUTPUT)/include
-	for file in $(HEADERS-y); do\
-		rm -f $(BASE_OUTPUT)/include/$$file;\
-		cp -f $$file $(BASE_OUTPUT)/include;\
-	done
-
-
-include $(RTE_SDK)/mk/rte.extshared.mk
+include $(RTE_SDK)/mk/rte.extlib.mk
