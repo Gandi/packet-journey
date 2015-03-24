@@ -10,6 +10,7 @@
 #include <libnetlink.h>
 #include <libneighbour.h>
 
+#include "control.h"
 #include "routing.h"
 
 struct control_handle {
