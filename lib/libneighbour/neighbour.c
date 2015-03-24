@@ -1,5 +1,7 @@
 #include <rte_malloc.h>
 #include "neighbour.h"
+#include <string.h>
+
 
 inline static void
 neighbor4_free(struct nei_entry4*e)
