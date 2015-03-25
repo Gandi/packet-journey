@@ -2,9 +2,10 @@
 #include <libneighbour.h>
 
 #define IP4(a,b,c,d) \
-	a*256*256*256 +\
-		b*256*256+\
-			c*256+d
+	(a & 0xff) +\
+	((b & 0xff) << 8) +\
+	((c & 0xff) << 16) +\
+	((d & 0xff) << 24)
 
 #define TEST(predicate, message)\
 	if(!(predicate)) {\
