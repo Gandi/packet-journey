@@ -82,7 +82,7 @@ neighbor4_refcount_decr(struct nei_table* t, uint8_t nexthop_id)
 }
 
 int
-neighbor4_set_lladdr(struct nei_table* t, uint8_t nexthop_id, struct ether_addr* lladdr)
+neighbor4_set_lladdr_port(struct nei_table* t, uint8_t nexthop_id, struct ether_addr* lladdr, __s32 port_id)
 {
 	struct nei_entry4 * entry;
 
@@ -94,6 +94,7 @@ neighbor4_set_lladdr(struct nei_table* t, uint8_t nexthop_id, struct ether_addr*
 	entry->valid = 1;
 
 	memcpy(&entry->nexthop_hwaddr, lladdr, sizeof(*lladdr));
+	entry->port_id = port_id;
 	return 0;
 }
 int

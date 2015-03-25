@@ -30,6 +30,11 @@ ifeq ($(CONFIG_RTE_TOOLCHAIN_GCC),y)
 CFLAGS_main.o += -Wno-return-type
 endif
 
+.PHONY: default test
+default: all
+test:
+
+
 include $(RTE_SDK)/mk/rte.extapp.mk
 
 

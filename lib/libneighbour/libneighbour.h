@@ -39,11 +39,9 @@ int
 neighbor4_refcount_decr(struct nei_table*, uint8_t);
 
 int
-neighbor4_set_lladdr(struct nei_table*, uint8_t, struct ether_addr*);
+neighbor4_set_lladdr_port(struct nei_table*, uint8_t, struct ether_addr*, __s32 port_id);
 int
 neighbor4_set_state(struct nei_table*, uint8_t, __u8 flags);
-int
-neighbor4_set_port(struct nei_table*, uint8_t, __s32 port_id);
 
 //if (neighbor4_refcount(neighbor, nexthop_id) > 0)
 // neighbor4_flag_invalid(neighbor, nexthop_id);

@@ -13,6 +13,11 @@ DIRS-y += lib
 DIRS-y += app
 DIRS-y += tests
 
+.PHONY: default
+default: all
+
+.PHONY: test
+test: default
 
 include $(RTE_SDK)/mk/rte.extsubdir.mk
 

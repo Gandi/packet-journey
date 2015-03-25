@@ -134,8 +134,7 @@ neighbor4(__rte_unused struct ndmsg* neighbor, neighbor_action_t action, __s32 p
 			}
 		}
 
-		neighbor4_set_port(handle->neighbor4,   nexthop_id, port_id);
-		neighbor4_set_lladdr(handle->neighbor4, nexthop_id, lladdr);
+		neighbor4_set_lladdr_port(handle->neighbor4, nexthop_id, lladdr, port_id);
 		neighbor4_set_state(handle->neighbor4,  nexthop_id, flags);
 	}
 
