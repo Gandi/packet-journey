@@ -9,11 +9,10 @@
 		exit(1);\
 	}
 
-struct netl_handle * h = NULL;
+struct netl_handle *h = NULL;
 
 
-static int
-addr4(addr_action_t action)
+static int addr4(addr_action_t action)
 {
 	char action_buf[7];
 
@@ -28,7 +27,8 @@ addr4(addr_action_t action)
 
 
 static int
-route4(struct rtmsg* route, route_action_t action, struct in_addr* addr, uint8_t len, struct in_addr* nexthop, void* args)
+route4(struct rtmsg *route, route_action_t action, struct in_addr *addr,
+	   uint8_t len, struct in_addr *nexthop, void *args)
 {
 	char action_buf[7];
 
@@ -41,8 +41,7 @@ route4(struct rtmsg* route, route_action_t action, struct in_addr* addr, uint8_t
 	fflush(stdout);
 }
 
-static int
-init_handler(void *args)
+static int init_handler(void *args)
 {
 	printf("START\n");
 	fflush(stdout);
@@ -51,8 +50,8 @@ init_handler(void *args)
 }
 
 
-static void
-stop_listen(int signum) {
+static void stop_listen(int signum)
+{
 	fprintf(stderr, "received %d\n", signum);
 	if (h != NULL) {
 		netl_close(h);
@@ -62,10 +61,11 @@ stop_listen(int signum) {
 	}
 }
 
-int main(void) {
+int main(void)
+{
 	int s;
 
-	char * argv[7] = {"test", "-l", "0", "-n", "1", "--log-level", "0"};
+	char *argv[7] = { "test", "-l", "0", "-n", "1", "--log-level", "0" };
 	rte_eal_init(7, argv);
 
 	h = netl_create();
@@ -87,10 +87,8 @@ int main(void) {
 	printf("EOF\n");
 	return 0;
 
-free_netl:
+  free_netl:
 	netl_free(h);
-fail:
+  fail:
 	return 1;
 }
-
-

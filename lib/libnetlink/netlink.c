@@ -7,7 +7,7 @@
 #include <rte_malloc.h>
 #include <libnetlink.h>
 
-struct nd_rtattrs{
+struct nd_rtattrs {
 	struct rtattr unspec;
 	struct rtattr dst;
 	struct rtattr lladdr;
@@ -47,10 +47,12 @@ struct if_rtattrs {
 
 static inline __u32 rta_getattr_u32(const struct rtattr *rta)
 {
-    return *(__u32 *)RTA_DATA(rta);
+	return *(__u32 *) RTA_DATA(rta);
 }
-static int parse_rtattr_flags(struct rtattr *tb[], int max, struct rtattr *rta,
-		       int len, unsigned short flags)
+
+static int parse_rtattr_flags(struct rtattr *tb[], int max,
+							  struct rtattr *rta, int len,
+							  unsigned short flags)
 {
 	unsigned short type;
 
@@ -59,7 +61,7 @@ static int parse_rtattr_flags(struct rtattr *tb[], int max, struct rtattr *rta,
 		type = rta->rta_type & ~flags;
 		if ((type <= max) && (!tb[type]))
 			tb[type] = rta;
-		rta = RTA_NEXT(rta,len);
+		rta = RTA_NEXT(rta, len);
 	}
 	if (len)
 		fprintf(stderr, "!!!Deficit %d, rta_len=%d\n", len, rta->rta_len);
@@ -67,26 +69,26 @@ static int parse_rtattr_flags(struct rtattr *tb[], int max, struct rtattr *rta,
 }
 
 static unsigned int get_ifa_flags(struct ifaddrmsg *ifa,
-				  struct rtattr *ifa_flags_attr)
+								  struct rtattr *ifa_flags_attr)
 {
 	return ifa_flags_attr ? rta_getattr_u32(ifa_flags_attr) :
-				ifa->ifa_flags;
+		ifa->ifa_flags;
 }
 
 
 
 static int
-netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, struct nlmsghdr* hdr, void * args)
+netl_handler(struct netl_handle *h,
+			 __rte_unused struct sockaddr_nl *nladdr, struct nlmsghdr *hdr,
+			 void *args)
 {
-	struct rtattr* it;
-	struct rtattr* dst;
+	struct rtattr *it;
+	struct rtattr *dst;
 	int len = hdr->nlmsg_len;
 
-	if (hdr->nlmsg_type == RTM_NEWADDR ||
-	    hdr->nlmsg_type == RTM_DELADDR)
-	{
+	if (hdr->nlmsg_type == RTM_NEWADDR || hdr->nlmsg_type == RTM_DELADDR) {
 		//struct if_rtattrs attrs;
-		struct rtattr * rta_tb[IFA_MAX+1];
+		struct rtattr *rta_tb[IFA_MAX + 1];
 		struct ifaddrmsg *ifa = NLMSG_DATA(hdr);
 		unsigned int ifa_flags;
 		char abuf[256];
@@ -104,60 +106,59 @@ netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, str
 			action = ADDR_DELETE;
 
 
-        parse_rtattr_flags(rta_tb, IFA_MAX, IFA_RTA(ifa), len, 0);
-        ifa_flags = get_ifa_flags(ifa, rta_tb[IFA_FLAGS]);
+		parse_rtattr_flags(rta_tb, IFA_MAX, IFA_RTA(ifa), len, 0);
+		ifa_flags = get_ifa_flags(ifa, rta_tb[IFA_FLAGS]);
 		// Read attributes
 		it = IFA_RTA(ifa);
 		//memset(&attrs, 0, sizeof(attrs));
 
 		fprintf(stderr, "\n");
 
-        if (!rta_tb[IFA_LOCAL])
-            rta_tb[IFA_LOCAL] = rta_tb[IFA_ADDRESS];
-        if (!rta_tb[IFA_ADDRESS])
-            rta_tb[IFA_ADDRESS] = rta_tb[IFA_LOCAL];
+		if (!rta_tb[IFA_LOCAL])
+			rta_tb[IFA_LOCAL] = rta_tb[IFA_ADDRESS];
+		if (!rta_tb[IFA_ADDRESS])
+			rta_tb[IFA_ADDRESS] = rta_tb[IFA_LOCAL];
 
-        if (rta_tb[IFA_LOCAL]) {
-            fprintf(stderr, "%s", inet_ntop(ifa->ifa_family, RTA_DATA(rta_tb[IFA_LOCAL]), abuf, sizeof(abuf)));
+		if (rta_tb[IFA_LOCAL]) {
+			fprintf(stderr, "%s",
+					inet_ntop(ifa->ifa_family, RTA_DATA(rta_tb[IFA_LOCAL]),
+							  abuf, sizeof(abuf)));
 #if 0
-            if (rta_tb[IFA_ADDRESS] == NULL ||
-                    memcmp(RTA_DATA(rta_tb[IFA_ADDRESS]), RTA_DATA(rta_tb[IFA_LOCAL]),
-                        ifa->ifa_family == AF_INET ? 4 : 16) == 0) {
-                fprintf(fp, "/%d ", ifa->ifa_prefixlen);
-            } else {
-                fprintf(fp, " peer %s/%d ",
-                        format_host(ifa->ifa_family,
-                            RTA_PAYLOAD(rta_tb[IFA_ADDRESS]),
-                            RTA_DATA(rta_tb[IFA_ADDRESS]),
-                            abuf, sizeof(abuf)),
-                        ifa->ifa_prefixlen);
-            }
+			if (rta_tb[IFA_ADDRESS] == NULL ||
+				memcmp(RTA_DATA(rta_tb[IFA_ADDRESS]),
+					   RTA_DATA(rta_tb[IFA_LOCAL]),
+					   ifa->ifa_family == AF_INET ? 4 : 16) == 0) {
+				fprintf(fp, "/%d ", ifa->ifa_prefixlen);
+			} else {
+				fprintf(fp, " peer %s/%d ",
+						format_host(ifa->ifa_family,
+									RTA_PAYLOAD(rta_tb[IFA_ADDRESS]),
+									RTA_DATA(rta_tb[IFA_ADDRESS]),
+									abuf, sizeof(abuf)),
+						ifa->ifa_prefixlen);
+			}
 #endif
-        }
-
+		}
 
 #if 0
 		int i;
-		char * ptr = &attrs;
-		for(i=0; i<sizeof(attrs); i++)
+		char *ptr = &attrs;
+		for (i = 0; i < sizeof(attrs); i++)
 			fprintf(stderr, "%02x ", ptr[i]);
 		fprintf(stderr, "\n");
 
 		ptr = &attrs.address;
-		for(i=0; i<sizeof(attrs.address); i++)
+		for (i = 0; i < sizeof(attrs.address); i++)
 			fprintf(stderr, "%02x ", ptr[i]);
 		fprintf(stderr, "\n");
 #endif
 
-		if (h->cb.addr4 != NULL)
-		{
+		if (h->cb.addr4 != NULL) {
 			h->cb.addr4(action);
 		}
 	}
 
-	if (hdr->nlmsg_type == RTM_NEWROUTE ||
-	    hdr->nlmsg_type == RTM_DELROUTE)
-	{
+	if (hdr->nlmsg_type == RTM_NEWROUTE || hdr->nlmsg_type == RTM_DELROUTE) {
 		struct rtmsg *route = NLMSG_DATA(hdr);
 		len -= NLMSG_LENGTH(sizeof(*route));
 
@@ -167,8 +168,7 @@ netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, str
 		}
 
 		if (route->rtm_family != RTNL_FAMILY_IPMR &&
-		    route->rtm_family != RTNL_FAMILY_IP6MR)
-		{
+			route->rtm_family != RTNL_FAMILY_IP6MR) {
 			// TODO decap message
 			// This is an unicast route, no interest for multicast
 			route_action_t action;
@@ -177,10 +177,9 @@ netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, str
 			else
 				action = ROUTE_DELETE;
 
-			if (h->cb.route4 != NULL)
-			{
-				struct in_addr* addr;
-				struct in_addr* nexthop;
+			if (h->cb.route4 != NULL) {
+				struct in_addr *addr;
+				struct in_addr *nexthop;
 				uint8_t len;
 				h->cb.route4(route, action, addr, len, nexthop, args);
 			}
@@ -188,15 +187,11 @@ netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, str
 	}
 
 	if (hdr->nlmsg_type == RTM_NEWLINK ||
-	    hdr->nlmsg_type == RTM_DELLINK ||
-	    hdr->nlmsg_type == RTM_SETLINK)
-	{
+		hdr->nlmsg_type == RTM_DELLINK || hdr->nlmsg_type == RTM_SETLINK) {
 		// TODO: store iface name for future use
 	}
 
-	if (hdr->nlmsg_type == RTM_NEWNEIGH ||
-	    hdr->nlmsg_type == RTM_DELNEIGH)
-	{
+	if (hdr->nlmsg_type == RTM_NEWNEIGH || hdr->nlmsg_type == RTM_DELNEIGH) {
 		struct ndmsg *neighbor = NLMSG_DATA(hdr);
 		struct nd_rtattrs attrs;
 
@@ -206,10 +201,9 @@ netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, str
 			// incomplete message
 			return -1;
 		}
-
 		// Ignore non-ip
 		if (neighbor->ndm_family != AF_INET &&
-		    neighbor->ndm_family != AF_INET6)
+			neighbor->ndm_family != AF_INET6)
 			return 0;
 
 		// Read attributes
@@ -217,8 +211,7 @@ netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, str
 		memset(&attrs, 0, sizeof(attrs));
 		int attr_len = hdr->nlmsg_len - NLMSG_LENGTH(sizeof(*neighbor));
 		unsigned short type;
-		while (RTA_OK(it, attr_len))
-		{
+		while (RTA_OK(it, attr_len)) {
 			type = it->rta_type;
 			dst = ND_RTATTRS_TYPE(&attrs, type);
 
@@ -227,27 +220,25 @@ netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, str
 			it = RTA_NEXT(it, attr_len);
 		}
 
-		if (neighbor->ndm_family == AF_INET)
-		{
+		if (neighbor->ndm_family == AF_INET) {
 			// TODO RTA_PAYLOAD(&(attrs.dst)) == 4 (bytes)
-			struct in_addr* addr = RTA_DATA(&(attrs.dst));
+			struct in_addr *addr = RTA_DATA(&(attrs.dst));
 			// TODO RTA_PAYLOAD(&(attrs.lladdr)) == 6 (bytes)
-			struct ether_addr* lladdr = RTA_DATA(&(attrs.lladdr));
+			struct ether_addr *lladdr = RTA_DATA(&(attrs.lladdr));
 			neighbor_action_t action;
 			if (hdr->nlmsg_type == RTM_NEWNEIGH)
 				action = NEIGHBOR_ADD;
 			else
 				action = NEIGHBOR_DELETE;
 
-			if (h->cb.neighbor4 != NULL)
-			{
+			if (h->cb.neighbor4 != NULL) {
 				__u8 flags = neighbor->ndm_state;
-				h->cb.neighbor4(neighbor, action, neighbor->ndm_ifindex, addr, lladdr, flags, args);
+				h->cb.neighbor4(neighbor, action, neighbor->ndm_ifindex,
+								addr, lladdr, flags, args);
 			}
 		}
 
-		if (neighbor->ndm_family == AF_INET6)
-		{
+		if (neighbor->ndm_family == AF_INET6) {
 			// TODO
 		}
 	}
@@ -255,9 +246,9 @@ netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, str
 	return 0;
 }
 
-int
-netl_close(struct netl_handle* h) {
-	
+int netl_close(struct netl_handle *h)
+{
+
 	if (h->fd > 0) {
 		h->closing = 1;
 		close(h->fd);
@@ -265,8 +256,7 @@ netl_close(struct netl_handle* h) {
 	return 0;
 }
 
-int
-netl_listen(struct netl_handle* h, void* args)
+int netl_listen(struct netl_handle *h, void *args)
 {
 	int len, buflen, err;
 	ssize_t status;
@@ -286,25 +276,21 @@ netl_listen(struct netl_handle* h, void* args)
 
 	iov.iov_base = buf;
 
-	if (h->cb.init != NULL)
-	{
+	if (h->cb.init != NULL) {
 		err = h->cb.init(args);
 		if (err != 0)
 			return err;
 	}
 
-	while (h->closing != 1)
-	{
+	while (h->closing != 1) {
 		iov.iov_len = sizeof(buf);
 		status = recvmsg(h->fd, &msg, 0);
-		if (status < 0)
-		{
+		if (status < 0) {
 			// TODO: EINT / EAGAIN / ENOBUF should continue
 			return -1;
 		}
 
-		if (status == 0)
-		{
+		if (status == 0) {
 			// EOF
 			return -1;
 		}
@@ -314,13 +300,12 @@ netl_listen(struct netl_handle* h, void* args)
 			return -1;
 		}
 
-		for (hdr = (struct nlmsghdr*)buf; (size_t) status >= sizeof(*hdr); )
-		{
+		for (hdr = (struct nlmsghdr *) buf;
+			 (size_t) status >= sizeof(*hdr);) {
 			len = hdr->nlmsg_len;
 			buflen = len - sizeof(*hdr);
 
-			if (buflen < 0 || buflen > status)
-			{
+			if (buflen < 0 || buflen > status) {
 				// truncated
 				return -1;
 			}
@@ -330,7 +315,7 @@ netl_listen(struct netl_handle* h, void* args)
 				return err;
 
 			status -= NLMSG_ALIGN(len);
-			hdr = (struct nlmsghdr*) ((char*) hdr + NLMSG_ALIGN(len));
+			hdr = (struct nlmsghdr *) ((char *) hdr + NLMSG_ALIGN(len));
 		}
 
 		if (status) {
@@ -349,11 +334,10 @@ static inline __u32 nl_mgrp(__u32 group)
 }
 
 
-struct netl_handle*
-netl_create(void)
+struct netl_handle *netl_create(void)
 {
-	struct netl_handle* netl_handle;
-	int rcvbuf = 1024*1024;
+	struct netl_handle *netl_handle;
+	int rcvbuf = 1024 * 1024;
 	socklen_t addr_len;
 	unsigned subscriptions = 0;
 
@@ -383,15 +367,16 @@ netl_create(void)
 	if (netl_handle == NULL)
 		return NULL;
 
-	netl_handle->fd = socket(AF_NETLINK, SOCK_RAW | SOCK_CLOEXEC, NETLINK_ROUTE);
-	if (netl_handle->fd < 0)
-	{
+	netl_handle->fd =
+		socket(AF_NETLINK, SOCK_RAW | SOCK_CLOEXEC, NETLINK_ROUTE);
+	if (netl_handle->fd < 0) {
 		perror("Cannot open netlink socket");
 		goto free_netl_handle;
 	}
 
-	if (setsockopt(netl_handle->fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(rcvbuf)) < 0)
-	{
+	if (setsockopt
+		(netl_handle->fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf,
+		 sizeof(rcvbuf)) < 0) {
 		perror("Cannot set RCVBUF");
 		goto free_netl_handle;
 	}
@@ -403,21 +388,22 @@ netl_create(void)
 	netl_handle->cb.neighbor4 = NULL;
 	netl_handle->cb.route4 = NULL;
 
-	if (bind(netl_handle->fd, (struct sockaddr*)&(netl_handle->local), sizeof(netl_handle->local)) < 0)
-	{
+	if (bind
+		(netl_handle->fd, (struct sockaddr *) &(netl_handle->local),
+		 sizeof(netl_handle->local)) < 0) {
 		perror("Cannot bind netlink socket");
 		goto free_netl_handle;
 	}
 
 	addr_len = sizeof(netl_handle->local);
-	if (getsockname(netl_handle->fd, (struct sockaddr*) &netl_handle->local, &addr_len) < 0)
-	{
+	if (getsockname
+		(netl_handle->fd, (struct sockaddr *) &netl_handle->local,
+		 &addr_len) < 0) {
 		perror("Cannot getsockname");
 		goto free_netl_handle;
 	}
 
-	if(addr_len != sizeof(netl_handle->local))
-	{
+	if (addr_len != sizeof(netl_handle->local)) {
 		perror("Wrong address length");
 		goto free_netl_handle;
 	}
@@ -431,17 +417,15 @@ netl_create(void)
 
 	return netl_handle;
 
-free_netl_handle:
+  free_netl_handle:
 	rte_free(netl_handle);
 	return NULL;
 }
 
-int
-netl_free(struct netl_handle* h)
+int netl_free(struct netl_handle *h)
 {
 	if (h != NULL) {
-		if (h->fd > 0)
-		{
+		if (h->fd > 0) {
 			close(h->fd);
 			h->fd = -1;
 		}

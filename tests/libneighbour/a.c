@@ -13,13 +13,14 @@
 		exit(1);\
 	}
 
-int main(void) {
+int main(void)
+{
 	int s;
-	struct nei_table * t;
+	struct nei_table *t;
 	struct in_addr nexthop;
 	uint8_t id;
 
-	char * argv[7] = {"test", "-l", "0", "-n", "1", "--log-level", "0"};
+	char *argv[7] = { "test", "-l", "0", "-n", "1", "--log-level", "0" };
 
 	rte_eal_init(7, argv);
 
@@ -28,29 +29,33 @@ int main(void) {
 		perror("Failed to initialize neighbour table");
 		exit(1);
 	}
-
 	// Populate table
-	nexthop.s_addr = IP4(1,2,3,4);
+	nexthop.s_addr = IP4(1, 2, 3, 4);
 	s = neighbor4_add_nexthop(t, &nexthop, &id);
 
 	TEST(id == 0, "first entry is expected to be at index 0")
-	TEST(t->entries4[id].state == 0, "Flags should be zeroed upon insert")
-	TEST(t->entries4[id].in_use == 1, "Entry should be flagged in_use after insertion")
+		TEST(t->entries4[id].state == 0,
+			 "Flags should be zeroed upon insert")
+		TEST(t->entries4[id].in_use == 1,
+			 "Entry should be flagged in_use after insertion")
 
-	TEST(t->entries4[1].in_use == 0 || 
-	     t->entries4[NEI_NUM_ENTRIES-1].in_use == 0, "Unknown entries should be invalid")
+		TEST(t->entries4[1].in_use == 0 ||
+			 t->entries4[NEI_NUM_ENTRIES - 1].in_use == 0,
+			 "Unknown entries should be invalid")
 
-	nexthop.s_addr = IP4(1,2,3,5);
+		nexthop.s_addr = IP4(1, 2, 3, 5);
 	s = neighbor4_add_nexthop(t, &nexthop, &id);
 	TEST(id == 1, "entry is expected to be at index 1")
 
-	neighbor4_delete(t, 0);
-	TEST(t->entries4[0].in_use == 0, "First entry has been deleted, it should not be in_use anymore")
+		neighbor4_delete(t, 0);
+	TEST(t->entries4[0].in_use == 0,
+		 "First entry has been deleted, it should not be in_use anymore")
 
-	nexthop.s_addr = IP4(1,2,3,6);
+		nexthop.s_addr = IP4(1, 2, 3, 6);
 	s = neighbor4_add_nexthop(t, &nexthop, &id);
 	TEST(id == 0, "first entry was empty, new entry should take index 0")
-	TEST(t->entries4[0].in_use == 1, "First entry should be in use again")
+		TEST(t->entries4[0].in_use == 1,
+			 "First entry should be in use again")
 
 	__s32 port_id = 1;
 	struct ether_addr lladdr = {
@@ -62,5 +67,3 @@ int main(void) {
 	printf("EOF\n");
 	return 0;
 }
-
-
