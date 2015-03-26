@@ -125,8 +125,6 @@ netl_handler(struct netl_handle *h,
 		it = IFA_RTA(ifa);
 		//memset(&attrs, 0, sizeof(attrs));
 
-		fprintf(stderr, "\n");
-
 		if (!rta_tb[IFA_LOCAL])
 			rta_tb[IFA_LOCAL] = rta_tb[IFA_ADDRESS];
 		if (!rta_tb[IFA_ADDRESS])
