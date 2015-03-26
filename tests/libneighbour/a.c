@@ -1,4 +1,4 @@
-
+#include "rdpdk_common.h"
 #include <libneighbour.h>
 
 #define IP4(a,b,c,d) \
@@ -22,7 +22,7 @@ int main(void)
 
 	char *argv[7] = { "test", "-l", "0", "-n", "1", "--log-level", "0" };
 
-	rte_eal_init(7, argv);
+	rdpdk_init(7, argv);
 
 	t = nei_create();
 	if (t == NULL) {

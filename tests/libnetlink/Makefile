@@ -8,6 +8,7 @@ SRCS-y += a.c
 SRCS-y += $(BASE_OUTPUT)/lib/libnetlink/$(RTE_TARGET)/lib/libnetlink.a
 
 CFLAGS += -I$(BASE_OUTPUT)/lib/libnetlink/$(RTE_TARGET)/include
+CFLAGS += -I$(SRCDIR)/../../include/
 
 .PHONY: default test
 default: all

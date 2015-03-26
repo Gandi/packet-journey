@@ -8,6 +8,7 @@ SRCS-y += a.c
 SRCS-y += $(BASE_OUTPUT)/lib/libneighbour/$(RTE_TARGET)/lib/libneighbour.a
 
 CFLAGS += -I$(BASE_OUTPUT)/lib/libneighbour/$(RTE_TARGET)/include
+CFLAGS += -I$(SRCDIR)/../../include/
 
 .PHONY: default test
 default: all

@@ -2,10 +2,9 @@
 #include <unistd.h>
 #include <sys/socket.h>
 
+#include "rdpdk_common.h"
 
-#include <rte_common.h>
-#include <rte_malloc.h>
-#include <libnetlink.h>
+#include "libnetlink.h"
 
 struct nd_rtattrs {
 	struct rtattr unspec;
@@ -79,8 +78,8 @@ static unsigned int get_ifa_flags(struct ifaddrmsg *ifa,
 
 static int
 netl_handler(struct netl_handle *h,
-			 __rte_unused struct sockaddr_nl *nladdr, struct nlmsghdr *hdr,
-			 void *args)
+			 rdpdk_unused(struct sockaddr_nl *nladdr),
+			 struct nlmsghdr *hdr, void *args)
 {
 	struct rtattr *it;
 	struct rtattr *dst;
@@ -139,7 +138,6 @@ netl_handler(struct netl_handle *h,
 			}
 #endif
 		}
-
 #if 0
 		int i;
 		char *ptr = &attrs;
@@ -363,7 +361,8 @@ struct netl_handle *netl_create(void)
 	// subscriptions |= RTNLGRP_IPV6_NETCONF;
 
 
-	netl_handle = rte_malloc("netl_handle", sizeof(struct netl_handle), 0);
+	netl_handle =
+		rdpdk_malloc("netl_handle", sizeof(struct netl_handle), 0);
 	if (netl_handle == NULL)
 		return NULL;
 
@@ -418,7 +417,7 @@ struct netl_handle *netl_create(void)
 	return netl_handle;
 
   free_netl_handle:
-	rte_free(netl_handle);
+	rdpdk_free(netl_handle);
 	return NULL;
 }
 
@@ -430,7 +429,7 @@ int netl_free(struct netl_handle *h)
 			h->fd = -1;
 		}
 
-		rte_free(h);
+		rdpdk_free(h);
 	}
 
 	return 0;

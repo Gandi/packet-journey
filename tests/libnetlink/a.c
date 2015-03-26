@@ -1,6 +1,7 @@
 #include <signal.h>
-
 #include <libnetlink.h>
+
+#include "rdpdk_common.h"
 
 
 #define TEST(predicate, message)\
@@ -66,7 +67,7 @@ int main(void)
 	int s;
 
 	char *argv[7] = { "test", "-l", "0", "-n", "1", "--log-level", "0" };
-	rte_eal_init(7, argv);
+	rdpdk_init(7, argv);
 
 	h = netl_create();
 	if (h == NULL) {

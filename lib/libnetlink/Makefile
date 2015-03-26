@@ -4,6 +4,7 @@ LIB= libnetlink.a
 
 CFLAGS += -I$(RTE_SDK)/$(RTE_TARGET)/include
 CFLAGS += -I$(SRCDIR)
+CFLAGS += -I$(SRCDIR)/../../include/
 
 SRCS-y += netlink.c
 

@@ -1,6 +1,7 @@
-#include <rte_malloc.h>
-#include <libneighbour.h>
 #include <string.h>
+
+#include "rdpdk_common.h"
+#include "libneighbour.h"
 
 
 inline static void neighbor4_free(struct nei_entry4 *e)
@@ -146,7 +147,7 @@ struct nei_table *nei_create(void)
 {
 	struct nei_table *nei_table;
 
-	nei_table = rte_malloc("nei_table", sizeof(struct nei_table), 0);
+	nei_table = rdpdk_malloc("nei_table", sizeof(struct nei_table), 0);
 	if (nei_table == NULL)
 		return NULL;
 
@@ -158,5 +159,5 @@ struct nei_table *nei_create(void)
 void nei_free(struct nei_table *table)
 {
 	if (table != NULL)
-		rte_free(table);
+		rdpdk_free(table);
 }
