@@ -136,18 +136,20 @@ netl_handler(struct netl_handle *h,
 			memcpy(buf_addr, RTA_DATA(rta_tb[IFA_LOCAL]),
 				   RTA_PAYLOAD(rta_tb[IFA_LOCAL]));
 		}
-        switch (ifa->ifa_family) {
+		switch (ifa->ifa_family) {
 		case AF_INET:
-            if (h->cb.addr4 != NULL) {
-                h->cb.addr4(action, ifa->ifa_index,
-                        (struct in_addr *) buf_addr, ifa->ifa_prefixlen);
-            }
+			if (h->cb.addr4 != NULL) {
+				h->cb.addr4(action, ifa->ifa_index,
+							(struct in_addr *) buf_addr,
+							ifa->ifa_prefixlen);
+			}
 			break;
 		case AF_INET6:
-            if (h->cb.addr6 != NULL) {
-                h->cb.addr6(action, ifa->ifa_index,
-                        (struct in_addr6 *) buf_addr, ifa->ifa_prefixlen);
-            }
+			if (h->cb.addr6 != NULL) {
+				h->cb.addr6(action, ifa->ifa_index,
+							(struct in_addr6 *) buf_addr,
+							ifa->ifa_prefixlen);
+			}
 			break;
 		default:
 			//only handling IP

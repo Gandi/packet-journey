@@ -34,8 +34,8 @@ static int addr4(addr_action_t action, __s32 port_id, struct in_addr *addr,
 	fflush(stdout);
 }
 
-static int addr6(addr_action_t action, __s32 port_id, struct in_addr6 *addr,
-				 __u8 prefixlen)
+static int addr6(addr_action_t action, __s32 port_id,
+				 struct in_addr6 *addr, __u8 prefixlen)
 {
 	char action_buf[4];
 	char abuf[256];
@@ -50,7 +50,8 @@ static int addr6(addr_action_t action, __s32 port_id, struct in_addr6 *addr,
 		snprintf(ibuf, IFNAMSIZ, "if%d", port_id);
 
 	fprintf(stdout, "addr6 %s %s/%d dev %s\n", action_buf,
-			inet_ntop(AF_INET6, addr, abuf, sizeof(abuf)), prefixlen, ibuf);
+			inet_ntop(AF_INET6, addr, abuf, sizeof(abuf)), prefixlen,
+			ibuf);
 	fflush(stdout);
 }
 
