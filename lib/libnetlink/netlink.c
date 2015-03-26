@@ -189,7 +189,8 @@ netl_handler(struct netl_handle *h,
 			if (!tb[RTA_GATEWAY])
 				return 0;
 
-			if (r->rtm_family == AF_INET) {
+			switch (r->rtm_family) {
+			case AF_INET:
 				if (h->cb.route4 != NULL) {
 					struct in_addr addr;
 					struct in_addr nexthop;
@@ -201,19 +202,23 @@ netl_handler(struct netl_handle *h,
 					h->cb.route4(r, action, &addr, r->rtm_dst_len,
 								 &nexthop, args);
 				}
-			}
-			if (r->rtm_family == AF_INET6) {
-				struct in6_addr addr;
-				struct in6_addr nexthop;
-				memcpy(&addr.s6_addr, RTA_DATA(tb[RTA_DST]),
-					   sizeof(addr.s6_addr));
-				memcpy(&nexthop.s6_addr, RTA_DATA(tb[RTA_GATEWAY]),
-					   sizeof(nexthop.s6_addr));
-
+				break;
+			case AF_INET6:
 				if (h->cb.route6 != NULL) {
+					struct in6_addr addr;
+					struct in6_addr nexthop;
+					memcpy(&addr.s6_addr, RTA_DATA(tb[RTA_DST]),
+						   sizeof(addr.s6_addr));
+					memcpy(&nexthop.s6_addr, RTA_DATA(tb[RTA_GATEWAY]),
+						   sizeof(nexthop.s6_addr));
+
 					h->cb.route6(r, action, &addr, r->rtm_dst_len,
 								 &nexthop, args);
 				}
+				break;
+			default:
+				//only handling IP
+				return 0;
 			}
 		}
 	}
