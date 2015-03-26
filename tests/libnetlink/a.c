@@ -35,7 +35,7 @@ static int addr4(addr_action_t action, __s32 port_id, struct in_addr *addr,
 }
 
 static int addr6(addr_action_t action, __s32 port_id,
-				 struct in_addr6 *addr, __u8 prefixlen)
+				 struct in6_addr *addr, __u8 prefixlen)
 {
 	char action_buf[4];
 	char abuf[256];

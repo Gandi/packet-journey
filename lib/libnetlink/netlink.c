@@ -147,7 +147,7 @@ netl_handler(struct netl_handle *h,
 		case AF_INET6:
 			if (h->cb.addr6 != NULL) {
 				h->cb.addr6(action, ifa->ifa_index,
-							(struct in_addr6 *) buf_addr,
+							(struct in6_addr *) buf_addr,
 							ifa->ifa_prefixlen);
 			}
 			break;
