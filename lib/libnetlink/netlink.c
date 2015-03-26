@@ -49,6 +49,11 @@ static inline __u32 rta_getattr_u32(const struct rtattr *rta)
 	return *(__u32 *) RTA_DATA(rta);
 }
 
+static inline const char *rta_getattr_str(const struct rtattr *rta)
+{
+	return (const char *)RTA_DATA(rta);
+}
+
 static int parse_rtattr_flags(struct rtattr *tb[], int max,
 							  struct rtattr *rta, int len,
 							  unsigned short flags)
@@ -73,8 +78,6 @@ static unsigned int get_ifa_flags(struct ifaddrmsg *ifa,
 	return ifa_flags_attr ? rta_getattr_u32(ifa_flags_attr) :
 		ifa->ifa_flags;
 }
-
-
 
 static int
 netl_handler(struct netl_handle *h,
@@ -122,6 +125,10 @@ netl_handler(struct netl_handle *h,
 			fprintf(stderr, "%s",
 					inet_ntop(ifa->ifa_family, RTA_DATA(rta_tb[IFA_LOCAL]),
 							  abuf, sizeof(abuf)));
+            fprintf(stderr, "/%d ", ifa->ifa_prefixlen);
+            if (rta_tb[IFA_LABEL])
+                fprintf(stderr, "dev %s", rta_getattr_str(rta_tb[IFA_LABEL]));
+            fprintf(stderr, "\n");
 #if 0
 			if (rta_tb[IFA_ADDRESS] == NULL ||
 				memcmp(RTA_DATA(rta_tb[IFA_ADDRESS]),
