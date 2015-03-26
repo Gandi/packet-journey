@@ -27,7 +27,7 @@ struct nd_rtattrs{
 #define ND_RTATTRS_TYPE(r, type) \
 	((struct rtattr*)(((char*)(r)) + (type * sizeof(struct rtattr))))
 
-struct rt_ifa {
+struct if_rtattrs {
 	struct rtattr unspec;
 	struct rtattr address;
 	struct rtattr local;
@@ -39,16 +39,22 @@ struct rt_ifa {
 	struct rtattr flags;
 };
 
+#define IF_ATTRS_MAX sizeof(struct if_rtattrs) / sizeof(struct rtattr)
 #define IFA_RTA(r)  ((struct rtattr*)(((char*)(r)) + NLMSG_ALIGN(sizeof(struct ifaddrmsg))))
+#define IF_RTATTRS_TYPE(r, type) \
+	((struct rtattr*)(((char*)(r)) + (type * sizeof(struct rtattr))))
 
 static int
 netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, struct nlmsghdr* hdr, void * args)
 {
+	struct rtattr* it;
+	struct rtattr* dst;
 	int len = hdr->nlmsg_len;
 
 	if (hdr->nlmsg_type == RTM_NEWADDR ||
 	    hdr->nlmsg_type == RTM_DELADDR)
 	{
+		struct if_rtattrs attrs;
 		struct ifaddrmsg *ifa = NLMSG_DATA(hdr);
 		addr_action_t action;
 		len -= NLMSG_LENGTH(sizeof(*ifa));
@@ -63,7 +69,47 @@ netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, str
 		else if (hdr->nlmsg_type == RTM_NEWADDR)
 			action = ADDR_DELETE;
 
-		fprintf(stderr, "len %d sizeof %d\n", sizeof(*ifa), sizeof(struct rt_ifa));
+		// Read attributes
+		it = IFA_RTA(ifa);
+		memset(&attrs, 0, sizeof(attrs));
+
+		int attr_len = hdr->nlmsg_len - NLMSG_LENGTH(sizeof(*ifa));
+		unsigned short type;
+		while (RTA_OK(it, attr_len))
+		{
+			type = it->rta_type;
+			fprintf(stderr, "%02x ", type); 
+			dst = IF_RTATTRS_TYPE(&attrs, type);
+
+			if (type < IF_ATTRS_MAX)
+			{
+				if (type == 1){
+
+		int i;
+		char * ptr = NLMSG_DATA(it);
+		for(i=0; i<NLMSG_PAYLOAD(it, sizeof(struct ifaddrmsg)); i++)
+			fprintf(stderr, "%02x ", ptr[i]);
+		fprintf(stderr, "\n");
+
+
+				}
+				fprintf(stderr, "copied ", type); 
+				memcpy(dst, it, sizeof(*dst));
+			}
+			it = RTA_NEXT(it, attr_len);
+		}
+		fprintf(stderr, "\n");
+
+		int i;
+		char * ptr = &attrs;
+		for(i=0; i<sizeof(attrs); i++)
+			fprintf(stderr, "%02x ", ptr[i]);
+		fprintf(stderr, "\n");
+
+		ptr = &attrs.address;
+		for(i=0; i<sizeof(attrs.address); i++)
+			fprintf(stderr, "%02x ", ptr[i]);
+		fprintf(stderr, "\n");
 
 
 		if (h->cb.addr4 != NULL)
@@ -116,8 +162,6 @@ netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, str
 	{
 		struct ndmsg *neighbor = NLMSG_DATA(hdr);
 		struct nd_rtattrs attrs;
-		struct rtattr* it;
-		struct rtattr* dst;
 
 		len -= NLMSG_LENGTH(sizeof(*neighbor));
 
