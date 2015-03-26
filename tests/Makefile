@@ -1,6 +1,8 @@
 include $(RTE_SDK)/mk/rte.vars.mk
 
 DIRS-y += libneighbour
+DIRS-y += libnetlink
+
 
 
 
@@ -8,6 +10,7 @@ DIRS-y += libneighbour
 default: all
 test:
 	$(Q)for dir in $(DIRS-y); do\
+		[ "x$(ONLY_TEST)" != "x" ] && [ "$(ONLY_TEST)" != "$$dir" ] && continue;\
 		echo "== $$dir";\
 		$(MAKE) -C $$dir \
 			M=$(CURDIR)/$$dir/Makefile \

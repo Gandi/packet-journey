@@ -27,10 +27,50 @@ struct nd_rtattrs{
 #define ND_RTATTRS_TYPE(r, type) \
 	((struct rtattr*)(((char*)(r)) + (type * sizeof(struct rtattr))))
 
+struct rt_ifa {
+	struct rtattr unspec;
+	struct rtattr address;
+	struct rtattr local;
+	struct rtattr label;
+	struct rtattr broadcast;
+	struct rtattr anycast;
+	struct rtattr cacheinfo;
+	struct rtattr multicast;
+	struct rtattr flags;
+};
+
+#define IFA_RTA(r)  ((struct rtattr*)(((char*)(r)) + NLMSG_ALIGN(sizeof(struct ifaddrmsg))))
+
 static int
 netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, struct nlmsghdr* hdr, void * args)
 {
-	int len = hdr->nlmsg_type;
+	int len = hdr->nlmsg_len;
+
+	if (hdr->nlmsg_type == RTM_NEWADDR ||
+	    hdr->nlmsg_type == RTM_DELADDR)
+	{
+		struct ifaddrmsg *ifa = NLMSG_DATA(hdr);
+		addr_action_t action;
+		len -= NLMSG_LENGTH(sizeof(*ifa));
+
+		if (len < 0) {
+			// incomplete message
+			return -1;
+		}
+
+		if (hdr->nlmsg_type == RTM_NEWADDR)
+			action = ADDR_ADD;
+		else if (hdr->nlmsg_type == RTM_NEWADDR)
+			action = ADDR_DELETE;
+
+		fprintf(stderr, "len %d sizeof %d\n", sizeof(*ifa), sizeof(struct rt_ifa));
+
+
+		if (h->cb.addr4 != NULL)
+		{
+			h->cb.addr4(action);
+		}
+	}
 
 	if (hdr->nlmsg_type == RTM_NEWROUTE ||
 	    hdr->nlmsg_type == RTM_DELROUTE)
@@ -135,6 +175,16 @@ netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, str
 }
 
 int
+netl_close(struct netl_handle* h) {
+	
+	if (h->fd > 0) {
+		h->closing = 1;
+		close(h->fd);
+	}
+	return 0;
+}
+
+int
 netl_listen(struct netl_handle* h, void* args)
 {
 	int len, buflen, err;
@@ -154,7 +204,15 @@ netl_listen(struct netl_handle* h, void* args)
 		return -1;
 
 	iov.iov_base = buf;
-	while (1)
+
+	if (h->cb.init != NULL)
+	{
+		err = h->cb.init(args);
+		if (err != 0)
+			return err;
+	}
+
+	while (h->closing != 1)
 	{
 		iov.iov_len = sizeof(buf);
 		status = recvmsg(h->fd, &msg, 0);
@@ -204,6 +262,11 @@ netl_listen(struct netl_handle* h, void* args)
 	return 1;
 }
 
+static inline __u32 nl_mgrp(__u32 group)
+{
+	return group ? (1 << (group - 1)) : 0;
+}
+
 
 struct netl_handle*
 netl_create(void)
@@ -213,19 +276,22 @@ netl_create(void)
 	socklen_t addr_len;
 	unsigned subscriptions = 0;
 
+	// get notified whenever interface change (new vlans / ...)
+	subscriptions |= nl_mgrp(RTNLGRP_LINK);
+
 	// get notified whenever ip changes
-	subscriptions |= RTNLGRP_IPV4_IFADDR;
-	subscriptions |= RTNLGRP_IPV6_IFADDR;
+	subscriptions |= nl_mgrp(RTNLGRP_IPV4_IFADDR);
+	subscriptions |= nl_mgrp(RTNLGRP_IPV6_IFADDR);
 
 	// get notified on new routes
-	subscriptions |= RTNLGRP_IPV4_ROUTE;
-	subscriptions |= RTNLGRP_IPV6_ROUTE;
+	subscriptions |= nl_mgrp(RTNLGRP_IPV4_ROUTE);
+	subscriptions |= nl_mgrp(RTNLGRP_IPV6_ROUTE);
 
 	// subscriptions |= RTNLGRP_IPV6_PREFIX;
 	// prefix is for ipv6 RA
 
 	// get notified by arp or ipv6 nd
-	subscriptions |= RTNLGRP_NEIGH;
+	subscriptions |= nl_mgrp(RTNLGRP_NEIGH);
 
 	// called whenever an iface is added/removed
 	// subscriptions |= RTNLGRP_IPV4_NETCONF;
@@ -279,6 +345,8 @@ netl_create(void)
 		perror("Wrong address family");
 		goto free_netl_handle;
 	}
+
+	netl_handle->closing = 0;
 
 	return netl_handle;
 
