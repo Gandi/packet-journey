@@ -204,22 +204,22 @@ netl_handler(struct netl_handle *h,
 			if (r->rtm_family == AF_INET) {
 				if (h->cb.route4 != NULL) {
 					struct in_addr addr;
-					memcpy(&addr.s_addr, RTA_DATA(tb[RTA_DST]), sizeof(addr.s_addr));
 					struct in_addr nexthop;
+					memcpy(&addr.s_addr, RTA_DATA(tb[RTA_DST]), sizeof(addr.s_addr));
 					memcpy(&nexthop.s_addr, RTA_DATA(tb[RTA_GATEWAY]), sizeof(nexthop.s_addr));
 
 					h->cb.route4(r, action, &addr, r->rtm_dst_len, &nexthop, args);
 				}
 			}
 			if (r->rtm_family == AF_INET6) {
-#if 0
+					struct in6_addr addr;
+					struct in6_addr nexthop;
+					memcpy(&addr.s6_addr, RTA_DATA(tb[RTA_DST]), sizeof(addr.s6_addr));
+					memcpy(&nexthop.s6_addr, RTA_DATA(tb[RTA_GATEWAY]), sizeof(nexthop.s6_addr));
+
 				if (h->cb.route6 != NULL) {
-					struct in_addr addr;
-					
-					struct in_addr *nexthop;
-					h->cb.route4(r, action, addr, r->rtm_dst_len, nexthop, args);
+					h->cb.route6(r, action, &addr, r->rtm_dst_len, &nexthop, args);
 				}
-#endif
 			}
 		}
 	}

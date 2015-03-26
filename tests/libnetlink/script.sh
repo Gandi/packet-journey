@@ -72,6 +72,11 @@ expectedoutput "route4 add 1.2.4.0/24 via 1.2.3.254" "We should have read new ro
 ip route del 1.2.4.0/24 via 1.2.3.254
 expectedoutput "route4 delete 1.2.4.0/24 via 1.2.3.254" "We should have read route deletion through netlink"
 
+ip route add 1::/48 via fe80::1 dev eth0
+expectedoutput "route6 add 1::/48 via fe80::1" "We should have read new route through netlink"
+ip route del 1::/48 via fe80::1 dev eth0
+expectedoutput "route6 delete 1::/48 via fe80::1" "We should have read route deletion through netlink"
+
 ip addr del 1.2.3.1/24 dev eth0
 expectedoutput "addr4 del 1.2.3.1/24 dev eth0" "We should have read a delete address through netlink"
 
