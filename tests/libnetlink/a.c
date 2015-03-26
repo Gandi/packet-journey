@@ -57,7 +57,6 @@ static void stop_listen(int signum)
 	if (h != NULL) {
 		netl_close(h);
 
-		netl_free(h);
 		printf("EOF\n");
 	}
 }
