@@ -7,7 +7,6 @@
 #include <rte_malloc.h>
 #include <libnetlink.h>
 
-
 struct nd_rtattrs{
 	struct rtattr unspec;
 	struct rtattr dst;
@@ -27,6 +26,7 @@ struct nd_rtattrs{
 #define ND_RTATTRS_TYPE(r, type) \
 	((struct rtattr*)(((char*)(r)) + (type * sizeof(struct rtattr))))
 
+#if 0
 struct if_rtattrs {
 	struct rtattr unspec;
 	struct rtattr address;
@@ -43,6 +43,37 @@ struct if_rtattrs {
 #define IFA_RTA(r)  ((struct rtattr*)(((char*)(r)) + NLMSG_ALIGN(sizeof(struct ifaddrmsg))))
 #define IF_RTATTRS_TYPE(r, type) \
 	((struct rtattr*)(((char*)(r)) + (type * sizeof(struct rtattr))))
+#endif
+
+static inline __u32 rta_getattr_u32(const struct rtattr *rta)
+{
+    return *(__u32 *)RTA_DATA(rta);
+}
+static int parse_rtattr_flags(struct rtattr *tb[], int max, struct rtattr *rta,
+		       int len, unsigned short flags)
+{
+	unsigned short type;
+
+	memset(tb, 0, sizeof(struct rtattr *) * (max + 1));
+	while (RTA_OK(rta, len)) {
+		type = rta->rta_type & ~flags;
+		if ((type <= max) && (!tb[type]))
+			tb[type] = rta;
+		rta = RTA_NEXT(rta,len);
+	}
+	if (len)
+		fprintf(stderr, "!!!Deficit %d, rta_len=%d\n", len, rta->rta_len);
+	return 0;
+}
+
+static unsigned int get_ifa_flags(struct ifaddrmsg *ifa,
+				  struct rtattr *ifa_flags_attr)
+{
+	return ifa_flags_attr ? rta_getattr_u32(ifa_flags_attr) :
+				ifa->ifa_flags;
+}
+
+
 
 static int
 netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, struct nlmsghdr* hdr, void * args)
@@ -54,8 +85,11 @@ netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, str
 	if (hdr->nlmsg_type == RTM_NEWADDR ||
 	    hdr->nlmsg_type == RTM_DELADDR)
 	{
-		struct if_rtattrs attrs;
+		//struct if_rtattrs attrs;
+        struct rtattr * rta_tb[IFA_MAX+1];
 		struct ifaddrmsg *ifa = NLMSG_DATA(hdr);
+        unsigned int ifa_flags;
+        char abuf[256];
 		addr_action_t action;
 		len -= NLMSG_LENGTH(sizeof(*ifa));
 
@@ -69,37 +103,40 @@ netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, str
 		else if (hdr->nlmsg_type == RTM_NEWADDR)
 			action = ADDR_DELETE;
 
+
+        parse_rtattr_flags(rta_tb, IFA_MAX, IFA_RTA(ifa), len, 0);
+        ifa_flags = get_ifa_flags(ifa, rta_tb[IFA_FLAGS]);
 		// Read attributes
 		it = IFA_RTA(ifa);
-		memset(&attrs, 0, sizeof(attrs));
+		//memset(&attrs, 0, sizeof(attrs));
 
-		int attr_len = hdr->nlmsg_len - NLMSG_LENGTH(sizeof(*ifa));
-		unsigned short type;
-		while (RTA_OK(it, attr_len))
-		{
-			type = it->rta_type;
-			fprintf(stderr, "%02x ", type); 
-			dst = IF_RTATTRS_TYPE(&attrs, type);
-
-			if (type < IF_ATTRS_MAX)
-			{
-				if (type == 1){
-
-		int i;
-		char * ptr = NLMSG_DATA(it);
-		for(i=0; i<NLMSG_PAYLOAD(it, sizeof(struct ifaddrmsg)); i++)
-			fprintf(stderr, "%02x ", ptr[i]);
 		fprintf(stderr, "\n");
 
+        if (!rta_tb[IFA_LOCAL])
+            rta_tb[IFA_LOCAL] = rta_tb[IFA_ADDRESS];
+        if (!rta_tb[IFA_ADDRESS])
+            rta_tb[IFA_ADDRESS] = rta_tb[IFA_LOCAL];
 
-				}
-				fprintf(stderr, "copied ", type); 
-				memcpy(dst, it, sizeof(*dst));
-			}
-			it = RTA_NEXT(it, attr_len);
-		}
-		fprintf(stderr, "\n");
+        if (rta_tb[IFA_LOCAL]) {
+            fprintf(stderr, "%s", inet_ntop(ifa->ifa_family, RTA_DATA(rta_tb[IFA_LOCAL]), abuf, sizeof(abuf)));
+#if 0
+            if (rta_tb[IFA_ADDRESS] == NULL ||
+                    memcmp(RTA_DATA(rta_tb[IFA_ADDRESS]), RTA_DATA(rta_tb[IFA_LOCAL]),
+                        ifa->ifa_family == AF_INET ? 4 : 16) == 0) {
+                fprintf(fp, "/%d ", ifa->ifa_prefixlen);
+            } else {
+                fprintf(fp, " peer %s/%d ",
+                        format_host(ifa->ifa_family,
+                            RTA_PAYLOAD(rta_tb[IFA_ADDRESS]),
+                            RTA_DATA(rta_tb[IFA_ADDRESS]),
+                            abuf, sizeof(abuf)),
+                        ifa->ifa_prefixlen);
+            }
+#endif
+        }
 
+
+#if 0
 		int i;
 		char * ptr = &attrs;
 		for(i=0; i<sizeof(attrs); i++)
@@ -110,7 +147,7 @@ netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, str
 		for(i=0; i<sizeof(attrs.address); i++)
 			fprintf(stderr, "%02x ", ptr[i]);
 		fprintf(stderr, "\n");
-
+#endif
 
 		if (h->cb.addr4 != NULL)
 		{
