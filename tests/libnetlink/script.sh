@@ -55,6 +55,7 @@ expectedoutput() {
 }
 
 ip link add eth0 type dummy
+ip link set dev eth0 up
 
 mkfifo $TEMPDIR/fifo
 $1 >$TEMPDIR/fifo &
@@ -68,9 +69,9 @@ expectedoutput "addr4 add 1.2.3.1/24 dev eth0" "We should have read new address 
 ip addr del 1.2.3.1/24 dev eth0
 expectedoutput "addr4 del 1.2.3.1/24 dev eth0" "We should have read a delete address through netlink"
 ip route add 1.2.4.0/24 via 1.2.3.254
-expectedoutput "route4 add 1.2.4.0/24" "We should have read new route through netlink"
-ip neigh add 1.2.4.0/24 lladdr 11:22:33:44:55:66 dev eth0
-expectedoutput "neigh4 add 1.2.4.0/24 lladdr 11:22:33:44:55:66 nud PERMANENT dev eth0" "We should have read new neigghbour through netlink"
+expectedoutput "route4 add 1.2.4.0/24 via 1.2.3.254" "We should have read new route through netlink"
+ip neigh add 1.2.3.2 lladdr 11:22:33:44:55:66 dev eth0
+expectedoutput "neigh4 add 1.2.3.2 lladdr 11:22:33:44:55:66 nud PERMANENT dev eth0" "We should have read new neigghbour through netlink"
 
 kill $process_pid;
 

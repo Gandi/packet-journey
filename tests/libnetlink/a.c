@@ -40,13 +40,15 @@ route4(struct rtmsg *route, route_action_t action, struct in_addr *addr,
 	   uint8_t len, struct in_addr *nexthop, void *args)
 {
 	char action_buf[7];
+	char buf[256];
 
 	if (action == ROUTE_ADD)
 		memcpy(action_buf, "add", 4);
 	else
 		memcpy(action_buf, "delete", 7);
 
-	fprintf(stdout, "route4 %s\n", action_buf);
+	fprintf(stdout, "route4 %s %s/%d", action_buf, inet_ntop(AF_INET, addr, buf, 256), len);
+	fprintf(stdout, " via %s\n", inet_ntop(AF_INET, nexthop, buf, 256));
 	fflush(stdout);
 }
 
@@ -87,6 +89,7 @@ int main(void)
 
 	h->cb.init = init_handler;
 	h->cb.addr4 = addr4;
+	h->cb.route4 = route4;
 
 	s = netl_listen(h, NULL);
 

@@ -6,6 +6,7 @@
 
 #include "libnetlink.h"
 
+#if 0
 struct nd_rtattrs {
 	struct rtattr unspec;
 	struct rtattr dst;
@@ -24,6 +25,7 @@ struct nd_rtattrs {
 	((struct rtattr*)(((char*)(n)) + NLMSG_ALIGN(sizeof(struct ndmsg))))
 #define ND_RTATTRS_TYPE(r, type) \
 	((struct rtattr*)(((char*)(r)) + (type * sizeof(struct rtattr))))
+#endif
 
 #if 0
 struct if_rtattrs {
@@ -52,6 +54,14 @@ static inline __u32 rta_getattr_u32(const struct rtattr *rta)
 static inline const char *rta_getattr_str(const struct rtattr *rta)
 {
 	return (const char *) RTA_DATA(rta);
+}
+
+static inline int rtm_get_table(struct rtmsg *r, struct rtattr **tb)
+{
+	__u32 table = r->rtm_table;
+	if (tb[RTA_TABLE])
+		table = rta_getattr_u32(tb[RTA_TABLE]);
+	return table;
 }
 
 static int parse_rtattr_flags(struct rtattr *tb[], int max,
@@ -159,16 +169,19 @@ netl_handler(struct netl_handle *h,
 	}
 
 	if (hdr->nlmsg_type == RTM_NEWROUTE || hdr->nlmsg_type == RTM_DELROUTE) {
-		struct rtmsg *route = NLMSG_DATA(hdr);
-		len -= NLMSG_LENGTH(sizeof(*route));
+		struct rtattr *tb[RTA_MAX + 1];
+		struct rtmsg *r = NLMSG_DATA(hdr);
+		unsigned int rta_flags;
+		__u32 table;
+		len -= NLMSG_LENGTH(sizeof(*r));
 
 		if (len < 0) {
 			// incomplete message
 			return -1;
 		}
 
-		if (route->rtm_family != RTNL_FAMILY_IPMR &&
-			route->rtm_family != RTNL_FAMILY_IP6MR) {
+		if (r->rtm_family != RTNL_FAMILY_IPMR &&
+			r->rtm_family != RTNL_FAMILY_IP6MR) {
 			// TODO decap message
 			// This is an unicast route, no interest for multicast
 			route_action_t action;
@@ -177,11 +190,36 @@ netl_handler(struct netl_handle *h,
 			else
 				action = ROUTE_DELETE;
 
-			if (h->cb.route4 != NULL) {
-				struct in_addr *addr;
-				struct in_addr *nexthop;
-				uint8_t len;
-				h->cb.route4(route, action, addr, len, nexthop, args);
+			parse_rtattr_flags(tb, RTA_MAX, RTM_RTA(r), len, 0);
+			table = rtm_get_table(r, tb);
+
+			if (r->rtm_type != RTN_UNICAST)
+				return 0;
+			if (!tb[RTA_DST])
+				return 0;
+
+			if (!tb[RTA_GATEWAY])
+				return 0;
+
+			if (r->rtm_family == AF_INET) {
+				if (h->cb.route4 != NULL) {
+					struct in_addr addr;
+					memcpy(&addr.s_addr, RTA_DATA(tb[RTA_DST]), sizeof(addr.s_addr));
+					struct in_addr nexthop;
+					memcpy(&nexthop.s_addr, RTA_DATA(tb[RTA_GATEWAY]), sizeof(nexthop.s_addr));
+
+					h->cb.route4(r, action, &addr, r->rtm_dst_len, &nexthop, args);
+				}
+			}
+			if (r->rtm_family == AF_INET6) {
+#if 0
+				if (h->cb.route6 != NULL) {
+					struct in_addr addr;
+					
+					struct in_addr *nexthop;
+					h->cb.route4(r, action, addr, r->rtm_dst_len, nexthop, args);
+				}
+#endif
 			}
 		}
 	}
@@ -192,6 +230,7 @@ netl_handler(struct netl_handle *h,
 	}
 
 	if (hdr->nlmsg_type == RTM_NEWNEIGH || hdr->nlmsg_type == RTM_DELNEIGH) {
+#if 0
 		struct ndmsg *neighbor = NLMSG_DATA(hdr);
 		struct nd_rtattrs attrs;
 
@@ -241,6 +280,7 @@ netl_handler(struct netl_handle *h,
 		if (neighbor->ndm_family == AF_INET6) {
 			// TODO
 		}
+#endif
 	}
 
 	return 0;
