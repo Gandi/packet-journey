@@ -47,7 +47,8 @@ route6(struct rtmsg *route, route_action_t action, struct in6_addr *addr,
 	else
 		memcpy(action_buf, "delete", 7);
 
-	fprintf(stdout, "route6 %s %s/%d", action_buf, inet_ntop(AF_INET6, addr, buf, 256), len);
+	fprintf(stdout, "route6 %s %s/%d", action_buf,
+			inet_ntop(AF_INET6, addr, buf, 256), len);
 	fprintf(stdout, " via %s\n", inet_ntop(AF_INET6, nexthop, buf, 256));
 	fflush(stdout);
 }
@@ -64,7 +65,8 @@ route4(struct rtmsg *route, route_action_t action, struct in_addr *addr,
 	else
 		memcpy(action_buf, "delete", 7);
 
-	fprintf(stdout, "route4 %s %s/%d", action_buf, inet_ntop(AF_INET, addr, buf, 256), len);
+	fprintf(stdout, "route4 %s %s/%d", action_buf,
+			inet_ntop(AF_INET, addr, buf, 256), len);
 	fprintf(stdout, " via %s\n", inet_ntop(AF_INET, nexthop, buf, 256));
 	fflush(stdout);
 }
