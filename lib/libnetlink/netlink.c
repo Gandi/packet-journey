@@ -86,10 +86,10 @@ netl_handler(struct netl_handle* h, __rte_unused struct sockaddr_nl* nladdr, str
 	    hdr->nlmsg_type == RTM_DELADDR)
 	{
 		//struct if_rtattrs attrs;
-        struct rtattr * rta_tb[IFA_MAX+1];
+		struct rtattr * rta_tb[IFA_MAX+1];
 		struct ifaddrmsg *ifa = NLMSG_DATA(hdr);
-        unsigned int ifa_flags;
-        char abuf[256];
+		unsigned int ifa_flags;
+		char abuf[256];
 		addr_action_t action;
 		len -= NLMSG_LENGTH(sizeof(*ifa));
 

@@ -271,7 +271,8 @@ struct lcore_conf {
 } __rte_cache_aligned;
 
 static struct lcore_conf lcore_conf[RTE_MAX_LCORE];
-static rte_spinlock_t spinlock_conf[RTE_MAX_ETHPORTS] = {RTE_SPINLOCK_INITIALIZER};
+static rte_spinlock_t spinlock_conf[RTE_MAX_ETHPORTS] =
+	{ RTE_SPINLOCK_INITIALIZER };
 
 /* Send burst of packets on an output interface */
 static inline int
@@ -451,8 +452,7 @@ get_ipv4_dst_port(void *ipv4_hdr, uint8_t portid,
 
 	return (uint8_t) ((rte_lpm_lookup(ipv4_l3fwd_lookup_struct,
 									  rte_be_to_cpu_32(((struct ipv4_hdr *)
-														ipv4_hdr)->
-													   dst_addr),
+														ipv4_hdr)->dst_addr),
 									  &next_hop) ==
 					   0) ? next_hop : portid);
 }
@@ -463,8 +463,8 @@ get_ipv6_dst_port(void *ipv6_hdr, uint8_t portid,
 {
 	uint8_t next_hop;
 	return (uint8_t) ((rte_lpm6_lookup(ipv6_l3fwd_lookup_struct,
-									   ((struct ipv6_hdr *) ipv6_hdr)->
-									   dst_addr,
+									   ((struct ipv6_hdr *)
+										ipv6_hdr)->dst_addr,
 									   &next_hop) ==
 					   0) ? next_hop : portid);
 }
@@ -1374,8 +1374,8 @@ static void setup_lpm(int socketid)
 	/* create the LPM table */
 	snprintf(s, sizeof(s), "IPV4_L3FWD_LPM_%d", socketid);
 	ipv4_l3fwd_lookup_struct[socketid] = rte_lpm_create(s, socketid,
-															  IPV4_L3FWD_LPM_MAX_RULES,
-															  0);
+														IPV4_L3FWD_LPM_MAX_RULES,
+														0);
 	if (ipv4_l3fwd_lookup_struct[socketid] == NULL)
 		rte_exit(EXIT_FAILURE, "Unable to create the l3fwd LPM table"
 				 " on socket %d\n", socketid);
@@ -1419,8 +1419,7 @@ static int init_mem(unsigned nb_mbuf)
 			setup_lpm(socketid);
 		}
 		qconf = &lcore_conf[lcore_id];
-		qconf->ipv4_lookup_struct =
-			ipv4_l3fwd_lookup_struct[socketid];
+		qconf->ipv4_lookup_struct = ipv4_l3fwd_lookup_struct[socketid];
 	}
 	return 0;
 }
@@ -1479,7 +1478,9 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask)
 	}
 }
 
-static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports, struct rte_eth_dev_info * dev_info) {
+static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
+					  struct rte_eth_dev_info *dev_info)
+{
 	struct rte_eth_txconf *txconf;
 	struct lcore_conf *qconf;
 	uint32_t n_tx_queue;
@@ -1547,9 +1548,11 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports, stru
 		txconf = &dev_info->default_txconf;
 		if (port_conf.rxmode.jumbo_frame)
 			txconf->txq_flags = 0;
-		printf("coucou port=%d queueid=%d nb_txd=%d core=%d\n", portid, queueid, nb_txd, lcore_id);
-		ret = rte_eth_tx_queue_setup(portid, queueid, nb_txd,
-									 socketid, txconf);
+		printf("coucou port=%d queueid=%d nb_txd=%d core=%d\n", portid,
+			   queueid, nb_txd, lcore_id);
+		ret =
+			rte_eth_tx_queue_setup(portid, queueid, nb_txd, socketid,
+								   txconf);
 		if (ret < 0)
 			rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup: err=%d, "
 					 "port=%d\n", ret, portid);
