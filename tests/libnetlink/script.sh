@@ -65,6 +65,8 @@ skipuntil "START"
 
 ip addr add 1.2.3.1/24 dev eth0
 expectedoutput "addr4 add 1.2.3.1/24 dev eth0" "We should have read new address through netlink"
+ip addr del 1.2.3.1/24 dev eth0
+expectedoutput "addr4 del 1.2.3.1/24 dev eth0" "We should have read a delete address through netlink"
 ip route add 1.2.4.0/24 via 1.2.3.254
 expectedoutput "route4 add 1.2.4.0/24" "We should have read new route through netlink"
 ip neigh add 1.2.4.0/24 lladdr 11:22:33:44:55:66 dev eth0

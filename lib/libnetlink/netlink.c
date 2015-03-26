@@ -105,7 +105,7 @@ netl_handler(struct netl_handle *h,
 
 		if (hdr->nlmsg_type == RTM_NEWADDR)
 			action = ADDR_ADD;
-		else if (hdr->nlmsg_type == RTM_NEWADDR)
+		else if (hdr->nlmsg_type == RTM_DELADDR)
 			action = ADDR_DELETE;
 
 

@@ -24,7 +24,7 @@ static int addr4(addr_action_t action, __s32 port_id, struct in_addr *addr,
 	if (action == ADDR_ADD)
 		memcpy(action_buf, "add", 4);
 	else
-		memcpy(action_buf, "delete", 7);
+		memcpy(action_buf, "del", 4);
 
 	if (if_indextoname(port_id, ibuf) == NULL)
 		snprintf(ibuf, IFNAMSIZ, "if%d", port_id);
