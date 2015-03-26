@@ -6,7 +6,7 @@ endif
 include $(RTE_SDK)/mk/rte.vars.mk
 
 O ?= $(RTE_SRCDIR)/build
-CFLAGS += -include $(RTE_SDK)/$(RTE_TARGET)/include/rte_config.h
+CFLAGS +=  -g -include $(RTE_SDK)/$(RTE_TARGET)/include/rte_config.h
 export CFLAGS
 
 DIRS-y += lib

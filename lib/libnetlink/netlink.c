@@ -132,39 +132,26 @@ netl_handler(struct netl_handle *h,
 		if (!rta_tb[IFA_ADDRESS])
 			rta_tb[IFA_ADDRESS] = rta_tb[IFA_LOCAL];
 
-		switch (ifa->ifa_family) {
+		if (rta_tb[IFA_LOCAL]) {
+			memcpy(buf_addr, RTA_DATA(rta_tb[IFA_LOCAL]),
+				   RTA_PAYLOAD(rta_tb[IFA_LOCAL]));
+		}
+        switch (ifa->ifa_family) {
 		case AF_INET:
-			fprintf(stderr, "addr4 ");
+            if (h->cb.addr4 != NULL) {
+                h->cb.addr4(action, ifa->ifa_index,
+                        (struct in_addr *) buf_addr, ifa->ifa_prefixlen);
+            }
 			break;
 		case AF_INET6:
-			fprintf(stderr, "addr6 ");
+            if (h->cb.addr6 != NULL) {
+                h->cb.addr6(action, ifa->ifa_index,
+                        (struct in_addr6 *) buf_addr, ifa->ifa_prefixlen);
+            }
 			break;
 		default:
 			//only handling IP
 			return -1;
-		}
-		if (action == ADDR_ADD) {
-			fprintf(stderr, "add ");
-		} else {
-			fprintf(stderr, "del ");
-		}
-
-		if (rta_tb[IFA_LOCAL]) {
-			memcpy(buf_addr, RTA_DATA(rta_tb[IFA_LOCAL]),
-				   RTA_PAYLOAD(rta_tb[IFA_LOCAL]));
-			fprintf(stderr, "%s",
-					inet_ntop(ifa->ifa_family, buf_addr,
-							  abuf, sizeof(abuf)));
-			fprintf(stderr, "/%d ", ifa->ifa_prefixlen);
-			if (rta_tb[IFA_LABEL])
-				fprintf(stderr, "dev %s",
-						rta_getattr_str(rta_tb[IFA_LABEL]));
-			fprintf(stderr, "\n");
-		}
-
-		if (h->cb.addr4 != NULL) {
-			h->cb.addr4(action, ifa->ifa_index,
-						(struct in_addr *) buf_addr, ifa->ifa_prefixlen);
 		}
 	}
 
