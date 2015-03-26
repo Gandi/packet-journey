@@ -1,4 +1,5 @@
 #include <signal.h>
+#include <net/if.h>
 #include <libnetlink.h>
 
 #include "rdpdk_common.h"
@@ -13,16 +14,23 @@
 struct netl_handle *h = NULL;
 
 
-static int addr4(addr_action_t action)
+static int addr4(addr_action_t action, __s32 port_id, struct in_addr *addr,
+				 __u8 prefixlen)
 {
 	char action_buf[7];
+	char abuf[256];
+	char ibuf[IFNAMSIZ];
 
 	if (action == ADDR_ADD)
 		memcpy(action_buf, "add", 4);
 	else
 		memcpy(action_buf, "delete", 7);
 
-	fprintf(stdout, "addr4 %s\n", action_buf);
+	if (if_indextoname(port_id, ibuf) == NULL)
+		snprintf(ibuf, IFNAMSIZ, "if%d", port_id);
+
+	fprintf(stdout, "addr4 %s %s/%d dev %s\n", action_buf,
+			inet_ntop(AF_INET, addr, abuf, sizeof(abuf)), prefixlen, ibuf);
 	fflush(stdout);
 }
 

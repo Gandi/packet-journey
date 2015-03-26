@@ -452,7 +452,8 @@ get_ipv4_dst_port(void *ipv4_hdr, uint8_t portid,
 
 	return (uint8_t) ((rte_lpm_lookup(ipv4_l3fwd_lookup_struct,
 									  rte_be_to_cpu_32(((struct ipv4_hdr *)
-														ipv4_hdr)->dst_addr),
+														ipv4_hdr)->
+													   dst_addr),
 									  &next_hop) ==
 					   0) ? next_hop : portid);
 }

@@ -51,7 +51,7 @@ static inline __u32 rta_getattr_u32(const struct rtattr *rta)
 
 static inline const char *rta_getattr_str(const struct rtattr *rta)
 {
-	return (const char *)RTA_DATA(rta);
+	return (const char *) RTA_DATA(rta);
 }
 
 static int parse_rtattr_flags(struct rtattr *tb[], int max,
@@ -94,6 +94,7 @@ netl_handler(struct netl_handle *h,
 		struct ifaddrmsg *ifa = NLMSG_DATA(hdr);
 		unsigned int ifa_flags;
 		char abuf[256];
+		unsigned char buf_addr[sizeof(struct in6_addr)];
 		addr_action_t action;
 		len -= NLMSG_LENGTH(sizeof(*ifa));
 
@@ -121,45 +122,39 @@ netl_handler(struct netl_handle *h,
 		if (!rta_tb[IFA_ADDRESS])
 			rta_tb[IFA_ADDRESS] = rta_tb[IFA_LOCAL];
 
-		if (rta_tb[IFA_LOCAL]) {
-			fprintf(stderr, "%s",
-					inet_ntop(ifa->ifa_family, RTA_DATA(rta_tb[IFA_LOCAL]),
-							  abuf, sizeof(abuf)));
-            fprintf(stderr, "/%d ", ifa->ifa_prefixlen);
-            if (rta_tb[IFA_LABEL])
-                fprintf(stderr, "dev %s", rta_getattr_str(rta_tb[IFA_LABEL]));
-            fprintf(stderr, "\n");
-#if 0
-			if (rta_tb[IFA_ADDRESS] == NULL ||
-				memcmp(RTA_DATA(rta_tb[IFA_ADDRESS]),
-					   RTA_DATA(rta_tb[IFA_LOCAL]),
-					   ifa->ifa_family == AF_INET ? 4 : 16) == 0) {
-				fprintf(fp, "/%d ", ifa->ifa_prefixlen);
-			} else {
-				fprintf(fp, " peer %s/%d ",
-						format_host(ifa->ifa_family,
-									RTA_PAYLOAD(rta_tb[IFA_ADDRESS]),
-									RTA_DATA(rta_tb[IFA_ADDRESS]),
-									abuf, sizeof(abuf)),
-						ifa->ifa_prefixlen);
-			}
-#endif
+		switch (ifa->ifa_family) {
+		case AF_INET:
+			fprintf(stderr, "addr4 ");
+			break;
+		case AF_INET6:
+			fprintf(stderr, "addr6 ");
+			break;
+		default:
+			//only handling IP
+			return -1;
 		}
-#if 0
-		int i;
-		char *ptr = &attrs;
-		for (i = 0; i < sizeof(attrs); i++)
-			fprintf(stderr, "%02x ", ptr[i]);
-		fprintf(stderr, "\n");
+		if (action == ADDR_ADD) {
+			fprintf(stderr, "add ");
+		} else {
+			fprintf(stderr, "del ");
+		}
 
-		ptr = &attrs.address;
-		for (i = 0; i < sizeof(attrs.address); i++)
-			fprintf(stderr, "%02x ", ptr[i]);
-		fprintf(stderr, "\n");
-#endif
+		if (rta_tb[IFA_LOCAL]) {
+			memcpy(buf_addr, RTA_DATA(rta_tb[IFA_LOCAL]),
+				   RTA_PAYLOAD(rta_tb[IFA_LOCAL]));
+			fprintf(stderr, "%s",
+					inet_ntop(ifa->ifa_family, buf_addr,
+							  abuf, sizeof(abuf)));
+			fprintf(stderr, "/%d ", ifa->ifa_prefixlen);
+			if (rta_tb[IFA_LABEL])
+				fprintf(stderr, "dev %s",
+						rta_getattr_str(rta_tb[IFA_LABEL]));
+			fprintf(stderr, "\n");
+		}
 
 		if (h->cb.addr4 != NULL) {
-			h->cb.addr4(action);
+			h->cb.addr4(action, ifa->ifa_index,
+						(struct in_addr *) buf_addr, ifa->ifa_prefixlen);
 		}
 	}
 
