@@ -1,54 +1,20 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <linux/if_arp.h>
 
 #include "rdpdk_common.h"
 
 #include "libnetlink.h"
 
-#if 0
-struct nd_rtattrs {
-	struct rtattr unspec;
-	struct rtattr dst;
-	struct rtattr lladdr;
-	struct rtattr cacheinfo;
-	struct rtattr probes;
-	struct rtattr vlan;
-	struct rtattr port;
-	struct rtattr vni;
-	struct rtattr ifindex;
-	struct rtattr master;
-};
-
-#define NDATTRS_MAX sizeof(struct nd_rtattrs) / sizeof(struct rtattr)
-#define NDATTRS_RTA(n) \
-	((struct rtattr*)(((char*)(n)) + NLMSG_ALIGN(sizeof(struct ndmsg))))
-#define ND_RTATTRS_TYPE(r, type) \
-	((struct rtattr*)(((char*)(r)) + (type * sizeof(struct rtattr))))
-#endif
-
-#if 0
-struct if_rtattrs {
-	struct rtattr unspec;
-	struct rtattr address;
-	struct rtattr local;
-	struct rtattr label;
-	struct rtattr broadcast;
-	struct rtattr anycast;
-	struct rtattr cacheinfo;
-	struct rtattr multicast;
-	struct rtattr flags;
-};
-
-#define IF_ATTRS_MAX sizeof(struct if_rtattrs) / sizeof(struct rtattr)
-#define IFA_RTA(r)  ((struct rtattr*)(((char*)(r)) + NLMSG_ALIGN(sizeof(struct ifaddrmsg))))
-#define IF_RTATTRS_TYPE(r, type) \
-	((struct rtattr*)(((char*)(r)) + (type * sizeof(struct rtattr))))
-#endif
-
 static inline __u32 rta_getattr_u32(const struct rtattr *rta)
 {
 	return *(__u32 *) RTA_DATA(rta);
+}
+
+static inline __u8 rta_getattr_u8(const struct rtattr *rta)
+{
+	return *(__u8 *) RTA_DATA(rta);
 }
 
 static inline const char *rta_getattr_str(const struct rtattr *rta)
@@ -94,9 +60,61 @@ netl_handler(struct netl_handle *h,
 			 rdpdk_unused(struct sockaddr_nl *nladdr),
 			 struct nlmsghdr *hdr, void *args)
 {
-	struct rtattr *it;
-	struct rtattr *dst;
 	int len = hdr->nlmsg_len;
+
+	switch (hdr->nlmsg_type) {
+	// TODO RTM_SETLINK
+	case RTM_NEWLINK:
+	case RTM_DELLINK:
+		{
+			struct ifinfomsg *ifi = NLMSG_DATA(hdr);
+			struct rtattr *rta_tb[IFLA_MAX + 1];
+			struct ether_addr lladdr;
+			int ifid = ifi->ifi_index;
+			int master_if = -1;
+			int mtu = -1;
+			const char *ifname = "";
+			oper_state_t state = LINK_UNKNOWN;
+			link_action_t action = LINK_ADD;
+
+			len -= NLMSG_LENGTH(sizeof(*ifi));
+
+			if (len < 0) {
+				// incomplete message
+				return -1;
+			}
+
+			parse_rtattr_flags(rta_tb, IFLA_MAX, IFLA_RTA(ifi), len, 0);
+
+			if (ifi->ifi_type != ARPHRD_ETHER)
+				return 0;		// This is not ethernet
+			if (rta_tb[IFLA_IFNAME] == NULL)
+				return -1;		// There should be a name, this is a bug
+
+			if (hdr->nlmsg_type == RTM_DELLINK)
+				action = LINK_DELETE;
+
+			if (rta_tb[IFLA_MASTER])
+				master_if = *(int *) RTA_DATA(rta_tb[IFLA_MASTER]);
+			if (rta_tb[IFLA_MTU])
+				mtu = *(int *) RTA_DATA(rta_tb[IFLA_MTU]);
+			if (rta_tb[IFLA_IFNAME])
+				ifname = rta_getattr_str(rta_tb[IFLA_IFNAME]);
+			if (rta_tb[IFLA_OPERSTATE])
+				state = rta_getattr_u8(rta_tb[IFLA_OPERSTATE]);
+			if (rta_tb[IFLA_ADDRESS])
+				memcpy(&lladdr.addr_bytes, RTA_DATA(rta_tb[IFLA_ADDRESS]),
+					   sizeof(lladdr.addr_bytes));
+
+			if (h->cb.link != NULL) {
+				h->cb.link(ifi, action, ifid, master_if, &lladdr, mtu,
+						   ifname, state);
+			}
+
+		}
+		break;
+	}
+
 
 	if (hdr->nlmsg_type == RTM_NEWADDR || hdr->nlmsg_type == RTM_DELADDR) {
 		//struct if_rtattrs attrs;
@@ -121,9 +139,6 @@ netl_handler(struct netl_handle *h,
 
 		parse_rtattr_flags(rta_tb, IFA_MAX, IFA_RTA(ifa), len, 0);
 		ifa_flags = get_ifa_flags(ifa, rta_tb[IFA_FLAGS]);
-		// Read attributes
-		it = IFA_RTA(ifa);
-		//memset(&attrs, 0, sizeof(attrs));
 
 		if (!rta_tb[IFA_LOCAL])
 			rta_tb[IFA_LOCAL] = rta_tb[IFA_ADDRESS];
@@ -219,11 +234,6 @@ netl_handler(struct netl_handle *h,
 				return 0;
 			}
 		}
-	}
-
-	if (hdr->nlmsg_type == RTM_NEWLINK ||
-		hdr->nlmsg_type == RTM_DELLINK || hdr->nlmsg_type == RTM_SETLINK) {
-		// TODO: store iface name for future use
 	}
 
 	if (hdr->nlmsg_type == RTM_NEWNEIGH || hdr->nlmsg_type == RTM_DELNEIGH) {

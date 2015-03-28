@@ -1,1 +1,1 @@
-void * control_main(void *);
+void *control_main(void *);

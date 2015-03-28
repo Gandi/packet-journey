@@ -21,7 +21,7 @@ test: default
 
 .PHONY: reindent
 reindent:
-	indent -kr -ut -ts 4 */*.c */*/*.c
+	indent -kr -ut -ts 4 */*.c */*/*.c */*.h */*/*.h
 
 include $(RTE_SDK)/mk/rte.extsubdir.mk
 
