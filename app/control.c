@@ -81,7 +81,7 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 }
 
 static int
-neighbor4(__rte_unused struct ndmsg *neighbor, neighbor_action_t action,
+neighbor4(neighbor_action_t action,
 		  __s32 port_id, struct in_addr *addr, struct ether_addr *lladdr,
 		  __u8 flags, void *args, __rte_unused __u16 vlanid)
 {

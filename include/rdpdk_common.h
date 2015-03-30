@@ -2,7 +2,7 @@
 #define __RDPDK_COMMON_H
 
 #ifndef USE_RTE_FUNCS
-#define rdpdk_init(argc, argv) (void*)(argc);(void*)(argv)
+#define rdpdk_init(argc, argv) (void)(argc);(void)(argv)
 #define rdpdk_malloc(str, len, flag) malloc(len)
 #define rdpdk_free(ptr) free(ptr)
 #define rdpdk_unused(x) x __attribute__((unused))

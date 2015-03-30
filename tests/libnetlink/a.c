@@ -27,8 +27,8 @@ struct netl_handle *h = NULL;
 
 static int neighbor4(neighbor_action_t action,
 					 __s32 port_id, struct in_addr *addr,
-					 struct ether_addr *lladdr, __u8 flags, void *args,
-					 uint16_t vlanid)
+					 struct ether_addr *lladdr, __u8 flags,
+					 rdpdk_unused(void *args), uint16_t vlanid)
 {
 	char action_buf[4];
 	char abuf[256];
@@ -79,8 +79,8 @@ static int neighbor4(neighbor_action_t action,
 
 static int neighbor6(neighbor_action_t action,
 					 __s32 port_id, struct in6_addr *addr,
-					 struct ether_addr *lladdr, __u8 flags, void *args,
-					 uint16_t vlanid)
+					 struct ether_addr *lladdr, __u8 flags,
+					 rdpdk_unused(void *args), uint16_t vlanid)
 {
 	char action_buf[4];
 	char abuf[256];
