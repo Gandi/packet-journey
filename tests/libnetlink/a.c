@@ -236,6 +236,8 @@ int main(void)
 	h->cb.neighbor6 = neighbor6;
 
 	s = netl_listen(h, NULL);
+	if (s != 0)
+		goto free_netl;
 
 	netl_free(h);
 

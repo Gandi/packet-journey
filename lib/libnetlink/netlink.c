@@ -57,12 +57,14 @@ static int parse_rtattr_flags(struct rtattr *tb[], int max,
 	return 0;
 }
 
+#if 0
 static unsigned int get_ifa_flags(struct ifaddrmsg *ifa,
 								  struct rtattr *ifa_flags_attr)
 {
 	return ifa_flags_attr ? rta_getattr_u32(ifa_flags_attr) :
 		ifa->ifa_flags;
 }
+#endif
 
 static uint16_t get_vlan_id(struct rtattr *linkinfo[])
 {
@@ -168,7 +170,7 @@ netl_handler(struct netl_handle *h,
 		//struct if_rtattrs attrs;
 		struct rtattr *rta_tb[IFA_MAX + 1];
 		struct ifaddrmsg *ifa = NLMSG_DATA(hdr);
-		unsigned int ifa_flags;
+		//unsigned int ifa_flags;
 		unsigned char buf_addr[sizeof(struct in6_addr)];
 		addr_action_t action;
 		len -= NLMSG_LENGTH(sizeof(*ifa));
@@ -185,7 +187,7 @@ netl_handler(struct netl_handle *h,
 
 
 		parse_rtattr_flags(rta_tb, IFA_MAX, IFA_RTA(ifa), len, 0);
-		ifa_flags = get_ifa_flags(ifa, rta_tb[IFA_FLAGS]);
+		//ifa_flags = get_ifa_flags(ifa, rta_tb[IFA_FLAGS]);
 
 		if (!rta_tb[IFA_LOCAL])
 			rta_tb[IFA_LOCAL] = rta_tb[IFA_ADDRESS];
@@ -221,7 +223,7 @@ netl_handler(struct netl_handle *h,
 	if (hdr->nlmsg_type == RTM_NEWROUTE || hdr->nlmsg_type == RTM_DELROUTE) {
 		struct rtattr *tb[RTA_MAX + 1];
 		struct rtmsg *r = NLMSG_DATA(hdr);
-		__u32 table;
+		//__u32 table;
 		len -= NLMSG_LENGTH(sizeof(*r));
 
 		if (len < 0) {
@@ -239,7 +241,7 @@ netl_handler(struct netl_handle *h,
 				action = ROUTE_DELETE;
 
 			parse_rtattr_flags(tb, RTA_MAX, RTM_RTA(r), len, 0);
-			table = rtm_get_table(r, tb);
+			//table = rtm_get_table(r, tb);
 
 			if (r->rtm_type != RTN_UNICAST)
 				return 0;
