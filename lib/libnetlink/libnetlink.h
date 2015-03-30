@@ -36,8 +36,8 @@ struct netl_handle {
 	struct netl_callbacks {
 		int (*init) (void *args);
 		int (*end) (void *args);
-		int (*link) (struct ifinfomsg *, link_action_t action, int ifid,
-					 int master_ifid, struct ether_addr *, int mtu,
+		int (*link) (link_action_t action, int ifid,
+					 struct ether_addr *, int mtu,
 					 const char *name, oper_state_t state,
 					 uint16_t vlanid);
 		int (*addr4) (addr_action_t action, __s32 port_id,
@@ -50,16 +50,14 @@ struct netl_handle {
 		int (*route6) (struct rtmsg * route, route_action_t action,
 					   struct in6_addr * addr, uint8_t len,
 					   struct in6_addr * nexthop, void *args);
-		int (*neighbor4) (struct ndmsg * neighbor,
-						  neighbor_action_t action, __s32 port_id,
+		int (*neighbor4) (neighbor_action_t action, __s32 port_id,
 						  struct in_addr * addr,
 						  struct ether_addr * lladdr, __u8 flags,
-						  void *args);
-		int (*neighbor6) (struct ndmsg * neighbor,
-						  neighbor_action_t action, __s32 port_id,
+						  void *args, uint16_t vlanid);
+		int (*neighbor6) (neighbor_action_t action, __s32 port_id,
 						  struct in6_addr * addr,
 						  struct ether_addr * lladdr, __u8 flags,
-						  void *args);
+						  void *args, uint16_t vlanid);
 	} cb;
 };
 

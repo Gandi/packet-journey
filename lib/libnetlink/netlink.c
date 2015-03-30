@@ -104,7 +104,6 @@ netl_handler(struct netl_handle *h,
 			struct rtattr *rta_tb[IFLA_MAX + 1];
 			struct ether_addr lladdr;
 			int ifid = ifi->ifi_index;
-			int master_if = -1;
 			int mtu = -1;
 			const char *ifname = "";
 			uint16_t vlanid = 0;
@@ -128,8 +127,6 @@ netl_handler(struct netl_handle *h,
 			if (hdr->nlmsg_type == RTM_DELLINK)
 				action = LINK_DELETE;
 
-			if (rta_tb[IFLA_MASTER])
-				master_if = *(int *) RTA_DATA(rta_tb[IFLA_MASTER]);
 			if (rta_tb[IFLA_MTU])
 				mtu = *(int *) RTA_DATA(rta_tb[IFLA_MTU]);
 			if (rta_tb[IFLA_IFNAME])
@@ -157,7 +154,7 @@ netl_handler(struct netl_handle *h,
 			}
 
 			if (h->cb.link != NULL) {
-				h->cb.link(ifi, action, ifid, master_if, &lladdr, mtu,
+				h->cb.link(action, ifid, &lladdr, mtu,
 						   ifname, state, vlanid);
 			}
 
@@ -276,6 +273,7 @@ netl_handler(struct netl_handle *h,
 	if (hdr->nlmsg_type == RTM_NEWNEIGH || hdr->nlmsg_type == RTM_DELNEIGH) {
 		struct ndmsg *neighbor = NLMSG_DATA(hdr);
 		struct rtattr *tb[NDA_MAX + 1];
+		uint16_t vlanid = 0;
 
 		len -= NLMSG_LENGTH(sizeof(*neighbor));
 
@@ -295,21 +293,23 @@ netl_handler(struct netl_handle *h,
 			action = NEIGHBOR_ADD;
 		else
 			action = NEIGHBOR_DELETE;
+		if (tb[NDA_VLAN])
+			vlanid = rta_getattr_u16(tb[NDA_VLAN]);
 		switch (neighbor->ndm_family) {
 		case AF_INET:
 			if (h->cb.neighbor4 != NULL) {
-				h->cb.neighbor4(neighbor, action, neighbor->ndm_ifindex,
+				h->cb.neighbor4(action, neighbor->ndm_ifindex,
 								RTA_DATA(tb[NDA_DST]),
 								RTA_DATA(tb[NDA_LLADDR]),
-								neighbor->ndm_state, args);
+								neighbor->ndm_state, args, vlanid);
 			}
 			break;
 		case AF_INET6:
 			if (h->cb.neighbor6 != NULL) {
-				h->cb.neighbor6(neighbor, action, neighbor->ndm_ifindex,
+				h->cb.neighbor6(action, neighbor->ndm_ifindex,
 								RTA_DATA(tb[NDA_DST]),
 								RTA_DATA(tb[NDA_LLADDR]),
-								neighbor->ndm_state, args);
+								neighbor->ndm_state, args, vlanid);
 			}
 			break;
 		default:
