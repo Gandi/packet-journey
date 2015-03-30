@@ -12,6 +12,11 @@ static inline __u32 rta_getattr_u32(const struct rtattr *rta)
 	return *(__u32 *) RTA_DATA(rta);
 }
 
+static inline __u16 rta_getattr_u16(const struct rtattr *rta)
+{
+	return *(__u16 *) RTA_DATA(rta);
+}
+
 static inline __u8 rta_getattr_u8(const struct rtattr *rta)
 {
 	return *(__u8 *) RTA_DATA(rta);
@@ -29,6 +34,10 @@ static inline int rtm_get_table(struct rtmsg *r, struct rtattr **tb)
 		table = rta_getattr_u32(tb[RTA_TABLE]);
 	return table;
 }
+
+#define parse_rtattr_nested(tb, max, rta) \
+        (parse_rtattr_flags((tb), (max), RTA_DATA(rta), RTA_PAYLOAD(rta), 0))
+
 
 static int parse_rtattr_flags(struct rtattr *tb[], int max,
 							  struct rtattr *rta, int len,
@@ -55,6 +64,28 @@ static unsigned int get_ifa_flags(struct ifaddrmsg *ifa,
 		ifa->ifa_flags;
 }
 
+static uint16_t get_vlan_id(struct rtattr *linkinfo[])
+{
+	struct rtattr *vlaninfo[IFLA_VLAN_MAX + 1];
+	if (!linkinfo[IFLA_INFO_DATA])
+		return 0;
+	parse_rtattr_nested(vlaninfo, IFLA_VLAN_MAX, linkinfo[IFLA_INFO_DATA]);
+	if (vlaninfo[IFLA_VLAN_PROTOCOL]
+		&& RTA_PAYLOAD(vlaninfo[IFLA_VLAN_PROTOCOL]) < sizeof(__u16))
+		return 0;
+	if (!vlaninfo[IFLA_VLAN_ID] ||
+		RTA_PAYLOAD(vlaninfo[IFLA_VLAN_ID]) < sizeof(__u16))
+		return 0;
+#if 0
+	if (vlaninfo[IFLA_VLAN_PROTOCOL])
+		fprintf(stderr, "protocol id %d ",
+				rta_getattr_u16(vlaninfo[IFLA_VLAN_PROTOCOL]));
+	else
+		fprintf(stderr, "protocol 802.1q ");
+#endif
+	return rta_getattr_u16(vlaninfo[IFLA_VLAN_ID]);
+}
+
 static int
 netl_handler(struct netl_handle *h,
 			 rdpdk_unused(struct sockaddr_nl *nladdr),
@@ -74,6 +105,7 @@ netl_handler(struct netl_handle *h,
 			int master_if = -1;
 			int mtu = -1;
 			const char *ifname = "";
+			uint16_t vlanid = 0;
 			oper_state_t state = LINK_UNKNOWN;
 			link_action_t action = LINK_ADD;
 
@@ -106,9 +138,25 @@ netl_handler(struct netl_handle *h,
 				memcpy(&lladdr.addr_bytes, RTA_DATA(rta_tb[IFLA_ADDRESS]),
 					   sizeof(lladdr.addr_bytes));
 
+			if (rta_tb[IFLA_LINKINFO]) {
+				struct rtattr *linkinfo[IFLA_INFO_MAX + 1];
+				parse_rtattr_nested(linkinfo, IFLA_INFO_MAX,
+									rta_tb[IFLA_LINKINFO]);
+				if (linkinfo[IFLA_INFO_KIND]) {
+					char *kind = RTA_DATA(linkinfo[IFLA_INFO_KIND]);
+					//XXX only handle vlan type for now
+					if (!strcmp(kind, "vlan")) {
+						vlanid = get_vlan_id(linkinfo);
+					} else {
+						//TODO receive an IF without vlan id
+					}
+				}
+
+			}
+
 			if (h->cb.link != NULL) {
 				h->cb.link(ifi, action, ifid, master_if, &lladdr, mtu,
-						   ifname, state);
+						   ifname, state, vlanid);
 			}
 
 		}

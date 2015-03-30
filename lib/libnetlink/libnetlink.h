@@ -38,7 +38,8 @@ struct netl_handle {
 		int (*end) (void *args);
 		int (*link) (struct ifinfomsg *, link_action_t action, int ifid,
 					 int master_ifid, struct ether_addr *, int mtu,
-					 const char *name, oper_state_t state);
+					 const char *name, oper_state_t state,
+					 uint16_t vlanid);
 		int (*addr4) (addr_action_t action, __s32 port_id,
 					  struct in_addr * addr, __u8 prefixlen);
 		int (*addr6) (addr_action_t action, __s32 port_id,
