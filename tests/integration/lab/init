@@ -1,0 +1,5 @@
+#!/bin/sh
+
+mount -t proc proc /proc
+
+exec /bin/sh -i

@@ -20,6 +20,6 @@ test: chroot
 		-fsdev local,security_model=passthrough,id=fsdev-root,path=$<,readonly -device virtio-9p-pci,id=fs-root,fsdev=fsdev-root,mount_tag=/dev/root\
 		-fsdev local,security_model=passthrough,id=fsdev-lab,path=lab,readonly -device virtio-9p-pci,id=fs-lab,fsdev=fsdev-lab,mount_tag=labshare \
 		-gdb unix:$(TMP)/vm-$(name)-gdb.pipe,server,nowait \
-		-kernel $(LINUX) -append "uts=$(name) console=ttyS0 root=/dev/root rootflags=trans=virtio,version=9p2000.u ro rootfstype=9p init=/bin/sh -- -c 'echo coucou'"\
+		-kernel $(LINUX) -append "uts=$(name) console=ttyS0 root=/dev/root rootflags=trans=virtio,version=9p2000.u ro rootfstype=9p init=/bin/sh -c \"mount -t 9p labshare /media; exec /media/init "\
 		-net nic,model=virtio,macaddr=12:22:33:44:55:66 -net tap
 #		-kernel $(LINUX) -append "uts=$(name) console=ttyS0 root=/dev/root rootflags=trans=virtio,version=9p2000.u ro rootfstype=9p init='/bin/sh -c \' mount -t 9p labshare /media; exec /bin/sh -i\''"\
