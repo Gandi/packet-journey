@@ -12,9 +12,10 @@
 
 struct netl_handle *h = NULL;
 
-static int neighbor4(struct ndmsg *neighbor, neighbor_action_t action,
-					 __s32 port_id, struct in_addr *addr,
-					 struct ether_addr *lladdr, __u8 flags, void *args)
+static int neighbor4(rdpdk_unused(struct ndmsg *neighbor),
+					 neighbor_action_t action, __s32 port_id,
+					 struct in_addr *addr, struct ether_addr *lladdr,
+					 __u8 flags, rdpdk_unused(void *args))
 {
 	char action_buf[4];
 	char abuf[256];
@@ -60,9 +61,10 @@ static int neighbor4(struct ndmsg *neighbor, neighbor_action_t action,
 	return 0;
 }
 
-static int neighbor6(struct ndmsg *neighbor, neighbor_action_t action,
-					 __s32 port_id, struct in6_addr *addr,
-					 struct ether_addr *lladdr, __u8 flags, void *args)
+static int neighbor6(rdpdk_unused(struct ndmsg *neighbor),
+					 neighbor_action_t action, __s32 port_id,
+					 struct in6_addr *addr, struct ether_addr *lladdr,
+					 __u8 flags, rdpdk_unused(void *args))
 {
 	char action_buf[4];
 	char abuf[256];
@@ -152,8 +154,9 @@ static int addr6(addr_action_t action, __s32 port_id,
 }
 
 static int
-route6(struct rtmsg *route, route_action_t action, struct in6_addr *addr,
-	   uint8_t len, struct in6_addr *nexthop, void *args)
+route6(rdpdk_unused(struct rtmsg *route), route_action_t action,
+	   struct in6_addr *addr, uint8_t len, struct in6_addr *nexthop,
+	   rdpdk_unused(void *args))
 {
 	char action_buf[7];
 	char buf[256];
@@ -171,8 +174,9 @@ route6(struct rtmsg *route, route_action_t action, struct in6_addr *addr,
 }
 
 static int
-route4(struct rtmsg *route, route_action_t action, struct in_addr *addr,
-	   uint8_t len, struct in_addr *nexthop, void *args)
+route4(rdpdk_unused(struct rtmsg *route), route_action_t action,
+	   struct in_addr *addr, uint8_t len, struct in_addr *nexthop,
+	   rdpdk_unused(void *args))
 {
 	char action_buf[7];
 	char buf[256];
@@ -189,7 +193,7 @@ route4(struct rtmsg *route, route_action_t action, struct in_addr *addr,
 	return 0;
 }
 
-static int init_handler(void *args)
+static int init_handler(rdpdk_unused(void *args))
 {
 	printf("START\n");
 	fflush(stdout);
