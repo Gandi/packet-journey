@@ -42,9 +42,8 @@ static int neighbor4(struct ndmsg *neighbor, neighbor_action_t action,
 	fprintf(stdout, "neigh4 %s %s lladdr %s nud ", action_buf,
 			inet_ntop(AF_INET, addr, abuf, sizeof(abuf)), ebuf);
 #define PRINT_FLAG(f) if (flags & NUD_##f) { \
-	flags &= ~NUD_
-##f; fprintf(stdout, #f "%s", flags ? "," : ""); }
-		PRINT_FLAG(INCOMPLETE);
+	flags &= ~NUD_##f; fprintf(stdout, #f "%s", flags ? "," : ""); }
+	PRINT_FLAG(INCOMPLETE);
 	PRINT_FLAG(REACHABLE);
 	PRINT_FLAG(STALE);
 	PRINT_FLAG(DELAY);
@@ -91,9 +90,8 @@ static int neighbor6(struct ndmsg *neighbor, neighbor_action_t action,
 	fprintf(stdout, "neigh6 %s %s lladdr %s nud ", action_buf,
 			inet_ntop(AF_INET6, addr, abuf, sizeof(abuf)), ebuf);
 #define PRINT_FLAG(f) if (flags & NUD_##f) { \
-	flags &= ~NUD_
-##f; fprintf(stdout, #f "%s", flags ? "," : ""); }
-		PRINT_FLAG(INCOMPLETE);
+	flags &= ~NUD_##f; fprintf(stdout, #f "%s", flags ? "," : ""); }
+	PRINT_FLAG(INCOMPLETE);
 	PRINT_FLAG(REACHABLE);
 	PRINT_FLAG(STALE);
 	PRINT_FLAG(DELAY);

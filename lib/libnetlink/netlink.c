@@ -63,7 +63,7 @@ netl_handler(struct netl_handle *h,
 	int len = hdr->nlmsg_len;
 
 	switch (hdr->nlmsg_type) {
-	// TODO RTM_SETLINK
+		// TODO RTM_SETLINK
 	case RTM_NEWLINK:
 	case RTM_DELLINK:
 		{
