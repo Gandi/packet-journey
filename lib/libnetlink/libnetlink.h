@@ -54,6 +54,11 @@ struct netl_handle {
 						  struct in_addr * addr,
 						  struct ether_addr * lladdr, __u8 flags,
 						  void *args);
+		int (*neighbor6) (struct ndmsg * neighbor,
+						  neighbor_action_t action, __s32 port_id,
+						  struct in6_addr * addr,
+						  struct ether_addr * lladdr, __u8 flags,
+						  void *args);
 	} cb;
 };
 

@@ -121,7 +121,6 @@ netl_handler(struct netl_handle *h,
 		struct rtattr *rta_tb[IFA_MAX + 1];
 		struct ifaddrmsg *ifa = NLMSG_DATA(hdr);
 		unsigned int ifa_flags;
-		char abuf[256];
 		unsigned char buf_addr[sizeof(struct in6_addr)];
 		addr_action_t action;
 		len -= NLMSG_LENGTH(sizeof(*ifa));
@@ -146,6 +145,7 @@ netl_handler(struct netl_handle *h,
 			rta_tb[IFA_ADDRESS] = rta_tb[IFA_LOCAL];
 
 		if (rta_tb[IFA_LOCAL]) {
+			//we may optimize by passing directly RTA_DATA(rta_tb[IFA_LOCAL]) to the cb
 			memcpy(buf_addr, RTA_DATA(rta_tb[IFA_LOCAL]),
 				   RTA_PAYLOAD(rta_tb[IFA_LOCAL]));
 		}
@@ -173,7 +173,6 @@ netl_handler(struct netl_handle *h,
 	if (hdr->nlmsg_type == RTM_NEWROUTE || hdr->nlmsg_type == RTM_DELROUTE) {
 		struct rtattr *tb[RTA_MAX + 1];
 		struct rtmsg *r = NLMSG_DATA(hdr);
-		unsigned int rta_flags;
 		__u32 table;
 		len -= NLMSG_LENGTH(sizeof(*r));
 
@@ -205,28 +204,16 @@ netl_handler(struct netl_handle *h,
 			switch (r->rtm_family) {
 			case AF_INET:
 				if (h->cb.route4 != NULL) {
-					struct in_addr addr;
-					struct in_addr nexthop;
-					memcpy(&addr.s_addr, RTA_DATA(tb[RTA_DST]),
-						   sizeof(addr.s_addr));
-					memcpy(&nexthop.s_addr, RTA_DATA(tb[RTA_GATEWAY]),
-						   sizeof(nexthop.s_addr));
-
-					h->cb.route4(r, action, &addr, r->rtm_dst_len,
-								 &nexthop, args);
+					h->cb.route4(r, action, RTA_DATA(tb[RTA_DST]),
+								 r->rtm_dst_len, RTA_DATA(tb[RTA_GATEWAY]),
+								 args);
 				}
 				break;
 			case AF_INET6:
 				if (h->cb.route6 != NULL) {
-					struct in6_addr addr;
-					struct in6_addr nexthop;
-					memcpy(&addr.s6_addr, RTA_DATA(tb[RTA_DST]),
-						   sizeof(addr.s6_addr));
-					memcpy(&nexthop.s6_addr, RTA_DATA(tb[RTA_GATEWAY]),
-						   sizeof(nexthop.s6_addr));
-
-					h->cb.route6(r, action, &addr, r->rtm_dst_len,
-								 &nexthop, args);
+					h->cb.route6(r, action, RTA_DATA(tb[RTA_DST]),
+								 r->rtm_dst_len, RTA_DATA(tb[RTA_GATEWAY]),
+								 args);
 				}
 				break;
 			default:
@@ -237,9 +224,8 @@ netl_handler(struct netl_handle *h,
 	}
 
 	if (hdr->nlmsg_type == RTM_NEWNEIGH || hdr->nlmsg_type == RTM_DELNEIGH) {
-#if 0
 		struct ndmsg *neighbor = NLMSG_DATA(hdr);
-		struct nd_rtattrs attrs;
+		struct rtattr *tb[NDA_MAX + 1];
 
 		len -= NLMSG_LENGTH(sizeof(*neighbor));
 
@@ -252,42 +238,34 @@ netl_handler(struct netl_handle *h,
 			neighbor->ndm_family != AF_INET6)
 			return 0;
 
-		// Read attributes
-		it = NDATTRS_RTA(neighbor);
-		memset(&attrs, 0, sizeof(attrs));
-		int attr_len = hdr->nlmsg_len - NLMSG_LENGTH(sizeof(*neighbor));
-		unsigned short type;
-		while (RTA_OK(it, attr_len)) {
-			type = it->rta_type;
-			dst = ND_RTATTRS_TYPE(&attrs, type);
+		parse_rtattr_flags(tb, NDA_MAX, RTM_RTA(neighbor), len, 0);
 
-			if (type < NDATTRS_MAX && !dst)
-				dst = it;
-			it = RTA_NEXT(it, attr_len);
-		}
-
-		if (neighbor->ndm_family == AF_INET) {
-			// TODO RTA_PAYLOAD(&(attrs.dst)) == 4 (bytes)
-			struct in_addr *addr = RTA_DATA(&(attrs.dst));
-			// TODO RTA_PAYLOAD(&(attrs.lladdr)) == 6 (bytes)
-			struct ether_addr *lladdr = RTA_DATA(&(attrs.lladdr));
-			neighbor_action_t action;
-			if (hdr->nlmsg_type == RTM_NEWNEIGH)
-				action = NEIGHBOR_ADD;
-			else
-				action = NEIGHBOR_DELETE;
-
+		neighbor_action_t action;
+		if (hdr->nlmsg_type == RTM_NEWNEIGH)
+			action = NEIGHBOR_ADD;
+		else
+			action = NEIGHBOR_DELETE;
+		switch (neighbor->ndm_family) {
+		case AF_INET:
 			if (h->cb.neighbor4 != NULL) {
-				__u8 flags = neighbor->ndm_state;
 				h->cb.neighbor4(neighbor, action, neighbor->ndm_ifindex,
-								addr, lladdr, flags, args);
+								RTA_DATA(tb[NDA_DST]),
+								RTA_DATA(tb[NDA_LLADDR]),
+								neighbor->ndm_state, args);
 			}
+			break;
+		case AF_INET6:
+			if (h->cb.neighbor6 != NULL) {
+				h->cb.neighbor6(neighbor, action, neighbor->ndm_ifindex,
+								RTA_DATA(tb[NDA_DST]),
+								RTA_DATA(tb[NDA_LLADDR]),
+								neighbor->ndm_state, args);
+			}
+			break;
+		default:
+			//only handling IP
+			return 0;
 		}
-
-		if (neighbor->ndm_family == AF_INET6) {
-			// TODO
-		}
-#endif
 	}
 
 	return 0;

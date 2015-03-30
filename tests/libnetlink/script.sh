@@ -86,7 +86,8 @@ expectedoutput "addr4 del 1.2.3.1/24 dev eth0" "We should have read a delete add
 
 ip neigh add 1.2.3.2 lladdr 11:22:33:44:55:66 dev eth0
 expectedoutput "neigh4 add 1.2.3.2 lladdr 11:22:33:44:55:66 nud PERMANENT dev eth0" "We should have read new neigghbour through netlink"
-
+ip neigh add 1::2 lladdr 11:22:33:44:55:67 dev eth0
+expectedoutput "neigh6 add 1::2 lladdr 11:22:33:44:55:67 nud PERMANENT dev eth0" "We should have read new neigghbour through netlink"
 kill $process_pid;
 
 expectedoutput "EOF" "We should have end the test with no further content"
