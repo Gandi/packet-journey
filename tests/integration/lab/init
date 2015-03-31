@@ -1,5 +1,33 @@
 #!/bin/sh
 
-mount -t proc proc /proc
+hostname ${uts}
+
+export TERM=screen
+export PATH=/usr/local/bin:/usr/bin:/bin:/sbin:/usr/local/sbin:/usr/sbin
+export HOME=/root
+
+mount -n -t proc proc /proc
+mount -n -t sysfs sys  /sys
+
+
+for fs in /run /var/run /var/tmp /var/log /tmp; do
+    mount -t tmpfs tmpfs $fs -o rw,nosuid,nodev
+done
+
+mount -t devtmpfs none /dev
+
+/etc/init.d/udev start
+
+for intf in /sys/class/net/*; do
+    intf=$(basename $intf)
+    ip a l dev $intf 2> /dev/null >/dev/null || continue
+    case $intf in
+        lo|eth*|dummy*)
+            ip link set up dev $intf
+            ;;
+    esac
+done
+
+rsyslogd
 
 exec /bin/sh -i
