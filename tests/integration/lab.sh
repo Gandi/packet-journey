@@ -3,7 +3,7 @@
 LABNAME="router-dpdk"
 
 ROOT=$(readlink -f ${ROOT:-chroot})
-LINUX=$(readlink -f ${LINUX:-/home/baloo/work/dev/linux/arch/x86/boot/bzImage})
+LINUX=$(readlink -f ${LINUX:-bzImage})
 
 WHICH=$(which which)
 
@@ -22,7 +22,7 @@ setup_tmp() {
 # Setup a VDE switch
 setup_switch() {
     info "Setup switch $1"
-    start-stop-daemon -b --no-close --make-pidfile --pidfile "$TMP/switch-$1.pid" \
+    start-stop-daemon -b --make-pidfile --pidfile "$TMP/switch-$1.pid" \
         --start --startas $($WHICH vde_switch) -- \
         --sock "$TMP/switch-$1.sock" < /dev/zero
 }
@@ -49,7 +49,7 @@ start_vm() {
     IFS="$saveifs"
 
     screen -dmS $name \
-        $($WHICH kvm) \
+        $($WHICH qemu-system-x86_64) -enable-kvm -cpu host \
         -nodefconfig -no-user-config -nodefaults \
         -m 256 \
         -display none \
@@ -71,7 +71,7 @@ start_vm() {
         \
         -gdb unix:$TMP/vm-$name-gdb.pipe,server,nowait \
         -kernel $LINUX \
-        -append "console=ttyS0 uts=$name root=/dev/root rootflags=trans=virtio,version=9p2000.u ro rootfstype=9p init=/bin/sh -c \"mount -t 9p labshare /media; exec /media/init" \
+        -append "console=ttyS0 uts=$name root=/dev/root rootflags=trans=virtio,version=9p2000.u ro rootfstype=9p init=/bin/sh -c \"mount -t 9p buildshare /mnt; mount -t 9p labshare /media; exec /media/init" \
         $netargs \
         "$@"
     echo "GDB server listening on.... $TMP/vm-$name-gdb.pipe"

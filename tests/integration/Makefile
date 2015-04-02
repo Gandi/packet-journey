@@ -1,4 +1,4 @@
-LINUX:=/home/baloo/work/dev/linux/arch/x86/boot/bzImage
+LINUX:=./bzImage
 TMP:=/tmp
 name:=foo
 
