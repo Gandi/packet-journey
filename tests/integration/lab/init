@@ -218,4 +218,5 @@ EOF
   ;;
 esac
 
-exec /sbin/getty -L ttyS1 -a root 9600 vt100
+exec bash -c " trap 'echo coucou signal' SIGHUP SIGINT SIGTERM; /sbin/getty -L ttyS1 -a root 9600 vt100
+"
