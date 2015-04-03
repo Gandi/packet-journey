@@ -82,6 +82,7 @@
 #include <rte_kni.h>
 
 #include "routing.h"
+#include "kni.h"
 lookup_struct_t *ipv4_l3fwd_lookup_struct[NB_SOCKETS];
 
 #define DO_RFC_1812_CHECKS
@@ -1565,6 +1566,41 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 	printf("\n");
 }
 
+static int
+alloc_kni_ports(void)
+{
+	int ret;
+	uint8_t nb_sys_ports, port;
+    unsigned i;
+	/* Get number of ports found in scan */
+	nb_sys_ports = rte_eth_dev_count();
+	if (nb_sys_ports == 0)
+		rte_exit(EXIT_FAILURE, "No supported Ethernet device found\n");
+
+	/* Check if the configured port ID is valid */
+	for (i = 0; i < RTE_MAX_ETHPORTS; i++)
+		if (kni_port_params_array[i] && i >= nb_sys_ports)
+			rte_exit(EXIT_FAILURE, "Configured invalid "
+						"port ID %u\n", i);
+
+
+	/* Initialise each port */
+	for (port = 0; port < nb_sys_ports; port++) {
+		/* Skip ports that are not enabled */
+		if (!(enabled_port_mask & (1 << port)))
+			continue;
+
+		if (port >= RTE_MAX_ETHPORTS)
+			rte_exit(EXIT_FAILURE, "Can not use more than "
+				"%d ports for kni\n", RTE_MAX_ETHPORTS);
+
+		ret = kni_alloc(port);
+	}
+    return ret;
+}
+
+
+
 int main(int argc, char **argv)
 {
 	struct lcore_conf *qconf;
@@ -1604,6 +1640,9 @@ int main(int argc, char **argv)
 
 	nb_lcores = rte_lcore_count();
 
+	/* Initialize KNI subsystem */
+	init_kni();
+
 	/* initialize all ports */
 	for (portid = 0; portid < nb_ports; portid++) {
 		init_port(portid, nb_lcores, nb_ports, &dev_info);
@@ -1638,6 +1677,7 @@ int main(int argc, char **argv)
 		}
 	}
 
+    alloc_kni_ports();
 	printf("\n");
 
 	/* start ports */

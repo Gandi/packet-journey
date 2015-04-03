@@ -6,6 +6,7 @@ APP = l3fwd
 # all source are stored in SRCS-y
 SRCS-y := main.c 
 SRCS-y += control.c
+SRCS-y += kni.c
 SRCS-y += $(RTE_OUTPUT)/../../lib/libneighbour/$(RTE_TARGET)/lib/libneighbour.a
 SRCS-y += $(RTE_OUTPUT)/../../lib/libnetlink/$(RTE_TARGET)/lib/libnetlink.a
 
