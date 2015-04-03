@@ -117,6 +117,8 @@ protocol bgp BGPLeft {
 }
 EOF
 
+  /etc/init.d/bird start
+  /etc/init.d/bird6 start
 
   ;;
 r2)
@@ -126,11 +128,13 @@ r2)
   mkdir /mnt/huge
   mount -t hugetlbfs nodev /mnt/huge
 
+  insmod /mnt/dpdkbuild/build/kmod/igb_uio.ko
+  insmod /mnt/dpdkbuild/build/kmod/rte_kni.ko
 
-  ip a add 1.0.0.1/31 dev eth0
-  ip a add 2001:1::1/127 dev eth0
-  ip a add 1.0.0.3/31 dev eth1
-  ip a add 2001:1::3/127 dev eth1
+#  ip a add 1.0.0.1/31 dev eth0
+#  ip a add 2001:1::1/127 dev eth0
+#  ip a add 1.0.0.3/31 dev eth1
+#  ip a add 2001:1::3/127 dev eth1
 
 cat << EOF >> /etc/bird/bird.conf
 router id 10.0.0.1;
@@ -208,10 +212,10 @@ protocol bgp BGPRight {
 }
 EOF
 
+  /etc/init.d/bird start
+  /etc/init.d/bird6 start
+
   ;;
 esac
-
-/etc/init.d/bird start
-/etc/init.d/bird6 start
 
 exec /sbin/getty -L ttyS1 -a root 9600 vt100
