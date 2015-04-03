@@ -324,8 +324,6 @@ kni_main_loop(__rte_unused void *arg)
 }
 
 
-#if 0
-
 static void
 print_config(void)
 {
@@ -344,8 +342,8 @@ print_config(void)
 	}
 }
 
-static int
-parse_config(const char *arg)
+int
+kni_parse_config(const char *arg)
 {
 	const char *p, *p0 = arg;
 	char s[256], *end;
@@ -435,6 +433,7 @@ fail:
 	return -1;
 }
 
+#if 0
 static int
 validate_parameters(uint32_t portmask)
 {

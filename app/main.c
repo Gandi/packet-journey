@@ -1258,6 +1258,7 @@ static int parse_config(const char *q_arg)
 }
 
 #define CMD_LINE_OPT_CONFIG "config"
+#define CMD_LINE_OPT_KNICONFIG "kniconfig"
 #define CMD_LINE_OPT_NO_NUMA "no-numa"
 #define CMD_LINE_OPT_IPV6 "ipv6"
 #define CMD_LINE_OPT_ENABLE_JUMBO "enable-jumbo"
@@ -1272,6 +1273,7 @@ static int parse_args(int argc, char **argv)
 	char *prgname = argv[0];
 	static struct option lgopts[] = {
 		{CMD_LINE_OPT_CONFIG, 1, 0, 0},
+		{CMD_LINE_OPT_KNICONFIG, 1, 0, 0},
 		{CMD_LINE_OPT_NO_NUMA, 0, 0, 0},
 		{CMD_LINE_OPT_IPV6, 0, 0, 0},
 		{CMD_LINE_OPT_ENABLE_JUMBO, 0, 0, 0},
@@ -1301,6 +1303,17 @@ static int parse_args(int argc, char **argv)
 
 			/* long options */
 		case 0:
+			if (!strncmp(lgopts[option_index].name,
+				     CMD_LINE_OPT_KNICONFIG,
+				     sizeof(CMD_LINE_OPT_KNICONFIG))) {
+				ret = kni_parse_config(optarg);
+				if (ret) {
+					printf("Invalid config\n");
+					print_usage(prgname);
+					return -1;
+				}
+			}
+
 			if (!strncmp(lgopts[option_index].name, CMD_LINE_OPT_CONFIG,
 						 sizeof(CMD_LINE_OPT_CONFIG))) {
 				ret = parse_config(optarg);

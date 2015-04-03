@@ -7,6 +7,7 @@ void init_kni(void);
 int kni_alloc(uint8_t port_id);
 int kni_free_kni(uint8_t port_id);
 int kni_main_loop(__rte_unused void *arg);
+int kni_parse_config(const char *arg);
 /*
  * Structure of port parameters
  */

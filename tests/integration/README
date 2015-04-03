@@ -1,0 +1,2 @@
+/mnt/build/app/build/l3fwd -l 0,1 -n 1 -- -p 0xff --config '(0,0,1)' --kniconfig '(0,0,0,0)'
+
