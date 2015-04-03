@@ -9,6 +9,11 @@ export HOME=/root
 mount -n -t proc proc /proc
 mount -n -t sysfs sys /sys
 
+mount -t tmpfs tmpfs /mnt
+mkdir /mnt/build /mnt/dpdkbuild
+
+mount -t 9p buildshare /mnt/build
+mount -t 9p dpdkbuildshare /mnt/dpdkbuild
 
 for fs in /run /var/run /var/tmp /var/log /tmp; do
     mount -t tmpfs tmpfs $fs -o rw,nosuid,nodev
@@ -116,6 +121,11 @@ EOF
   ;;
 r2)
   echo R2
+
+  echo 1024 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
+  mkdir /mnt/huge
+  mount -t hugetlbfs nodev /mnt/huge
+
 
   ip a add 1.0.0.1/31 dev eth0
   ip a add 2001:1::1/127 dev eth0

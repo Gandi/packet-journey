@@ -4,6 +4,7 @@ LABNAME="router-dpdk"
 
 ROOT=$(readlink -f ${ROOT:-chroot})
 LINUX=$(readlink -f ${LINUX:-bzImage})
+DPDK_BUILD="${RTE_SDK}/${RTE_BUILD}"
 
 WHICH=$(which which)
 
@@ -68,10 +69,12 @@ start_vm() {
         -device virtio-9p-pci,id=fs-lab,fsdev=fsdev-lab,mount_tag=labshare \
         -fsdev local,security_model=passthrough,id=fsdev-build,path=$(readlink -f ../../build),readonly \
         -device virtio-9p-pci,id=fs-build,fsdev=fsdev-build,mount_tag=buildshare \
+        -fsdev local,security_model=passthrough,id=fsdev-dpdkbuild,path=$DPDK_BUILD,readonly \
+        -device virtio-9p-pci,id=fs-dpdkbuild,fsdev=fsdev-dpdkbuild,mount_tag=dpdkbuildshare \
         \
         -gdb unix:$TMP/vm-$name-gdb.pipe,server,nowait \
         -kernel $LINUX \
-        -append "console=ttyS0 uts=$name root=/dev/root rootflags=trans=virtio,version=9p2000.u ro rootfstype=9p init=/bin/sh -c \"mount -t 9p buildshare /mnt; mount -t 9p labshare /media; exec /media/init" \
+        -append "console=ttyS0 uts=$name root=/dev/root rootflags=trans=virtio,version=9p2000.u ro rootfstype=9p init=/bin/sh -c \"mount -t 9p labshare /media; exec /media/init" \
         $netargs \
         "$@"
     echo "GDB server listening on.... $TMP/vm-$name-gdb.pipe"
