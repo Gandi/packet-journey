@@ -124,7 +124,7 @@ EOF
 r2)
   echo R2
 
-  echo 1024 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
+  echo 64 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
   mkdir /mnt/huge
   mount -t hugetlbfs nodev /mnt/huge
 
