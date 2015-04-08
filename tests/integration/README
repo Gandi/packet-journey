@@ -1,3 +1,8 @@
-/mnt/build/app/build/l3fwd -l 0,1 -n 1 -- -p 0xff --config '(0,0,0),(1,0,1)' --kniconfig '(0,0,0,0)' --no-numa
 /mnt/build/app/build/l3fwd  --log-level 8 -l 0,1 -n 1 -- -p 0xff --config '(0,0,0),(1,0,1)' --kniconfig '(0,0,0,0),(1,1,1,0)' --no-numa
+
+debug:
+build dpdk with something like `make RTE_KERNELDIR=/usr/src/linux-3.18.10-dpdk O=build_kvm EXTRA_CFLAGS="-g -O0"`
+vm: gdbserver /dev/ttyS1 /mnt/build/app/build/l3fwd ....
+host: gdb ./l3fwd
+      gdb> target remote | socat unix-connect:/tmp/tmp.XXXXXXXX/vm-r2-serial.pipe -
 
