@@ -21,14 +21,25 @@ setup_tmp() {
 }
 
 # Setup a VDE switch
-setup_switch() {
-    info "Setup switch $1"
+setup_switch_vde() {
+    info "Setup VDE switch $1"
     start-stop-daemon -b --make-pidfile --pidfile "$TMP/switch-$1.pid" \
         --start --startas $($WHICH vde_switch) -- \
         --sock "$TMP/switch-$1.sock" < /dev/zero
 }
 
-
+# Setup a bridge
+setup_switch() {
+    info "Setup switch $1"
+    switch="br-dpdk-$1"
+    brctl addbr $switch
+    saveifs="$IFS"
+    IFS=,
+    for vm in $VM; do
+        brctl addif $switch "tap-$vm-$1"
+    done
+    IFS="$saveifs"
+}
 
 # Start a VM
 start_vm() {
@@ -44,7 +55,7 @@ start_vm() {
     for net in $NET; do
         mac=$(echo $name-$net | sha1sum | \
             awk '{print "52:54:" substr($1,0,2) ":" substr($1, 2, 2) ":" substr($1, 4, 2) ":" substr($1, 6, 2)}')
-        netargs="$netargs -netdev tap,id=hn$net,queues=4,vhost=on,script=no,downscript=no"
+        netargs="$netargs -netdev tap,id=hn$net,queues=4,vhost=on,script=no,downscript=no,ifname=tap-$name-$net"
         netargs="$netargs -device virtio-net-pci,netdev=hn$net,mq=on,vectors=10,mac=$mac,guest_csum=off,csum=on,gso=on,guest_tso4=on,guest_tso6=on,guest_ecn=on"
     done
     IFS="$saveifs"
@@ -89,13 +100,14 @@ start_vm() {
 
 setup_tmp
 
-#setup_switch   1
-#setup_switch   2
-
-sleep 2
+#setup_switch_vde   1
+#setup_switch_vde   2
+#sleep 2
 
 NET=1   start_vm r1
 NET=1,2 start_vm r2
 NET=2   start_vm r3
 
 
+VM=r1,r2 setup_switch   1
+VM=r2,r3 setup_switch   2
