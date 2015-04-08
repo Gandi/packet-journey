@@ -124,7 +124,7 @@ EOF
 r2)
   echo R2
 
-  echo 64 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
+  echo 128 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
   mkdir /mnt/huge
   mount -t hugetlbfs nodev /mnt/huge
 
@@ -218,5 +218,5 @@ EOF
   ;;
 esac
 
-exec bash -c " trap 'echo coucou signal' SIGHUP SIGINT SIGTERM; /sbin/getty -L ttyS1 -a root 9600 vt100
+exec bash -l -c " trap 'echo coucou signal' SIGHUP SIGINT SIGTERM; /sbin/getty -L ttyS0 -a root 9600 vt102
 "

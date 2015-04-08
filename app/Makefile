@@ -15,7 +15,7 @@ SRCS-y += $(RTE_OUTPUT)/../../lib/libnetlink/$(RTE_TARGET)/lib/libnetlink.a
 #
 #CFLAGS += -I$(RTE_SRCDIR)/include
 
-CFLAGS += -O3 $(USER_FLAGS)
+CFLAGS += -O0 -g $(USER_FLAGS)
 CFLAGS += $(WERROR_FLAGS)
 CFLAGS += -I$(RTE_SDK)/$(RTE_TARGET)/include
 CFLAGS += -I$(RTE_SRCDIR)/../lib/libneighbour/

@@ -219,7 +219,7 @@ static struct rte_eth_conf port_conf = {
 			   .split_hdr_size = 0,
 			   .header_split = 0,
 							 /**< Header Split disabled */
-			   .hw_ip_checksum = 1,
+			   .hw_ip_checksum = 0,
 							 /**< IP checksum offload enabled */
 			   .hw_vlan_filter = 0,
 							 /**< VLAN filtering disabled */
@@ -240,6 +240,7 @@ static struct rte_eth_conf port_conf = {
 };
 
 static struct rte_mempool *pktmbuf_pool[NB_SOCKETS];
+static struct rte_mempool *knimbuf_pool[NB_SOCKETS];
 
 struct ipv4_l3fwd_route {
 	uint32_t ip;
@@ -453,8 +454,7 @@ get_ipv4_dst_port(void *ipv4_hdr, uint8_t portid,
 
 	return (uint8_t) ((rte_lpm_lookup(ipv4_l3fwd_lookup_struct,
 									  rte_be_to_cpu_32(((struct ipv4_hdr *)
-														ipv4_hdr)->
-													   dst_addr),
+														ipv4_hdr)->dst_addr),
 									  &next_hop) ==
 					   0) ? next_hop : portid);
 }
@@ -1304,8 +1304,8 @@ static int parse_args(int argc, char **argv)
 			/* long options */
 		case 0:
 			if (!strncmp(lgopts[option_index].name,
-				     CMD_LINE_OPT_KNICONFIG,
-				     sizeof(CMD_LINE_OPT_KNICONFIG))) {
+						 CMD_LINE_OPT_KNICONFIG,
+						 sizeof(CMD_LINE_OPT_KNICONFIG))) {
 				ret = kni_parse_config(optarg);
 				if (ret) {
 					printf("Invalid config\n");
@@ -1401,6 +1401,7 @@ static int init_mem(unsigned nb_mbuf)
 	struct lcore_conf *qconf;
 	int socketid;
 	unsigned lcore_id;
+	uint8_t nb_sys_ports, port;
 	char s[64];
 
 	for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++) {
@@ -1435,6 +1436,31 @@ static int init_mem(unsigned nb_mbuf)
 		}
 		qconf = &lcore_conf[lcore_id];
 		qconf->ipv4_lookup_struct = ipv4_l3fwd_lookup_struct[socketid];
+	}
+
+	/* Get number of ports found in scan */
+	nb_sys_ports = rte_eth_dev_count();
+	if (nb_sys_ports == 0)
+		rte_exit(EXIT_FAILURE, "No supported Ethernet device found\n");
+
+	for (port = 0; port < nb_sys_ports; port++) {
+
+		if (knimbuf_pool[port] == NULL) {
+			snprintf(s, sizeof(s), "knimbuf_pool_%d", port);
+			//FIXME use something that map socketid to portid
+			knimbuf_pool[port] =
+				rte_mempool_create(s, nb_mbuf, MBUF_SIZE,
+								   MEMPOOL_CACHE_SIZE,
+								   sizeof(struct rte_pktmbuf_pool_private),
+								   rte_pktmbuf_pool_init, NULL,
+								   rte_pktmbuf_init, NULL, 0, 0);
+			if (knimbuf_pool[port] == NULL)
+				rte_exit(EXIT_FAILURE,
+						 "Cannot init kni mbuf pool on port %d\n", port);
+			else
+				printf("Allocated kni mbuf pool on port %d\n", port);
+		}
+
 	}
 	return 0;
 }
@@ -1561,6 +1587,7 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 
 		rte_eth_dev_info_get(portid, dev_info);
 		txconf = &dev_info->default_txconf;
+		txconf->txq_flags = ETH_TXQ_FLAGS_NOOFFLOADS;
 		if (port_conf.rxmode.jumbo_frame)
 			txconf->txq_flags = 0;
 		printf("coucou port=%d queueid=%d nb_txd=%d core=%d\n", portid,
@@ -1579,12 +1606,11 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 	printf("\n");
 }
 
-static int
-alloc_kni_ports(void)
+static int alloc_kni_ports(void)
 {
 	int ret;
 	uint8_t nb_sys_ports, port;
-    unsigned i;
+	unsigned i;
 	/* Get number of ports found in scan */
 	nb_sys_ports = rte_eth_dev_count();
 	if (nb_sys_ports == 0)
@@ -1594,7 +1620,7 @@ alloc_kni_ports(void)
 	for (i = 0; i < RTE_MAX_ETHPORTS; i++)
 		if (kni_port_params_array[i] && i >= nb_sys_ports)
 			rte_exit(EXIT_FAILURE, "Configured invalid "
-						"port ID %u\n", i);
+					 "port ID %u\n", i);
 
 
 	/* Initialise each port */
@@ -1605,11 +1631,11 @@ alloc_kni_ports(void)
 
 		if (port >= RTE_MAX_ETHPORTS)
 			rte_exit(EXIT_FAILURE, "Can not use more than "
-				"%d ports for kni\n", RTE_MAX_ETHPORTS);
+					 "%d ports for kni\n", RTE_MAX_ETHPORTS);
 
-		ret = kni_alloc(port);
+		ret = kni_alloc(port, knimbuf_pool[port]);
 	}
-    return ret;
+	return ret;
 }
 
 
@@ -1690,7 +1716,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-    alloc_kni_ports();
+	alloc_kni_ports();
 	printf("\n");
 
 	/* start ports */

@@ -4,7 +4,7 @@ LABNAME="router-dpdk"
 
 ROOT=$(readlink -f ${ROOT:-chroot})
 LINUX=$(readlink -f ${LINUX:-bzImage})
-DPDK_BUILD="${RTE_SDK}/${RTE_BUILD}"
+DPDK_BUILD="${RTE_SDK}/${RTE_TARGET}"
 
 WHICH=$(which which)
 
@@ -44,21 +44,25 @@ start_vm() {
     for net in $NET; do
         mac=$(echo $name-$net | sha1sum | \
             awk '{print "52:54:" substr($1,0,2) ":" substr($1, 2, 2) ":" substr($1, 4, 2) ":" substr($1, 6, 2)}')
-        netargs="$netargs -net nic,model=virtio,macaddr=$mac,vlan=$net"
-        netargs="$netargs -net vde,sock=$TMP/switch-$net.sock,vlan=$net"
+        netargs="$netargs -netdev tap,id=hn$net,queues=4,vhost=on,script=no,downscript=no"
+        netargs="$netargs -device virtio-net-pci,netdev=hn$net,mq=on,vectors=10,mac=$mac,guest_csum=off,csum=on,gso=on,guest_tso4=on,guest_tso6=on,guest_ecn=on"
     done
     IFS="$saveifs"
 
+        #gdb --args /home/nikita/qemu-test/bin/qemu-system-x86_64 -enable-kvm -cpu host -smp 2 \
     screen -dmS $name \
         $($WHICH qemu-system-x86_64) -enable-kvm -cpu host -smp 2 \
         -nodefconfig -no-user-config -nodefaults \
-        -m 256 \
+        -m 372 \
         -display none \
         \
         -chardev stdio,id=charserial0,signal=off \
-        -device isa-serial,chardev=charserial0,id=serial0 \
         -chardev socket,id=charserial1,path=$TMP/vm-$name-serial.pipe,server,nowait \
-        -device isa-serial,chardev=charserial1,id=serial1 \
+        -chardev socket,id=charserial2,host=localhost,port=$GDBPORT,server,nowait,ipv4 \
+        -device isa-serial,chardev=charserial0,id=serial0 \
+        -device isa-serial,chardev=charserial1,id=console0 \
+        -device virtio-serial \
+        -device virtserialport,chardev=charserial2,name=ttygdb0 \
         \
         -chardev socket,id=con0,path=$TMP/vm-$name-console.pipe,server,nowait \
         -mon chardev=con0,mode=readline,default \
@@ -69,15 +73,15 @@ start_vm() {
         -device virtio-9p-pci,id=fs-lab,fsdev=fsdev-lab,mount_tag=labshare \
         -fsdev local,security_model=passthrough,id=fsdev-build,path=$(readlink -f ../../build),readonly \
         -device virtio-9p-pci,id=fs-build,fsdev=fsdev-build,mount_tag=buildshare \
-        -fsdev local,security_model=passthrough,id=fsdev-dpdkbuild,path=$DPDK_BUILD,readonly \
+        -fsdev local,security_model=passthrough,id=fsdev-dpdkbuild,path=$RTE_SDK,readonly \
         -device virtio-9p-pci,id=fs-dpdkbuild,fsdev=fsdev-dpdkbuild,mount_tag=dpdkbuildshare \
         \
-        -gdb unix:$TMP/vm-$name-gdb.pipe,server,nowait \
+        -gdb unix:$TMP/vm-$name-kernel-gdb.pipe,server,nowait \
         -kernel $LINUX \
-        -append "console=ttyS0 uts=$name root=/dev/root rootflags=trans=virtio,version=9p2000.u ro rootfstype=9p init=/bin/sh -c \"mount -t 9p labshare /media; exec /media/init" \
+        -append "console=ttyS0 uts=$name root=/dev/root rootflags=trans=virtio,version=9p2000.u ro rootfstype=9p init=/bin/bash -c \"mount -t 9p labshare /media; exec /media/init" \
         $netargs \
         "$@"
-    echo "GDB server listening on.... $TMP/vm-$name-gdb.pipe"
+    echo "GDB server listening on.... $TMP/vm-$name-kernel-gdb.pipe"
     echo "monitor listening on....... $TMP/vm-$name-console.pipe"
     echo "ttyS1 listening on......... $TMP/vm-$name-serial.pipe"
 }
@@ -85,8 +89,8 @@ start_vm() {
 
 setup_tmp
 
-setup_switch   1
-setup_switch   2
+#setup_switch   1
+#setup_switch   2
 
 sleep 2
 
