@@ -36,7 +36,9 @@ setup_switch() {
     saveifs="$IFS"
     IFS=,
     for vm in $VM; do
-        brctl addif $switch "tap-$vm-$1"
+        link="tap-$vm-$1"
+        ip link set $link up 
+        brctl addif $switch $link
     done
     IFS="$saveifs"
 }
@@ -108,6 +110,7 @@ NET=1   start_vm r1
 NET=1,2 start_vm r2
 NET=2   start_vm r3
 
+sleep 0.5s
 
 VM=r1,r2 setup_switch   1
 VM=r2,r3 setup_switch   2
