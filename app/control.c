@@ -2,6 +2,7 @@
 #include <unistd.h>
 
 #include <rte_common.h>
+#include <rte_log.h>
 #include <rte_ip.h>
 #include <rte_lpm.h>
 #include <rte_lpm6.h>
@@ -10,6 +11,7 @@
 #include <libnetlink.h>
 #include <libneighbour.h>
 
+#include "common.h"
 #include "control.h"
 #include "routing.h"
 
@@ -155,18 +157,20 @@ void *control_main(__rte_unused void *argv)
 
 	netl_h = netl_create();
 	if (netl_h == NULL) {
-		perror("Couldn't initialize netlink socket");
+		RTE_LOG(ERR, L3FWD, "Couldn't initialize netlink socket");
+		return NULL;
 	}
 
 	handle.neighbor4 = nei_create();
 	if (handle.neighbor4 == NULL) {
-		// TODO handle error
+		RTE_LOG(ERR, L3FWD, "Couldn't initialize netlink socket");
+		return NULL;
 	}
-
 
 	netl_h->cb.neighbor4 = neighbor4;
 	netl_h->cb.route4 = route4;
 
+	RTE_LOG(INFO, L3FWD_CTRL, "init ok");
 	netl_listen(netl_h, &handle);
 
 	return NULL;

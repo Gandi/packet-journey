@@ -440,18 +440,14 @@ static int validate_parameters(uint32_t portmask)
 					 "to port ids specified in --config\n");
 
 		if (kni_port_params_array[i] && !rte_lcore_is_enabled((unsigned)
-															  (kni_port_params_array
-															   [i]->
-															   lcore_rx)))
+															  (kni_port_params_array[i]->lcore_rx)))
 			rte_exit(EXIT_FAILURE,
 					 "lcore id %u for " "port %d receiving not enabled\n",
 					 kni_port_params_array[i]->lcore_rx,
 					 kni_port_params_array[i]->port_id);
 
 		if (kni_port_params_array[i] && !rte_lcore_is_enabled((unsigned)
-															  (kni_port_params_array
-															   [i]->
-															   lcore_tx)))
+															  (kni_port_params_array[i]->lcore_tx)))
 			rte_exit(EXIT_FAILURE,
 					 "lcore id %u for "
 					 "port %d transmitting not enabled\n",

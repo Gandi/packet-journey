@@ -81,7 +81,9 @@
 #include <rte_spinlock.h>
 #include <rte_kni.h>
 
+#include "common.h"
 #include "routing.h"
+#include "control.h"
 #include "kni.h"
 lookup_struct_t *ipv4_l3fwd_lookup_struct[NB_SOCKETS];
 
@@ -111,9 +113,6 @@ lookup_struct_t *ipv4_l3fwd_lookup_struct[NB_SOCKETS];
 	addr[8],  addr[9], addr[10], addr[11],\
 	addr[12], addr[13],addr[14], addr[15]
 #endif
-
-
-#define RTE_LOGTYPE_L3FWD RTE_LOGTYPE_USER1
 
 #define MAX_JUMBO_PKT_LEN  9600
 
@@ -240,7 +239,7 @@ static struct rte_eth_conf port_conf = {
 };
 
 static struct rte_mempool *pktmbuf_pool[NB_SOCKETS];
-static struct rte_mempool *knimbuf_pool[NB_SOCKETS];
+static struct rte_mempool *knimbuf_pool[RTE_MAX_ETHPORTS];
 
 struct ipv4_l3fwd_route {
 	uint32_t ip;
@@ -1650,6 +1649,7 @@ int main(int argc, char **argv)
 	unsigned lcore_id;
 	uint32_t nb_lcores;
 	uint8_t portid, queue, socketid;
+	static pthread_t tid;
 
 	/* init EAL */
 	ret = rte_eal_init(argc, argv);
@@ -1741,6 +1741,7 @@ int main(int argc, char **argv)
 	}
 
 	check_all_ports_link_status((uint8_t) nb_ports, enabled_port_mask);
+	pthread_create(&tid, NULL, (void *) control_main, NULL);
 
 	/* launch per-lcore init on every lcore */
 	rte_eal_mp_remote_launch(main_loop, NULL, CALL_MASTER);

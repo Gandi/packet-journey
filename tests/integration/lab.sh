@@ -71,11 +71,11 @@ start_vm() {
         \
         -chardev stdio,id=charserial0,signal=off \
         -chardev socket,id=charserial1,path=$TMP/vm-$name-serial.pipe,server,nowait \
-        -chardev socket,id=charserial2,host=localhost,port=$GDBPORT,server,nowait,ipv4 \
+        -chardev socket,id=charserial2,path=$TMP/vm-$name-test.pipe,server,nowait \
         -device isa-serial,chardev=charserial0,id=serial0 \
-        -device isa-serial,chardev=charserial1,id=console0 \
+        -device isa-serial,chardev=charserial1,id=gdb0 \
         -device virtio-serial \
-        -device virtserialport,chardev=charserial2,name=ttygdb0 \
+        -device virtserialport,chardev=charserial2,name=console0 \
         \
         -chardev socket,id=con0,path=$TMP/vm-$name-console.pipe,server,nowait \
         -mon chardev=con0,mode=readline,default \
@@ -91,7 +91,7 @@ start_vm() {
         \
         -gdb unix:$TMP/vm-$name-kernel-gdb.pipe,server,nowait \
         -kernel $LINUX \
-        -append "console=ttyS0 uts=$name root=/dev/root rootflags=trans=virtio,version=9p2000.u ro rootfstype=9p init=/bin/bash -c \"mount -t 9p labshare /media; exec /media/init" \
+        -append "console=ttyS0 uts=$name root=/dev/root rootflags=trans=virtio,version=9p2000.u ro rootfstype=9p init=/bin/sh -c \"mount -t 9p labshare /media; exec /media/init" \
         $netargs \
         "$@"
     echo "GDB server listening on.... $TMP/vm-$name-kernel-gdb.pipe"

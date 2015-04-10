@@ -134,6 +134,10 @@ r2)
   ethtool -L eth0 combined 4
   ethtool -L eth1 combined 4
 
+#make it more portable  
+  /mnt/dpdkbuild/tools/dpdk_nic_bind.py -b igb_uio 00:07.0
+  /mnt/dpdkbuild/tools/dpdk_nic_bind.py -b igb_uio 00:08.0
+
 #  ip a add 1.0.0.1/31 dev eth0
 #  ip a add 2001:1::1/127 dev eth0
 #  ip a add 1.0.0.3/31 dev eth1
@@ -180,6 +184,8 @@ protocol bgp BGPRight {
 }
 EOF
 
+  /etc/init.d/bird start
+  /etc/init.d/bird6 start
 
   ;;
 r3)
@@ -222,5 +228,4 @@ EOF
   ;;
 esac
 
-exec bash -l -c " trap 'echo coucou signal' SIGHUP SIGINT SIGTERM; /sbin/getty -L ttyS0 -a root 9600 vt102
-"
+exec sh  -c " trap 'echo coucou signal' SIGHUP SIGINT SIGTERM; /sbin/agetty 38400 ttyS0 linux -a root"
