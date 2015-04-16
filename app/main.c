@@ -31,12 +31,6 @@
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-//#define RTE_MAX_LCORE 128
-//#define RTE_PKTMBUF_HEADROOM 128
-//#define RTE_ETHDEV_QUEUE_STAT_CNTRS 16
-//#define RTE_MAX_ETHPORTS 32
-//#define RTE_LOG_LEVEL 8
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -49,13 +43,13 @@
 #include <getopt.h>
 
 #include <rte_common.h>
-#include <rte_common_vect.h>
+#include <rte_vect.h>
 #include <rte_byteorder.h>
 #include <rte_log.h>
 #include <rte_memory.h>
+#include <rte_malloc.h>
 #include <rte_memcpy.h>
 #include <rte_memzone.h>
-#include <rte_tailq.h>
 #include <rte_eal.h>
 #include <rte_per_lcore.h>
 #include <rte_launch.h>
@@ -81,11 +75,16 @@
 #include <rte_spinlock.h>
 #include <rte_kni.h>
 
+#include <libneighbour.h>
+
 #include "common.h"
 #include "routing.h"
 #include "control.h"
 #include "kni.h"
 lookup_struct_t *ipv4_l3fwd_lookup_struct[NB_SOCKETS];
+lookup_struct_t *ipv4_l3fwd_lookup_struct[NB_SOCKETS];
+neighbor_struct_t *neighbor4_struct[NB_SOCKETS];
+neighbor_struct_t *neighbor6_struct[NB_SOCKETS];
 
 #define DO_RFC_1812_CHECKS
 
@@ -150,7 +149,6 @@ lookup_struct_t *ipv4_l3fwd_lookup_struct[NB_SOCKETS];
 /* Used to mark destination port as 'invalid'. */
 #define	BAD_PORT	((uint16_t)-1)
 
-#define FWDSTEP	4
 
 /*
  * Configurable number of RX/TX ring descriptors
@@ -163,7 +161,9 @@ static uint16_t nb_txd = RTE_TEST_TX_DESC_DEFAULT;
 /* ethernet addresses of ports */
 static struct ether_addr ports_eth_addr[RTE_MAX_ETHPORTS];
 
+#if 0
 static __m128i val_eth[RTE_MAX_ETHPORTS];
+#endif
 
 /* replace first 12B of the ethernet header. */
 #define	MASK_ETH	0x3f
@@ -269,6 +269,8 @@ struct lcore_conf {
 	struct mbuf_table tx_mbufs[RTE_MAX_ETHPORTS];
 	lookup_struct_t *ipv4_lookup_struct;
 	lookup6_struct_t *ipv6_lookup_struct;
+	neighbor_struct_t *neighbor4_struct;
+	neighbor_struct_t *neighbor6_struct;
 } __rte_cache_aligned;
 
 static struct lcore_conf lcore_conf[RTE_MAX_LCORE];
@@ -640,9 +642,11 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	dst_ipv4 = rte_be_to_cpu_32(dst_ipv4);
 	dp = get_dst_port(qconf, pkt, dst_ipv4, portid);
 
+	//TODO use neighbor table instead for getting the ip, eth dst, port id
+#if 0
 	te = _mm_load_si128((__m128i *) eth_hdr);
 	ve = val_eth[dp];
-
+#endif
 	dst_port[0] = dp;
 	rfc1812_process(ipv4_hdr, dst_port, pkt->ol_flags);
 
@@ -704,7 +708,7 @@ processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
 	if (likely(flag != 0)) {
 		rte_lpm_lookupx4(qconf->ipv4_lookup_struct, dip, dprt, portid);
 	} else {
-		dst.m = dip;
+		dst.x = dip;
 		dprt[0] = get_dst_port(qconf, pkt[0], dst.u32[0], portid);
 		dprt[1] = get_dst_port(qconf, pkt[1], dst.u32[1], portid);
 		dprt[2] = get_dst_port(qconf, pkt[2], dst.u32[2], portid);
@@ -717,7 +721,7 @@ processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
  * Perform RFC1812 checks and updates for IPV4 packets.
  */
 static inline void
-processx4_step3(struct rte_mbuf *pkt[FWDSTEP], uint16_t dst_port[FWDSTEP])
+processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP], uint16_t dst_port[FWDSTEP])
 {
 	__m128i te[FWDSTEP];
 	__m128i ve[FWDSTEP];
@@ -728,16 +732,21 @@ processx4_step3(struct rte_mbuf *pkt[FWDSTEP], uint16_t dst_port[FWDSTEP])
 	p[2] = (rte_pktmbuf_mtod(pkt[2], __m128i *));
 	p[3] = (rte_pktmbuf_mtod(pkt[3], __m128i *));
 
+	//TODO test it, may need to use eth = rte_pktmbuf_mtod(m, struct ether_hdr *); ether_addr_copy(from, eth->d_addr);
+	ve[0] = _mm_load_si128((__m128i*)&qconf->neighbor4_struct->entries4[dst_port[0]].nexthop_hwaddr);
+	ve[1] = _mm_load_si128((__m128i*)&qconf->neighbor4_struct->entries4[dst_port[1]].nexthop_hwaddr);
+	ve[2] = _mm_load_si128((__m128i*)&qconf->neighbor4_struct->entries4[dst_port[2]].nexthop_hwaddr);
+	ve[3] = _mm_load_si128((__m128i*)&qconf->neighbor4_struct->entries4[dst_port[3]].nexthop_hwaddr);
+#if 0
 	ve[0] = val_eth[dst_port[0]];
-	te[0] = _mm_load_si128(p[0]);
-
 	ve[1] = val_eth[dst_port[1]];
-	te[1] = _mm_load_si128(p[1]);
-
 	ve[2] = val_eth[dst_port[2]];
-	te[2] = _mm_load_si128(p[2]);
-
 	ve[3] = val_eth[dst_port[3]];
+#endif
+
+	te[0] = _mm_load_si128(p[0]);
+	te[1] = _mm_load_si128(p[1]);
+	te[2] = _mm_load_si128(p[2]);
 	te[3] = _mm_load_si128(p[3]);
 
 	/* Update first 12 bytes, keep rest bytes intact. */
@@ -966,13 +975,13 @@ static int main_loop( __attribute__ ((unused))
 				lp = pnum;
 				lp[0] = 1;
 
-				processx4_step3(pkts_burst, dst_port);
+				processx4_step3(qconf, pkts_burst, dst_port);
 
 				/* dp1: <d[0], d[1], d[2], d[3], ... > */
 				dp1 = _mm_loadu_si128((__m128i *) dst_port);
 
 				for (j = FWDSTEP; j != k; j += FWDSTEP) {
-					processx4_step3(&pkts_burst[j], &dst_port[j]);
+					processx4_step3(qconf, &pkts_burst[j], &dst_port[j]);
 
 					/*
 					 * dp2:
@@ -1387,9 +1396,7 @@ static void setup_lpm(int socketid)
 
 	/* create the LPM table */
 	snprintf(s, sizeof(s), "IPV4_L3FWD_LPM_%d", socketid);
-	ipv4_l3fwd_lookup_struct[socketid] = rte_lpm_create(s, socketid,
-														IPV4_L3FWD_LPM_MAX_RULES,
-														0);
+	ipv4_l3fwd_lookup_struct[socketid] = rte_lpm_create(s, socketid, IPV4_L3FWD_LPM_MAX_RULES, 0);
 	if (ipv4_l3fwd_lookup_struct[socketid] == NULL)
 		rte_exit(EXIT_FAILURE, "Unable to create the l3fwd LPM table"
 				 " on socket %d\n", socketid);
@@ -1435,6 +1442,9 @@ static int init_mem(unsigned nb_mbuf)
 		}
 		qconf = &lcore_conf[lcore_id];
 		qconf->ipv4_lookup_struct = ipv4_l3fwd_lookup_struct[socketid];
+		qconf->neighbor4_struct = neighbor4_struct[socketid];
+//		qconf->ipv6_lookup_struct = ipv6_l3fwd_lookup_struct[socketid];
+//		qconf->neighbor6_struct = neighbor6_struct[socketid];
 	}
 
 	/* Get number of ports found in scan */
@@ -1560,10 +1570,13 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 	/*
 	 * prepare dst and src MACs for each port.
 	 */
-	*(uint64_t *) (val_eth + portid) =
+	//TODO use neighbor table instead
+	/*
+	(uint64_t *) (val_eth + portid) =
 		ETHER_LOCAL_ADMIN_ADDR + ((uint64_t) portid << 40);
 	ether_addr_copy(&ports_eth_addr[portid],
 					(struct ether_addr *) (val_eth + portid) + 1);
+	*/
 
 	/* init memory */
 	ret = init_mem(NB_MBUF);
@@ -1694,15 +1707,16 @@ int main(int argc, char **argv)
 
 		printf("\nInitializing rx queues on lcore %u ... ", lcore_id);
 		fflush(stdout);
+
+		if (numa_on)
+			socketid = (uint8_t) rte_lcore_to_socket_id(lcore_id);
+		else
+			socketid = 0;
+
 		/* init RX queues */
 		for (queue = 0; queue < qconf->n_rx_queue; ++queue) {
 			portid = qconf->rx_queue_list[queue].port_id;
 			queueid = qconf->rx_queue_list[queue].queue_id;
-
-			if (numa_on)
-				socketid = (uint8_t) rte_lcore_to_socket_id(lcore_id);
-			else
-				socketid = 0;
 
 			printf("rxq=%d,%d,%d ", portid, queueid, socketid);
 			fflush(stdout);
@@ -1741,7 +1755,14 @@ int main(int argc, char **argv)
 	}
 
 	check_all_ports_link_status((uint8_t) nb_ports, enabled_port_mask);
-	pthread_create(&tid, NULL, (void *) control_main, NULL);
+
+	int *ctrlsock = rte_malloc("control_main socket for lpm", sizeof(int), 0);
+	if (numa_on)
+		*ctrlsock = 1; //FIXME set the correct value
+	else
+		*ctrlsock = 0;
+	//XXX ensure that control_main doesn't run on a core binded by dpdk lcores
+	pthread_create(&tid, NULL, (void *) control_main, ctrlsock);
 
 	/* launch per-lcore init on every lcore */
 	rte_eal_mp_remote_launch(main_loop, NULL, CALL_MASTER);

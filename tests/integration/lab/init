@@ -228,4 +228,5 @@ EOF
   ;;
 esac
 
-exec sh  -c " trap 'echo coucou signal' SIGHUP SIGINT SIGTERM; /sbin/agetty 38400 ttyS0 linux -a root"
+exec bash  -c " trap 'echo coucou signal' SIGHUP SIGINT SIGTERM; /sbin/getty -L ttyS1 -a root vt100"
+#exec bash -c " trap 'echo coucou signal' HUP INT TERM QUIT; /sbin/getty -L ttyS1 -a root 9600 vt102 "

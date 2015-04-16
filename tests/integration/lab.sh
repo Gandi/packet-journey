@@ -45,8 +45,9 @@ setup_switch() {
 
 # Start a VM
 start_vm() {
-    info "Start VM $1"
-    name="$1"
+    name="r$1"
+    info "Start VM $name"
+    sshport="1002$1"
     shift
 
     make chroot
@@ -62,9 +63,9 @@ start_vm() {
     done
     IFS="$saveifs"
 
-        #gdb --args /home/nikita/qemu-test/bin/qemu-system-x86_64 -enable-kvm -cpu host -smp 2 \
+        #$($WHICH qemu-system-x86_64) -enable-kvm -cpu host -smp 2 \
     screen -dmS $name \
-        $($WHICH qemu-system-x86_64) -enable-kvm -cpu host -smp 2 \
+        /home/nikita/qemu-test/bin/qemu-system-x86_64 -enable-kvm -cpu host -smp 2 \
         -nodefconfig -no-user-config -nodefaults \
         -m 372 \
         -display none \
@@ -93,6 +94,7 @@ start_vm() {
         -kernel $LINUX \
         -append "console=ttyS0 uts=$name root=/dev/root rootflags=trans=virtio,version=9p2000.u ro rootfstype=9p init=/bin/sh -c \"mount -t 9p labshare /media; exec /media/init" \
         $netargs \
+        -net user,hostfwd=tcp::$sshport-:22 \
         "$@"
     echo "GDB server listening on.... $TMP/vm-$name-kernel-gdb.pipe"
     echo "monitor listening on....... $TMP/vm-$name-console.pipe"
@@ -106,11 +108,12 @@ setup_tmp
 #setup_switch_vde   2
 #sleep 2
 
-NET=1   start_vm r1
-NET=1,2 start_vm r2
-NET=2   start_vm r3
+NET=1   start_vm 1
+NET=1,2 start_vm 2
+NET=2   start_vm 3
 
 sleep 0.5s
 
 VM=r1,r2 setup_switch   1
 VM=r2,r3 setup_switch   2
+#VM=r1,r2,r3 setup_switch   3

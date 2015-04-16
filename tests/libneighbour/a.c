@@ -24,7 +24,7 @@ int main(void)
 
 	rdpdk_init(7, argv);
 
-	t = nei_create();
+	t = nei_create(SOCKET_ID_ANY);
 	if (t == NULL) {
 		perror("Failed to initialize neighbour table");
 		exit(1);

@@ -47,6 +47,6 @@ int neighbor4_set_state(struct nei_table *, uint8_t, __u8 flags);
 void neighbor4_delete(struct nei_table *, uint8_t);
 
 
-struct nei_table *nei_create(void);
+struct nei_table *nei_create(int socketid);
 
 void nei_free(struct nei_table *nei);

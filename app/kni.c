@@ -564,6 +564,7 @@ static int kni_config_network_interface(uint8_t port_id, uint8_t if_up)
 {
 	int ret = 0;
 
+	RTE_LOG(INFO, APP, "----   kni_config_network_interface\n");
 	if (port_id >= rte_eth_dev_count() || port_id >= RTE_MAX_ETHPORTS) {
 		RTE_LOG(ERR, APP, "Invalid port id %d\n", port_id);
 		return -EINVAL;

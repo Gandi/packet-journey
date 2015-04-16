@@ -143,11 +143,11 @@ void neighbor4_delete(struct nei_table *t, uint8_t nexthop_id)
 	return;
 }
 
-struct nei_table *nei_create(void)
+struct nei_table *nei_create(int socketid)
 {
 	struct nei_table *nei_table;
 
-	nei_table = rdpdk_malloc("nei_table", sizeof(struct nei_table), 0);
+	nei_table = rdpdk_malloc("nei_table", sizeof(struct nei_table), 0, socketid);
 	if (nei_table == NULL)
 		return NULL;
 
