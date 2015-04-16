@@ -455,7 +455,8 @@ get_ipv4_dst_port(void *ipv4_hdr, uint8_t portid,
 
 	return (uint8_t) ((rte_lpm_lookup(ipv4_l3fwd_lookup_struct,
 									  rte_be_to_cpu_32(((struct ipv4_hdr *)
-														ipv4_hdr)->dst_addr),
+														ipv4_hdr)->
+													   dst_addr),
 									  &next_hop) ==
 					   0) ? next_hop : portid);
 }
@@ -721,7 +722,8 @@ processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
  * Perform RFC1812 checks and updates for IPV4 packets.
  */
 static inline void
-processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP], uint16_t dst_port[FWDSTEP])
+processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
+				uint16_t dst_port[FWDSTEP])
 {
 	__m128i te[FWDSTEP];
 	__m128i ve[FWDSTEP];
@@ -733,10 +735,18 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP], uint16_
 	p[3] = (rte_pktmbuf_mtod(pkt[3], __m128i *));
 
 	//TODO test it, may need to use eth = rte_pktmbuf_mtod(m, struct ether_hdr *); ether_addr_copy(from, eth->d_addr);
-	ve[0] = _mm_load_si128((__m128i*)&qconf->neighbor4_struct->entries4[dst_port[0]].nexthop_hwaddr);
-	ve[1] = _mm_load_si128((__m128i*)&qconf->neighbor4_struct->entries4[dst_port[1]].nexthop_hwaddr);
-	ve[2] = _mm_load_si128((__m128i*)&qconf->neighbor4_struct->entries4[dst_port[2]].nexthop_hwaddr);
-	ve[3] = _mm_load_si128((__m128i*)&qconf->neighbor4_struct->entries4[dst_port[3]].nexthop_hwaddr);
+	ve[0] =
+		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
+					   entries4[dst_port[0]].nexthop_hwaddr);
+	ve[1] =
+		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
+					   entries4[dst_port[1]].nexthop_hwaddr);
+	ve[2] =
+		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
+					   entries4[dst_port[2]].nexthop_hwaddr);
+	ve[3] =
+		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
+					   entries4[dst_port[3]].nexthop_hwaddr);
 #if 0
 	ve[0] = val_eth[dst_port[0]];
 	ve[1] = val_eth[dst_port[1]];
@@ -1396,7 +1406,8 @@ static void setup_lpm(int socketid)
 
 	/* create the LPM table */
 	snprintf(s, sizeof(s), "IPV4_L3FWD_LPM_%d", socketid);
-	ipv4_l3fwd_lookup_struct[socketid] = rte_lpm_create(s, socketid, IPV4_L3FWD_LPM_MAX_RULES, 0);
+	ipv4_l3fwd_lookup_struct[socketid] =
+		rte_lpm_create(s, socketid, IPV4_L3FWD_LPM_MAX_RULES, 0);
 	if (ipv4_l3fwd_lookup_struct[socketid] == NULL)
 		rte_exit(EXIT_FAILURE, "Unable to create the l3fwd LPM table"
 				 " on socket %d\n", socketid);
@@ -1443,8 +1454,8 @@ static int init_mem(unsigned nb_mbuf)
 		qconf = &lcore_conf[lcore_id];
 		qconf->ipv4_lookup_struct = ipv4_l3fwd_lookup_struct[socketid];
 		qconf->neighbor4_struct = neighbor4_struct[socketid];
-//		qconf->ipv6_lookup_struct = ipv6_l3fwd_lookup_struct[socketid];
-//		qconf->neighbor6_struct = neighbor6_struct[socketid];
+//      qconf->ipv6_lookup_struct = ipv6_l3fwd_lookup_struct[socketid];
+//      qconf->neighbor6_struct = neighbor6_struct[socketid];
 	}
 
 	/* Get number of ports found in scan */
@@ -1572,11 +1583,11 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 	 */
 	//TODO use neighbor table instead
 	/*
-	(uint64_t *) (val_eth + portid) =
-		ETHER_LOCAL_ADMIN_ADDR + ((uint64_t) portid << 40);
-	ether_addr_copy(&ports_eth_addr[portid],
-					(struct ether_addr *) (val_eth + portid) + 1);
-	*/
+	   (uint64_t *) (val_eth + portid) =
+	   ETHER_LOCAL_ADMIN_ADDR + ((uint64_t) portid << 40);
+	   ether_addr_copy(&ports_eth_addr[portid],
+	   (struct ether_addr *) (val_eth + portid) + 1);
+	 */
 
 	/* init memory */
 	ret = init_mem(NB_MBUF);
@@ -1756,9 +1767,10 @@ int main(int argc, char **argv)
 
 	check_all_ports_link_status((uint8_t) nb_ports, enabled_port_mask);
 
-	int *ctrlsock = rte_malloc("control_main socket for lpm", sizeof(int), 0);
+	int *ctrlsock =
+		rte_malloc("control_main socket for lpm", sizeof(int), 0);
 	if (numa_on)
-		*ctrlsock = 1; //FIXME set the correct value
+		*ctrlsock = 1;			//FIXME set the correct value
 	else
 		*ctrlsock = 0;
 	//XXX ensure that control_main doesn't run on a core binded by dpdk lcores

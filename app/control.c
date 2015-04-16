@@ -57,42 +57,50 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 		RTE_LOG(DEBUG, L3FWD_CTRL, "adding an ipv4 route...\n");
 		// lookup nexthop
 		do {
-			s = neighbor4_lookup_nexthop(neighbor4_struct[i], nexthop, &nexthop_id);
+			s = neighbor4_lookup_nexthop(neighbor4_struct[i], nexthop,
+										 &nexthop_id);
 			if (s < 0) {
-				neighbor4_add_nexthop(neighbor4_struct[i], nexthop, &nexthop_id);
+				neighbor4_add_nexthop(neighbor4_struct[i], nexthop,
+									  &nexthop_id);
 				if (s < 0) {
-					RTE_LOG(ERR, L3FWD_CTRL, "failed to add a nexthop during route adding...\n");
+					RTE_LOG(ERR, L3FWD_CTRL,
+							"failed to add a nexthop during route adding...\n");
 					return -1;
 				}
 			}
-			s = rte_lpm_add(ipv4_l3fwd_lookup_struct[i], addr->s_addr, depth, nexthop_id);
+			s = rte_lpm_add(ipv4_l3fwd_lookup_struct[i], addr->s_addr,
+							depth, nexthop_id);
 			if (s < 0) {
-				RTE_LOG(ERR, L3FWD_CTRL, "failed to add a route in lpm during route adding...\n");
+				RTE_LOG(ERR, L3FWD_CTRL,
+						"failed to add a route in lpm during route adding...\n");
 				return -1;
 			}
 			neighbor4_refcount_incr(neighbor4_struct[i], nexthop_id);
 
-		} while(++i < g_max_socket);
+		} while (++i < g_max_socket);
 	}
 
 	if (action == ROUTE_DELETE) {
 		RTE_LOG(DEBUG, L3FWD_CTRL, "deleting an ipv4 route...\n");
 		// lookup nexthop
 		do {
-			s = neighbor4_lookup_nexthop(neighbor4_struct[i], nexthop, &nexthop_id);
+			s = neighbor4_lookup_nexthop(neighbor4_struct[i], nexthop,
+										 &nexthop_id);
 			if (s < 0) {
-				RTE_LOG(ERR, L3FWD_CTRL, "failed to find nexthop during route deletion...\n");
+				RTE_LOG(ERR, L3FWD_CTRL,
+						"failed to find nexthop during route deletion...\n");
 				return -1;
 			}
 
-			s = rte_lpm_delete(ipv4_l3fwd_lookup_struct[i], addr->s_addr, depth);
+			s = rte_lpm_delete(ipv4_l3fwd_lookup_struct[i], addr->s_addr,
+							   depth);
 			if (s < 0) {
 				RTE_LOG(ERR, L3FWD_CTRL, "failed to deletie route...\n");
 				return -1;
 			}
 			neighbor4_refcount_decr(neighbor4_struct[i], nexthop_id);
 
-		} while(++i < g_max_socket);
+		} while (++i < g_max_socket);
 	}
 	RTE_LOG(DEBUG, L3FWD_CTRL, "route ope success\n");
 	return 0;
@@ -141,28 +149,34 @@ neighbor4(neighbor_action_t action,
 		RTE_LOG(DEBUG, L3FWD_CTRL, "adding ipv4 neighbor...\n");
 
 		do {
-			s = neighbor4_lookup_nexthop(neighbor4_struct[i], addr, &nexthop_id);
+			s = neighbor4_lookup_nexthop(neighbor4_struct[i], addr,
+										 &nexthop_id);
 			if (s < 0) {
-				s = neighbor4_add_nexthop(neighbor4_struct[i], addr, &nexthop_id);
+				s = neighbor4_add_nexthop(neighbor4_struct[i], addr,
+										  &nexthop_id);
 				if (s < 0) {
-					RTE_LOG(ERR, L3FWD_CTRL, "failed to add a nexthop in neighbor table...\n");
+					RTE_LOG(ERR, L3FWD_CTRL,
+							"failed to add a nexthop in neighbor table...\n");
 					return -1;
 				}
 			}
-			neighbor4_set_lladdr_port(neighbor4_struct[i], nexthop_id, lladdr, port_id);
+			neighbor4_set_lladdr_port(neighbor4_struct[i], nexthop_id,
+									  lladdr, port_id);
 			neighbor4_set_state(neighbor4_struct[i], nexthop_id, flags);
-		} while(++i < g_max_socket);
+		} while (++i < g_max_socket);
 	}
 	if (action == NEIGHBOR_DELETE) {
 		RTE_LOG(DEBUG, L3FWD_CTRL, "deleting ipv4 neighbor...\n");
 		do {
-			s = neighbor4_lookup_nexthop(neighbor4_struct[i], addr, &nexthop_id);
+			s = neighbor4_lookup_nexthop(neighbor4_struct[i], addr,
+										 &nexthop_id);
 			if (s < 0) {
-				RTE_LOG(ERR, L3FWD_CTRL, "failed to find a nexthop to delete in neighbor table...\n");
+				RTE_LOG(ERR, L3FWD_CTRL,
+						"failed to find a nexthop to delete in neighbor table...\n");
 				return 0;
 			}
 			neighbor4_delete(neighbor4_struct[i], nexthop_id);
-		} while(++i < g_max_socket);
+		} while (++i < g_max_socket);
 	}
 	RTE_LOG(DEBUG, L3FWD_CTRL, "neigh ope success\n");
 	return 0;
@@ -174,7 +188,7 @@ void *control_main(void *argv)
 	struct control_handle handle;
 	unsigned i = 0;
 
-	g_max_socket = *(int*)(argv);
+	g_max_socket = *(int *) (argv);
 
 	netl_h = netl_create();
 	if (netl_h == NULL) {
@@ -183,12 +197,14 @@ void *control_main(void *argv)
 	}
 
 	do {
-		neighbor4_struct[i] = nei_create(i == g_max_socket ? SOCKET_ID_ANY : (int)i);
+		neighbor4_struct[i] =
+			nei_create(i == g_max_socket ? SOCKET_ID_ANY : (int) i);
 		if (neighbor4_struct[i] == NULL) {
-			RTE_LOG(ERR, L3FWD_CTRL, "Couldn't initialize neighbor4 struct");
+			RTE_LOG(ERR, L3FWD_CTRL,
+					"Couldn't initialize neighbor4 struct");
 			goto err;
 		}
-	} while(++i < g_max_socket);
+	} while (++i < g_max_socket);
 
 	netl_h->cb.neighbor4 = neighbor4;
 	netl_h->cb.route4 = route4;
@@ -198,6 +214,6 @@ void *control_main(void *argv)
 	RTE_LOG(INFO, L3FWD_CTRL, "netl_listen returned...\n");
 
 	return NULL;
-err:
+  err:
 	rte_panic("failed to init control_main");
 }
