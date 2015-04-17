@@ -182,6 +182,17 @@ neighbor4(neighbor_action_t action,
 	return 0;
 }
 
+static int addr4(__rte_unused addr_action_t action, __s32 port_id,
+				 struct in_addr *addr, __u8 prefixlen)
+{
+	char buf[255];
+
+	printf("SALUT port=%d %s/%d\n", port_id,
+		   inet_ntop(AF_INET, addr, buf, 255), prefixlen);
+
+	return 0;
+}
+
 void *control_main(void *argv)
 {
 	struct netl_handle *netl_h;
@@ -206,6 +217,7 @@ void *control_main(void *argv)
 		}
 	} while (++i < g_max_socket);
 
+	netl_h->cb.addr4 = addr4;
 	netl_h->cb.neighbor4 = neighbor4;
 	netl_h->cb.route4 = route4;
 
@@ -216,4 +228,9 @@ void *control_main(void *argv)
 	return NULL;
   err:
 	rte_panic("failed to init control_main");
+}
+
+int control_callback_setup(const char *cb)
+{
+	return system(cb);
 }

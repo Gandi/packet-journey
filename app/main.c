@@ -172,6 +172,7 @@ static __m128i val_eth[RTE_MAX_ETHPORTS];
 static uint32_t enabled_port_mask = 0;
 static int promiscuous_on = 0; /**< Ports set in promiscuous mode off by default. */
 static int numa_on = 1;	/**< NUMA is enabled by default. */
+static char *callback_setup = NULL;
 
 struct mbuf_table {
 	uint16_t len;
@@ -1182,6 +1183,7 @@ static void print_usage(const char *prgname)
 		   "  -p PORTMASK: hexadecimal bitmask of ports to configure\n"
 		   "  -P : enable promiscuous mode\n"
 		   "  --config (port,queue,lcore): rx queues configuration\n"
+		   "  --callback-setup: script called when ifaces are set up\n"
 		   "  --no-numa: optional, disable numa awareness\n"
 		   "  --ipv6: optional, specify it if running ipv6 packets\n"
 		   "  --enable-jumbo: enable jumbo frame"
@@ -1277,6 +1279,7 @@ static int parse_config(const char *q_arg)
 
 #define CMD_LINE_OPT_CONFIG "config"
 #define CMD_LINE_OPT_KNICONFIG "kniconfig"
+#define CMD_LINE_OPT_CALLBACK_SETUP "callback-setup"
 #define CMD_LINE_OPT_NO_NUMA "no-numa"
 #define CMD_LINE_OPT_IPV6 "ipv6"
 #define CMD_LINE_OPT_ENABLE_JUMBO "enable-jumbo"
@@ -1292,6 +1295,7 @@ static int parse_args(int argc, char **argv)
 	static struct option lgopts[] = {
 		{CMD_LINE_OPT_CONFIG, 1, 0, 0},
 		{CMD_LINE_OPT_KNICONFIG, 1, 0, 0},
+		{CMD_LINE_OPT_CALLBACK_SETUP, 1, 0, 0},
 		{CMD_LINE_OPT_NO_NUMA, 0, 0, 0},
 		{CMD_LINE_OPT_IPV6, 0, 0, 0},
 		{CMD_LINE_OPT_ENABLE_JUMBO, 0, 0, 0},
@@ -1340,6 +1344,12 @@ static int parse_args(int argc, char **argv)
 					print_usage(prgname);
 					return -1;
 				}
+			}
+
+			if (!strncmp
+				(lgopts[option_index].name, CMD_LINE_OPT_CALLBACK_SETUP,
+				 sizeof(CMD_LINE_OPT_CALLBACK_SETUP))) {
+				callback_setup = optarg;
 			}
 
 			if (!strncmp(lgopts[option_index].name, CMD_LINE_OPT_NO_NUMA,
@@ -1775,6 +1785,11 @@ int main(int argc, char **argv)
 		*ctrlsock = 0;
 	//XXX ensure that control_main doesn't run on a core binded by dpdk lcores
 	pthread_create(&tid, NULL, (void *) control_main, ctrlsock);
+
+	if (control_callback_setup(callback_setup)) {
+		rte_exit(EXIT_FAILURE,
+				 "control callback setup returned error: err=%d,", ret);
+	}
 
 	/* launch per-lcore init on every lcore */
 	rte_eal_mp_remote_launch(main_loop, NULL, CALL_MASTER);

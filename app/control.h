@@ -3,4 +3,6 @@
 
 void *control_main(__rte_unused void *argv);
 
+int control_callback_setup(const char *cb);
+
 #endif
