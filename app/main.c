@@ -456,8 +456,7 @@ get_ipv4_dst_port(void *ipv4_hdr, uint8_t portid,
 
 	return (uint8_t) ((rte_lpm_lookup(ipv4_l3fwd_lookup_struct,
 									  rte_be_to_cpu_32(((struct ipv4_hdr *)
-														ipv4_hdr)->
-													   dst_addr),
+														ipv4_hdr)->dst_addr),
 									  &next_hop) ==
 					   0) ? next_hop : portid);
 }
@@ -720,7 +719,9 @@ processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
 
 
 static inline int
-processx4_step_prelookup(struct lcore_conf *qconf, struct rte_mbuf **pkt, uint16_t *dst_port, __m128i *dip, uint32_t *flag, int nb_rx, uint8_t portid)
+processx4_step_prelookup(struct lcore_conf *qconf, struct rte_mbuf **pkt,
+						 uint16_t * dst_port, __m128i * dip,
+						 uint32_t * flag, int nb_rx, uint8_t portid)
 {
 	int i, j, num;
 	uint32_t nb_kni, k;
@@ -735,12 +736,12 @@ processx4_step_prelookup(struct lcore_conf *qconf, struct rte_mbuf **pkt, uint16
 	// duck device, first iteration use the switch dans go to nb_rx % FWDSTEP case
 	switch (nb_rx % FWDSTEP) {
 		while (j < nb_rx) {
-			i = 0; // reinit i here after the first duck device iteration
+			i = 0;				// reinit i here after the first duck device iteration
 
-			case 0:
+	case 0:
 			if (!qconf->neighbor4_struct->entries4[dst_port[j]].valid) {
 				//no dest neighbor addr available, send it through the kni
-				knimbuf[i++] = 	pkt[j];
+				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
 					//we have more packets, deplace last one and its info
 					pkt[j] = pkt[nb_rx];
@@ -750,10 +751,10 @@ processx4_step_prelookup(struct lcore_conf *qconf, struct rte_mbuf **pkt, uint16
 				}
 			}
 			j++;
-			case 3:
+	case 3:
 			if (!qconf->neighbor4_struct->entries4[dst_port[j]].valid) {
 				//no dest neighbor addr available, send it through the kni
-				knimbuf[i++] = 	pkt[j];
+				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
 					//we have more packets, deplace last one and its info
 					pkt[j] = pkt[nb_rx];
@@ -763,10 +764,10 @@ processx4_step_prelookup(struct lcore_conf *qconf, struct rte_mbuf **pkt, uint16
 				}
 			}
 			j++;
-			case 2:
+	case 2:
 			if (!qconf->neighbor4_struct->entries4[dst_port[j]].valid) {
 				//no dest neighbor addr available, send it through the kni
-				knimbuf[i++] = 	pkt[j];
+				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
 					//we have more packets, deplace last one and its info
 					pkt[j] = pkt[nb_rx];
@@ -776,10 +777,10 @@ processx4_step_prelookup(struct lcore_conf *qconf, struct rte_mbuf **pkt, uint16
 				}
 			}
 			j++;
-			case 1:
+	case 1:
 			if (!qconf->neighbor4_struct->entries4[dst_port[j]].valid) {
 				//no dest neighbor addr available, send it through the kni
-				knimbuf[i++] = 	pkt[j];
+				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
 					//we have more packets, deplace last one and its info
 					pkt[j] = pkt[nb_rx];
@@ -797,7 +798,7 @@ processx4_step_prelookup(struct lcore_conf *qconf, struct rte_mbuf **pkt, uint16
 					kni_burst_free_mbufs(&knimbuf[num], i - num);
 				}
 			}
-		} // while loop end
+		}						// while loop end
 	}
 	return nb_rx;
 }
@@ -821,17 +822,21 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 
 	//TODO test it, may need to use eth = rte_pktmbuf_mtod(m, struct ether_hdr *); ether_addr_copy(from, eth->d_addr);
 	ve[0] =
-		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-					   entries4[dst_port[0]].nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->
+					   neighbor4_struct->entries4[dst_port[0]].
+					   nexthop_hwaddr);
 	ve[1] =
-		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-					   entries4[dst_port[1]].nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->
+					   neighbor4_struct->entries4[dst_port[1]].
+					   nexthop_hwaddr);
 	ve[2] =
-		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-					   entries4[dst_port[2]].nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->
+					   neighbor4_struct->entries4[dst_port[2]].
+					   nexthop_hwaddr);
 	ve[3] =
-		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-					   entries4[dst_port[3]].nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->
+					   neighbor4_struct->entries4[dst_port[3]].
+					   nexthop_hwaddr);
 #if 0
 	ve[0] = val_eth[dst_port[0]];
 	ve[1] = val_eth[dst_port[1]];
@@ -1060,7 +1065,8 @@ static int main_loop( __attribute__ ((unused))
 			}
 
 			//send through the kni packets which don't have an available neighbor
-			processx4_step_prelookup(qconf, pkts_burst, dst_port, dip, flag, nb_rx, portid);
+			processx4_step_prelookup(qconf, pkts_burst, dst_port, dip,
+									 flag, nb_rx, portid);
 
 			/*
 			 * Finish packet processing and group consecutive
@@ -1551,8 +1557,8 @@ static int init_mem(unsigned nb_mbuf)
 		qconf = &lcore_conf[lcore_id];
 		qconf->ipv4_lookup_struct = ipv4_l3fwd_lookup_struct[socketid];
 		qconf->neighbor4_struct = neighbor4_struct[socketid];
-        qconf->ipv6_lookup_struct = ipv6_l3fwd_lookup_struct[socketid];
-        qconf->neighbor6_struct = neighbor6_struct[socketid];
+		qconf->ipv6_lookup_struct = ipv6_l3fwd_lookup_struct[socketid];
+		qconf->neighbor6_struct = neighbor6_struct[socketid];
 	}
 
 	/* Get number of ports found in scan */
