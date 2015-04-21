@@ -19,9 +19,6 @@
 struct control_handle {
 };
 
-#define IPV4_L3FWD_LPM_MAX_RULES         524288
-#define IPV6_L3FWD_LPM_MAX_RULES         524288
-
 static unsigned g_max_socket;
 
 static int

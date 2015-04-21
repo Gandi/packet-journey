@@ -161,10 +161,6 @@ static uint16_t nb_txd = RTE_TEST_TX_DESC_DEFAULT;
 /* ethernet addresses of ports */
 static struct ether_addr ports_eth_addr[RTE_MAX_ETHPORTS];
 
-#if 0
-static __m128i val_eth[RTE_MAX_ETHPORTS];
-#endif
-
 /* replace first 12B of the ethernet header. */
 #define	MASK_ETH	0x3f
 
@@ -242,26 +238,8 @@ static struct rte_eth_conf port_conf = {
 static struct rte_mempool *pktmbuf_pool[NB_SOCKETS];
 static struct rte_mempool *knimbuf_pool[RTE_MAX_ETHPORTS];
 
-struct ipv4_l3fwd_route {
-	uint32_t ip;
-	uint8_t depth;
-	uint8_t if_out;
-};
-
-struct ipv6_l3fwd_route {
-	uint8_t ip[16];
-	uint8_t depth;
-	uint8_t if_out;
-};
-
-#define IPV4_L3FWD_NUM_ROUTES \
-	(sizeof(ipv4_l3fwd_route_array) / sizeof(ipv4_l3fwd_route_array[0]))
-#define IPV6_L3FWD_NUM_ROUTES \
-	(sizeof(ipv6_l3fwd_route_array) / sizeof(ipv6_l3fwd_route_array[0]))
-
 #define IPV4_L3FWD_LPM_MAX_RULES         524288
 #define IPV6_L3FWD_LPM_MAX_RULES         524288
-#define IPV6_L3FWD_LPM_NUMBER_TBL8S (1 << 16)
 
 struct lcore_conf {
 	uint16_t n_rx_queue;
@@ -473,6 +451,7 @@ get_ipv6_dst_port(void *ipv6_hdr, uint8_t portid,
 					   0) ? next_hop : portid);
 }
 
+#if (ENABLE_MULTI_BUFFER_OPTIMIZE != 1)
 static inline void l3fwd_simple_forward(struct rte_mbuf *m, uint8_t portid,
 										struct lcore_conf *qconf)
 	__attribute__ ((unused));
@@ -552,6 +531,7 @@ l3fwd_simple_forward(struct rte_mbuf *m, uint8_t portid,
 	}
 
 }
+#endif
 
 #ifdef DO_RFC_1812_CHECKS
 
@@ -643,7 +623,11 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	dst_ipv4 = rte_be_to_cpu_32(dst_ipv4);
 	dp = get_dst_port(qconf, pkt, dst_ipv4, portid);
 
-	//TODO use neighbor table instead for getting the ip, eth dst, port id
+	//TODO test it, may need to use eth = rte_pktmbuf_mtod(m, struct ether_hdr *); ether_addr_copy(from, eth->d_addr);
+	te = _mm_load_si128((__m128i *) eth_hdr);
+	ve =
+		_mm_load_si128((__m128i *) & qconf->
+					   neighbor4_struct->entries4[dp].nexthop_hwaddr);
 #if 0
 	te = _mm_load_si128((__m128i *) eth_hdr);
 	ve = val_eth[dp];
@@ -1280,8 +1264,7 @@ static void print_usage(const char *prgname)
 		   "  --no-numa: optional, disable numa awareness\n"
 		   "  --ipv6: optional, specify it if running ipv6 packets\n"
 		   "  --enable-jumbo: enable jumbo frame"
-		   " which max packet len is PKTLEN in decimal (64-9600)\n"
-		   "  --hash-entry-num: specify the hash entry number in hexadecimal to be setup\n",
+		   " which max packet len is PKTLEN in decimal (64-9600)\n",
 		   prgname);
 }
 
@@ -1376,7 +1359,6 @@ static int parse_config(const char *q_arg)
 #define CMD_LINE_OPT_NO_NUMA "no-numa"
 #define CMD_LINE_OPT_IPV6 "ipv6"
 #define CMD_LINE_OPT_ENABLE_JUMBO "enable-jumbo"
-#define CMD_LINE_OPT_HASH_ENTRY_NUM "hash-entry-num"
 
 /* Parse the argument given in the command line of the application */
 static int parse_args(int argc, char **argv)
@@ -1392,7 +1374,6 @@ static int parse_args(int argc, char **argv)
 		{CMD_LINE_OPT_NO_NUMA, 0, 0, 0},
 		{CMD_LINE_OPT_IPV6, 0, 0, 0},
 		{CMD_LINE_OPT_ENABLE_JUMBO, 0, 0, 0},
-		{CMD_LINE_OPT_HASH_ENTRY_NUM, 1, 0, 0},
 		{NULL, 0, 0, 0}
 	};
 
