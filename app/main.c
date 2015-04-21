@@ -240,6 +240,7 @@ static struct rte_mempool *knimbuf_pool[RTE_MAX_ETHPORTS];
 
 #define IPV4_L3FWD_LPM_MAX_RULES         524288
 #define IPV6_L3FWD_LPM_MAX_RULES         524288
+#define IPV6_L3FWD_LPM_NUMBER_TBL8S (1 << 16)
 
 struct lcore_conf {
 	uint16_t n_rx_queue;
@@ -434,7 +435,8 @@ get_ipv4_dst_port(void *ipv4_hdr, uint8_t portid,
 
 	return (uint8_t) ((rte_lpm_lookup(ipv4_l3fwd_lookup_struct,
 									  rte_be_to_cpu_32(((struct ipv4_hdr *)
-														ipv4_hdr)->dst_addr),
+														ipv4_hdr)->
+													   dst_addr),
 									  &next_hop) ==
 					   0) ? next_hop : portid);
 }
@@ -625,9 +627,8 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 
 	//TODO test it, may need to use eth = rte_pktmbuf_mtod(m, struct ether_hdr *); ether_addr_copy(from, eth->d_addr);
 	te = _mm_load_si128((__m128i *) eth_hdr);
-	ve =
-		_mm_load_si128((__m128i *) & qconf->
-					   neighbor4_struct->entries4[dp].nexthop_hwaddr);
+	ve = _mm_load_si128((__m128i *) & qconf->neighbor4_struct->
+						entries4[dp].nexthop_hwaddr);
 #if 0
 	te = _mm_load_si128((__m128i *) eth_hdr);
 	ve = val_eth[dp];
@@ -806,21 +807,17 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 
 	//TODO test it, may need to use eth = rte_pktmbuf_mtod(m, struct ether_hdr *); ether_addr_copy(from, eth->d_addr);
 	ve[0] =
-		_mm_load_si128((__m128i *) & qconf->
-					   neighbor4_struct->entries4[dst_port[0]].
-					   nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
+					   entries4[dst_port[0]].nexthop_hwaddr);
 	ve[1] =
-		_mm_load_si128((__m128i *) & qconf->
-					   neighbor4_struct->entries4[dst_port[1]].
-					   nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
+					   entries4[dst_port[1]].nexthop_hwaddr);
 	ve[2] =
-		_mm_load_si128((__m128i *) & qconf->
-					   neighbor4_struct->entries4[dst_port[2]].
-					   nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
+					   entries4[dst_port[2]].nexthop_hwaddr);
 	ve[3] =
-		_mm_load_si128((__m128i *) & qconf->
-					   neighbor4_struct->entries4[dst_port[3]].
-					   nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
+					   entries4[dst_port[3]].nexthop_hwaddr);
 #if 0
 	ve[0] = val_eth[dst_port[0]];
 	ve[1] = val_eth[dst_port[1]];
@@ -1483,7 +1480,7 @@ print_ethaddr(const char *name, const struct ether_addr *eth_addr)
 
 static void setup_lpm(int socketid)
 {
-	//struct rte_lpm6_config config;
+	struct rte_lpm6_config config;
 	//uint32_t i;
 	//int ret;
 	char s[64];
@@ -1493,6 +1490,18 @@ static void setup_lpm(int socketid)
 	ipv4_l3fwd_lookup_struct[socketid] =
 		rte_lpm_create(s, socketid, IPV4_L3FWD_LPM_MAX_RULES, 0);
 	if (ipv4_l3fwd_lookup_struct[socketid] == NULL)
+		rte_exit(EXIT_FAILURE, "Unable to create the l3fwd LPM table"
+				 " on socket %d\n", socketid);
+
+	/* create the LPM6 table */
+	snprintf(s, sizeof(s), "IPV6_L3FWD_LPM_%d", socketid);
+
+	config.max_rules = IPV6_L3FWD_LPM_MAX_RULES;
+	config.number_tbl8s = IPV6_L3FWD_LPM_NUMBER_TBL8S;
+	config.flags = 0;
+	ipv6_l3fwd_lookup_struct[socketid] = rte_lpm6_create(s, socketid,
+														 &config);
+	if (ipv6_l3fwd_lookup_struct[socketid] == NULL)
 		rte_exit(EXIT_FAILURE, "Unable to create the l3fwd LPM table"
 				 " on socket %d\n", socketid);
 }
@@ -1858,6 +1867,7 @@ int main(int argc, char **argv)
 	else
 		*ctrlsock = 0;
 	//XXX ensure that control_main doesn't run on a core binded by dpdk lcores
+	//TODO spawn one thread per socketid
 	pthread_create(&tid, NULL, (void *) control_main, ctrlsock);
 
 	if (control_callback_setup(callback_setup)) {
