@@ -718,6 +718,90 @@ processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
 	}
 }
 
+
+static inline int
+processx4_step_prelookup(struct lcore_conf *qconf, struct rte_mbuf **pkt, uint16_t *dst_port, __m128i *dip, uint32_t *flag, int nb_rx, uint8_t portid)
+{
+	int i, j, num;
+	uint32_t nb_kni, k;
+	struct rte_mbuf *knimbuf[FWDSTEP];
+	struct kni_port_params *p;
+
+	p = kni_port_params_array[portid];
+	nb_kni = p->nb_kni;
+
+	i = 0;
+	j = 0;
+	// duck device, first iteration use the switch dans go to nb_rx % FWDSTEP case
+	switch (nb_rx % FWDSTEP) {
+		while (j < nb_rx) {
+			i = 0; // reinit i here after the first duck device iteration
+
+			case 0:
+			if (!qconf->neighbor4_struct->entries4[dst_port[j]].valid) {
+				//no dest neighbor addr available, send it through the kni
+				knimbuf[i++] = 	pkt[j];
+				if (j != --nb_rx) {
+					//we have more packets, deplace last one and its info
+					pkt[j] = pkt[nb_rx];
+					dst_port[j] = dst_port[nb_rx];
+					dip[j] = dip[nb_rx];
+					flag[j] = flag[nb_rx];
+				}
+			}
+			j++;
+			case 3:
+			if (!qconf->neighbor4_struct->entries4[dst_port[j]].valid) {
+				//no dest neighbor addr available, send it through the kni
+				knimbuf[i++] = 	pkt[j];
+				if (j != --nb_rx) {
+					//we have more packets, deplace last one and its info
+					pkt[j] = pkt[nb_rx];
+					dst_port[j] = dst_port[nb_rx];
+					dip[j] = dip[nb_rx];
+					flag[j] = flag[nb_rx];
+				}
+			}
+			j++;
+			case 2:
+			if (!qconf->neighbor4_struct->entries4[dst_port[j]].valid) {
+				//no dest neighbor addr available, send it through the kni
+				knimbuf[i++] = 	pkt[j];
+				if (j != --nb_rx) {
+					//we have more packets, deplace last one and its info
+					pkt[j] = pkt[nb_rx];
+					dst_port[j] = dst_port[nb_rx];
+					dip[j] = dip[nb_rx];
+					flag[j] = flag[nb_rx];
+				}
+			}
+			j++;
+			case 1:
+			if (!qconf->neighbor4_struct->entries4[dst_port[j]].valid) {
+				//no dest neighbor addr available, send it through the kni
+				knimbuf[i++] = 	pkt[j];
+				if (j != --nb_rx) {
+					//we have more packets, deplace last one and its info
+					pkt[j] = pkt[nb_rx];
+					dst_port[j] = dst_port[nb_rx];
+					dip[j] = dip[nb_rx];
+					flag[j] = flag[nb_rx];
+				}
+			}
+			j++;
+			for (k = 0; k < nb_kni; k++) {
+				num = rte_kni_tx_burst(p->kni[k], knimbuf, i);
+				rte_kni_handle_request(p->kni[k]);
+				if (unlikely(num < i)) {
+					/* Free mbufs not tx to kni interface */
+					kni_burst_free_mbufs(&knimbuf[num], i - num);
+				}
+			}
+		} // while loop end
+	}
+	return nb_rx;
+}
+
 /*
  * Update source and destination MAC addresses in the ethernet header.
  * Perform RFC1812 checks and updates for IPV4 packets.
@@ -974,6 +1058,9 @@ static int main_loop( __attribute__ ((unused))
 								flag[j / FWDSTEP], portid,
 								&pkts_burst[j], &dst_port[j]);
 			}
+
+			//send through the kni packets which don't have an available neighbor
+			processx4_step_prelookup(qconf, pkts_burst, dst_port, dip, flag, nb_rx, portid);
 
 			/*
 			 * Finish packet processing and group consecutive

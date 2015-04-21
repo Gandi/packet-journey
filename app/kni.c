@@ -180,7 +180,7 @@ static void print_stats(void)
 
 #endif
 
-static void kni_burst_free_mbufs(struct rte_mbuf **pkts, unsigned num)
+void kni_burst_free_mbufs(struct rte_mbuf **pkts, unsigned num)
 {
 	unsigned i;
 

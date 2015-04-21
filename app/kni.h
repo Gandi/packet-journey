@@ -8,6 +8,7 @@ int kni_alloc(uint8_t port_id, struct rte_mempool *pktmbuf_pool);
 int kni_free_kni(uint8_t port_id);
 int kni_main_loop(__rte_unused void *arg);
 int kni_parse_config(const char *arg);
+void kni_burst_free_mbufs(struct rte_mbuf **pkts, unsigned num);
 /*
  * Structure of port parameters
  */
@@ -22,7 +23,5 @@ struct kni_port_params {
 } __rte_cache_aligned;
 
 extern struct kni_port_params *kni_port_params_array[RTE_MAX_ETHPORTS];
-
-
 
 #endif
