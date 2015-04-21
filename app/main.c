@@ -82,7 +82,7 @@
 #include "control.h"
 #include "kni.h"
 lookup_struct_t *ipv4_l3fwd_lookup_struct[NB_SOCKETS];
-lookup_struct_t *ipv4_l3fwd_lookup_struct[NB_SOCKETS];
+lookup6_struct_t *ipv6_l3fwd_lookup_struct[NB_SOCKETS];
 neighbor_struct_t *neighbor4_struct[NB_SOCKETS];
 neighbor_struct_t *neighbor6_struct[NB_SOCKETS];
 
@@ -1551,8 +1551,8 @@ static int init_mem(unsigned nb_mbuf)
 		qconf = &lcore_conf[lcore_id];
 		qconf->ipv4_lookup_struct = ipv4_l3fwd_lookup_struct[socketid];
 		qconf->neighbor4_struct = neighbor4_struct[socketid];
-//      qconf->ipv6_lookup_struct = ipv6_l3fwd_lookup_struct[socketid];
-//      qconf->neighbor6_struct = neighbor6_struct[socketid];
+        qconf->ipv6_lookup_struct = ipv6_l3fwd_lookup_struct[socketid];
+        qconf->neighbor6_struct = neighbor6_struct[socketid];
 	}
 
 	/* Get number of ports found in scan */
