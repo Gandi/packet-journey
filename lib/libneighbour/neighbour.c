@@ -41,7 +41,7 @@ neighbor4_add_nexthop(struct nei_table *t, struct in_addr *nexthop,
 
 			entry->in_use = 1;
 			entry->valid = 0;
-            entry->action = action;
+			entry->action = action;
 			entry->addr.s_addr = nexthop->s_addr;
 			memset(&entry->nexthop_hwaddr.addr_bytes, 0,
 				   sizeof(entry->nexthop_hwaddr.addr_bytes));

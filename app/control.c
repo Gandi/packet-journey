@@ -227,36 +227,38 @@ void *control_main(void *argv)
 	rte_panic("failed to init control_main");
 }
 
-int control_add_ipv4_local_entry(struct in_addr *nexthop, struct in_addr *saddr, uint8_t depth, uint32_t port_id)
+int control_add_ipv4_local_entry(struct in_addr *nexthop,
+								 struct in_addr *saddr, uint8_t depth,
+								 uint32_t port_id)
 {
-    int s;
+	int s;
 	uint8_t nexthop_id;
-    unsigned i = 0;
+	unsigned i = 0;
 
-    s = neighbor4_lookup_nexthop(neighbor4_struct[i], nexthop,
-            &nexthop_id);
-    if (s < 0) {
-        neighbor4_add_nexthop(neighbor4_struct[i], nexthop,
-                &nexthop_id, NEI_ACTION_KNI);
-        if (s < 0) {
-            RTE_LOG(ERR, L3FWD_CTRL,
-                    "failed to add a nexthop during route adding...\n");
-            return -1;
-        }
-    }
-    s = rte_lpm_add(ipv4_l3fwd_lookup_struct[i], saddr->s_addr,
-            depth, nexthop_id);
-    if (s < 0) {
-        RTE_LOG(ERR, L3FWD_CTRL,
-                "failed to add a route in lpm during route adding...\n");
-        return -1;
-    }
-    neighbor4_set_port(neighbor4_struct[i], nexthop_id, port_id);
-    neighbor4_refcount_incr(neighbor4_struct[i], nexthop_id);
-    return 0;
+	s = neighbor4_lookup_nexthop(neighbor4_struct[i], nexthop,
+								 &nexthop_id);
+	if (s < 0) {
+		neighbor4_add_nexthop(neighbor4_struct[i], nexthop,
+							  &nexthop_id, NEI_ACTION_KNI);
+		if (s < 0) {
+			RTE_LOG(ERR, L3FWD_CTRL,
+					"failed to add a nexthop during route adding...\n");
+			return -1;
+		}
+	}
+	s = rte_lpm_add(ipv4_l3fwd_lookup_struct[i], saddr->s_addr,
+					depth, nexthop_id);
+	if (s < 0) {
+		RTE_LOG(ERR, L3FWD_CTRL,
+				"failed to add a route in lpm during route adding...\n");
+		return -1;
+	}
+	neighbor4_set_port(neighbor4_struct[i], nexthop_id, port_id);
+	neighbor4_refcount_incr(neighbor4_struct[i], nexthop_id);
+	return 0;
 }
 
 int control_callback_setup(const char *cb)
 {
-    return system(cb);
+	return system(cb);
 }

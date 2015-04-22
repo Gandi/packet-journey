@@ -21,7 +21,7 @@ struct nei_entry4 {
 #define NEI_STATE_STALE     0x02
 #define NEI_STATE_DELAY     0x03
 	__s32 port_id;
-    uint8_t action;
+	uint8_t action;
 #define NEI_ACTION_FWD      0x01
 #define NEI_ACTION_DROP     0x02
 #define NEI_ACTION_KNI      0x03
@@ -34,7 +34,8 @@ struct nei_table {
 
 int
 neighbor4_lookup_nexthop(struct nei_table *, struct in_addr *, uint8_t *);
-int neighbor4_add_nexthop(struct nei_table *, struct in_addr *nexthop, uint8_t *nexthop_id, uint8_t action);
+int neighbor4_add_nexthop(struct nei_table *, struct in_addr *nexthop,
+						  uint8_t * nexthop_id, uint8_t action);
 int neighbor4_refcount_incr(struct nei_table *, uint8_t);
 int neighbor4_refcount_decr(struct nei_table *, uint8_t);
 
@@ -48,7 +49,8 @@ int neighbor4_set_state(struct nei_table *, uint8_t, __u8 flags);
 //else
 // neighbor4_free(neighbor, nexthop_id)
 void neighbor4_delete(struct nei_table *, uint8_t);
-int neighbor4_set_port(struct nei_table *t, uint8_t nexthop_id, __s32 port_id);
+int neighbor4_set_port(struct nei_table *t, uint8_t nexthop_id,
+					   __s32 port_id);
 
 
 struct nei_table *nei_create(int socketid);
