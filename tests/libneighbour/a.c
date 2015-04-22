@@ -31,7 +31,7 @@ int main(void)
 	}
 	// Populate table
 	nexthop.s_addr = IP4(1, 2, 3, 4);
-	s = neighbor4_add_nexthop(t, &nexthop, &id);
+	s = neighbor4_add_nexthop(t, &nexthop, &id, NEI_ACTION_FWD);
 	TEST(s == 0, "neighbor add should succeed")
 
 		TEST(id == 0, "first entry is expected to be at index 0")
@@ -45,7 +45,7 @@ int main(void)
 			 "Unknown entries should be invalid")
 
 		nexthop.s_addr = IP4(1, 2, 3, 5);
-	s = neighbor4_add_nexthop(t, &nexthop, &id);
+	s = neighbor4_add_nexthop(t, &nexthop, &id, NEI_ACTION_FWD);
 	TEST(s == 0, "neighbor add should succeed")
 		TEST(id == 1, "entry is expected to be at index 1")
 
@@ -54,7 +54,7 @@ int main(void)
 		 "First entry has been deleted, it should not be in_use anymore")
 
 		nexthop.s_addr = IP4(1, 2, 3, 6);
-	s = neighbor4_add_nexthop(t, &nexthop, &id);
+	s = neighbor4_add_nexthop(t, &nexthop, &id, NEI_ACTION_FWD);
 	TEST(s == 0, "neighbor add should succeed")
 		TEST(id == 0,
 			 "first entry was empty, new entry should take index 0")

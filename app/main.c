@@ -41,6 +41,7 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <getopt.h>
+#include <arpa/inet.h>
 
 #include <rte_common.h>
 #include <rte_vect.h>
@@ -85,6 +86,8 @@ lookup_struct_t *ipv4_l3fwd_lookup_struct[NB_SOCKETS];
 lookup6_struct_t *ipv6_l3fwd_lookup_struct[NB_SOCKETS];
 neighbor_struct_t *neighbor4_struct[NB_SOCKETS];
 neighbor_struct_t *neighbor6_struct[NB_SOCKETS];
+static struct in_addr ipv4_local_mask;
+static struct in6_addr ipv6_local_mask;
 
 #define DO_RFC_1812_CHECKS
 
@@ -158,8 +161,10 @@ neighbor_struct_t *neighbor6_struct[NB_SOCKETS];
 static uint16_t nb_rxd = RTE_TEST_RX_DESC_DEFAULT;
 static uint16_t nb_txd = RTE_TEST_TX_DESC_DEFAULT;
 
+#if (ENABLE_MULTI_BUFFER_OPTIMIZE != 1)
 /* ethernet addresses of ports */
 static struct ether_addr ports_eth_addr[RTE_MAX_ETHPORTS];
+#endif
 
 /* replace first 12B of the ethernet header. */
 #define	MASK_ETH	0x3f
@@ -435,8 +440,7 @@ get_ipv4_dst_port(void *ipv4_hdr, uint8_t portid,
 
 	return (uint8_t) ((rte_lpm_lookup(ipv4_l3fwd_lookup_struct,
 									  rte_be_to_cpu_32(((struct ipv4_hdr *)
-														ipv4_hdr)->
-													   dst_addr),
+														ipv4_hdr)->dst_addr),
 									  &next_hop) ==
 					   0) ? next_hop : portid);
 }
@@ -627,8 +631,8 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 
 	//TODO test it, may need to use eth = rte_pktmbuf_mtod(m, struct ether_hdr *); ether_addr_copy(from, eth->d_addr);
 	te = _mm_load_si128((__m128i *) eth_hdr);
-	ve = _mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-						entries4[dp].nexthop_hwaddr);
+	ve = _mm_load_si128((__m128i *) & qconf->
+						neighbor4_struct->entries4[dp].nexthop_hwaddr);
 #if 0
 	te = _mm_load_si128((__m128i *) eth_hdr);
 	ve = val_eth[dp];
@@ -704,7 +708,7 @@ processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
 
 
 static inline int
-processx4_step_prelookup(struct lcore_conf *qconf, struct rte_mbuf **pkt,
+processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 						 uint16_t * dst_port, __m128i * dip,
 						 uint32_t * flag, int nb_rx, uint8_t portid)
 {
@@ -724,7 +728,7 @@ processx4_step_prelookup(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 			i = 0;				// reinit i here after the first duck device iteration
 
 	case 0:
-			if (!qconf->neighbor4_struct->entries4[dst_port[j]].valid) {
+			if (unlikely(!qconf->neighbor4_struct->entries4[dst_port[j]].valid || qconf->neighbor4_struct->entries4[dst_port[j]].action == NEI_ACTION_KNI)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -737,7 +741,7 @@ processx4_step_prelookup(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 			}
 			j++;
 	case 3:
-			if (!qconf->neighbor4_struct->entries4[dst_port[j]].valid) {
+			if (unlikely(!qconf->neighbor4_struct->entries4[dst_port[j]].valid || qconf->neighbor4_struct->entries4[dst_port[j]].action == NEI_ACTION_KNI)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -750,7 +754,7 @@ processx4_step_prelookup(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 			}
 			j++;
 	case 2:
-			if (!qconf->neighbor4_struct->entries4[dst_port[j]].valid) {
+			if (unlikely(!qconf->neighbor4_struct->entries4[dst_port[j]].valid || qconf->neighbor4_struct->entries4[dst_port[j]].action == NEI_ACTION_KNI)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -763,7 +767,7 @@ processx4_step_prelookup(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 			}
 			j++;
 	case 1:
-			if (!qconf->neighbor4_struct->entries4[dst_port[j]].valid) {
+			if (unlikely(!qconf->neighbor4_struct->entries4[dst_port[j]].valid || qconf->neighbor4_struct->entries4[dst_port[j]].action == NEI_ACTION_KNI)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -776,6 +780,7 @@ processx4_step_prelookup(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 			}
 			j++;
 			for (k = 0; k < nb_kni; k++) {
+                //FIXME in the case of action == NEI_ACTION_KNI, we have a more specific kni_port_id in the port field, right now it should work as long as we have only one kni
 				num = rte_kni_tx_burst(p->kni[k], knimbuf, i);
 				rte_kni_handle_request(p->kni[k]);
 				if (unlikely(num < i)) {
@@ -807,17 +812,21 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 
 	//TODO test it, may need to use eth = rte_pktmbuf_mtod(m, struct ether_hdr *); ether_addr_copy(from, eth->d_addr);
 	ve[0] =
-		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-					   entries4[dst_port[0]].nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->
+					   neighbor4_struct->entries4[dst_port[0]].
+					   nexthop_hwaddr);
 	ve[1] =
-		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-					   entries4[dst_port[1]].nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->
+					   neighbor4_struct->entries4[dst_port[1]].
+					   nexthop_hwaddr);
 	ve[2] =
-		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-					   entries4[dst_port[2]].nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->
+					   neighbor4_struct->entries4[dst_port[2]].
+					   nexthop_hwaddr);
 	ve[3] =
-		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-					   entries4[dst_port[3]].nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->
+					   neighbor4_struct->entries4[dst_port[3]].
+					   nexthop_hwaddr);
 #if 0
 	ve[0] = val_eth[dst_port[0]];
 	ve[1] = val_eth[dst_port[1]];
@@ -1046,7 +1055,7 @@ static int main_loop( __attribute__ ((unused))
 			}
 
 			//send through the kni packets which don't have an available neighbor
-			processx4_step_prelookup(qconf, pkts_burst, dst_port, dip,
+			processx4_step_checkneighbor(qconf, pkts_burst, dst_port, dip,
 									 flag, nb_rx, portid);
 
 			/*
@@ -1258,8 +1267,9 @@ static void print_usage(const char *prgname)
 		   "  -P : enable promiscuous mode\n"
 		   "  --config (port,queue,lcore): rx queues configuration\n"
 		   "  --callback-setup: script called when ifaces are set up\n"
+		   "  --local4: specify ipv4 address which must be forwarded to the kni\n"
+		   "  --local6: specify ipv6 address which must be forwarded to the kni\n"
 		   "  --no-numa: optional, disable numa awareness\n"
-		   "  --ipv6: optional, specify it if running ipv6 packets\n"
 		   "  --enable-jumbo: enable jumbo frame"
 		   " which max packet len is PKTLEN in decimal (64-9600)\n",
 		   prgname);
@@ -1354,8 +1364,9 @@ static int parse_config(const char *q_arg)
 #define CMD_LINE_OPT_KNICONFIG "kniconfig"
 #define CMD_LINE_OPT_CALLBACK_SETUP "callback-setup"
 #define CMD_LINE_OPT_NO_NUMA "no-numa"
-#define CMD_LINE_OPT_IPV6 "ipv6"
 #define CMD_LINE_OPT_ENABLE_JUMBO "enable-jumbo"
+#define CMD_LINE_OPT_LOCAL4 "local4"
+#define CMD_LINE_OPT_LOCAL6 "local6"
 
 /* Parse the argument given in the command line of the application */
 static int parse_args(int argc, char **argv)
@@ -1368,8 +1379,9 @@ static int parse_args(int argc, char **argv)
 		{CMD_LINE_OPT_CONFIG, 1, 0, 0},
 		{CMD_LINE_OPT_KNICONFIG, 1, 0, 0},
 		{CMD_LINE_OPT_CALLBACK_SETUP, 1, 0, 0},
+		{CMD_LINE_OPT_LOCAL4, 1, 0, 0},
+		{CMD_LINE_OPT_LOCAL6, 1, 0, 0},
 		{CMD_LINE_OPT_NO_NUMA, 0, 0, 0},
-		{CMD_LINE_OPT_IPV6, 0, 0, 0},
 		{CMD_LINE_OPT_ENABLE_JUMBO, 0, 0, 0},
 		{NULL, 0, 0, 0}
 	};
@@ -1423,6 +1435,22 @@ static int parse_args(int argc, char **argv)
 				callback_setup = optarg;
 			}
 
+			if (!strncmp
+				(lgopts[option_index].name, CMD_LINE_OPT_LOCAL4,
+				 sizeof(CMD_LINE_OPT_CALLBACK_SETUP))) {
+				if (!inet_pton(AF_INET, optarg, &ipv4_local_mask)) {
+                    rte_exit(EXIT_FAILURE, "invalid ipv4 passed in --local4");
+                }
+			}
+
+			if (!strncmp
+				(lgopts[option_index].name, CMD_LINE_OPT_LOCAL6,
+				 sizeof(CMD_LINE_OPT_CALLBACK_SETUP))) {
+				if (inet_pton(AF_INET6, optarg, &ipv6_local_mask)) {
+                    rte_exit(EXIT_FAILURE, "invalid ipv4 passed in --local6");
+                }
+			}
+
 			if (!strncmp(lgopts[option_index].name, CMD_LINE_OPT_NO_NUMA,
 						 sizeof(CMD_LINE_OPT_NO_NUMA))) {
 				printf("numa is disabled \n");
@@ -1470,6 +1498,7 @@ static int parse_args(int argc, char **argv)
 	return ret;
 }
 
+#if (ENABLE_MULTI_BUFFER_OPTIMIZE != 1)
 static void
 print_ethaddr(const char *name, const struct ether_addr *eth_addr)
 {
@@ -1477,6 +1506,7 @@ print_ethaddr(const char *name, const struct ether_addr *eth_addr)
 	ether_format_addr(buf, ETHER_ADDR_FMT_SIZE, eth_addr);
 	printf("%s%s", name, buf);
 }
+#endif
 
 static void setup_lpm(int socketid)
 {
@@ -1667,15 +1697,15 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 				 "Cannot configure device: err=%d, port=%d\n", ret,
 				 portid);
 
+	/*
+	 * prepare dst and src MACs for each port.
+	 */
+	//XXX we use neighbor table instead
+	/*
 	rte_eth_macaddr_get(portid, &ports_eth_addr[portid]);
 	print_ethaddr(" Address:", &ports_eth_addr[portid]);
 	printf(", ");
 
-	/*
-	 * prepare dst and src MACs for each port.
-	 */
-	//TODO use neighbor table instead
-	/*
 	   (uint64_t *) (val_eth + portid) =
 	   ETHER_LOCAL_ADMIN_ADDR + ((uint64_t) portid << 40);
 	   ether_addr_copy(&ports_eth_addr[portid],
@@ -1870,10 +1900,17 @@ int main(int argc, char **argv)
 	//TODO spawn one thread per socketid
 	pthread_create(&tid, NULL, (void *) control_main, ctrlsock);
 
-	if (control_callback_setup(callback_setup)) {
+	if ((ret = control_callback_setup(callback_setup))) {
+		perror("control_callback_setup failure with: ");
 		rte_exit(EXIT_FAILURE,
 				 "control callback setup returned error: err=%d,", ret);
 	}
+
+
+    if ((ret = control_add_ipv4_local_entry(&ipv4_local_mask, &ipv4_local_mask, 32, 0 /*kni_port_id*/))) {
+		rte_exit(EXIT_FAILURE, "failed to add an ipv4 local mask");
+    }
+    //ret = control_add_ipv6_local_entry(&ipv6_local_mask, &ipv6_local_mask, 128, 0);
 
 	/* launch per-lcore init on every lcore */
 	rte_eal_mp_remote_launch(main_loop, NULL, CALL_MASTER);

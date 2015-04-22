@@ -29,7 +29,7 @@ neighbor4_lookup_nexthop(struct nei_table *t, struct in_addr *nexthop,
 
 int
 neighbor4_add_nexthop(struct nei_table *t, struct in_addr *nexthop,
-					  uint8_t * nexthop_id)
+					  uint8_t * nexthop_id, uint8_t action)
 {
 	int i;
 	struct nei_entry4 *entry;
@@ -41,6 +41,7 @@ neighbor4_add_nexthop(struct nei_table *t, struct in_addr *nexthop,
 
 			entry->in_use = 1;
 			entry->valid = 0;
+            entry->action = action;
 			entry->addr.s_addr = nexthop->s_addr;
 			memset(&entry->nexthop_hwaddr.addr_bytes, 0,
 				   sizeof(entry->nexthop_hwaddr.addr_bytes));
