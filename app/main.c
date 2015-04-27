@@ -1766,7 +1766,6 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 
 static int alloc_kni_ports(void)
 {
-	int ret;
 	uint8_t nb_sys_ports, port;
 	unsigned i;
 	/* Get number of ports found in scan */
@@ -1791,9 +1790,12 @@ static int alloc_kni_ports(void)
 			rte_exit(EXIT_FAILURE, "Can not use more than "
 					 "%d ports for kni\n", RTE_MAX_ETHPORTS);
 
-		ret = kni_alloc(port, knimbuf_pool[port]);
+        //
+		if (kni_alloc(port, pktmbuf_pool[port])) {
+            rte_exit(EXIT_FAILURE, "failed to allocate kni");
+        }
 	}
-	return ret;
+	return 0;
 }
 
 
