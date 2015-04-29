@@ -440,8 +440,7 @@ get_ipv4_dst_port(void *ipv4_hdr, uint8_t portid,
 
 	return (uint8_t) ((rte_lpm_lookup(ipv4_l3fwd_lookup_struct,
 									  rte_be_to_cpu_32(((struct ipv4_hdr *)
-														ipv4_hdr)->
-													   dst_addr),
+														ipv4_hdr)->dst_addr),
 									  &next_hop) ==
 					   0) ? next_hop : portid);
 }
@@ -632,8 +631,8 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 
 	//TODO test it, may need to use eth = rte_pktmbuf_mtod(m, struct ether_hdr *); ether_addr_copy(from, eth->d_addr);
 	te = _mm_load_si128((__m128i *) eth_hdr);
-	ve = _mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-						entries4[dp].nexthop_hwaddr);
+	ve = _mm_load_si128((__m128i *) & qconf->
+						neighbor4_struct->entries4[dp].nexthop_hwaddr);
 #if 0
 	te = _mm_load_si128((__m128i *) eth_hdr);
 	ve = val_eth[dp];
@@ -732,8 +731,8 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 	case 0:
 			if (unlikely
 				(!qconf->neighbor4_struct->entries4[dst_port[j]].valid
-				 || qconf->neighbor4_struct->entries4[dst_port[j]].
-				 action == NEI_ACTION_KNI)) {
+				 || qconf->neighbor4_struct->
+				 entries4[dst_port[j]].action == NEI_ACTION_KNI)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -748,8 +747,8 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 	case 3:
 			if (unlikely
 				(!qconf->neighbor4_struct->entries4[dst_port[j]].valid
-				 || qconf->neighbor4_struct->entries4[dst_port[j]].
-				 action == NEI_ACTION_KNI)) {
+				 || qconf->neighbor4_struct->
+				 entries4[dst_port[j]].action == NEI_ACTION_KNI)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -764,8 +763,8 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 	case 2:
 			if (unlikely
 				(!qconf->neighbor4_struct->entries4[dst_port[j]].valid
-				 || qconf->neighbor4_struct->entries4[dst_port[j]].
-				 action == NEI_ACTION_KNI)) {
+				 || qconf->neighbor4_struct->
+				 entries4[dst_port[j]].action == NEI_ACTION_KNI)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -780,8 +779,8 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 	case 1:
 			if (unlikely
 				(!qconf->neighbor4_struct->entries4[dst_port[j]].valid
-				 || qconf->neighbor4_struct->entries4[dst_port[j]].
-				 action == NEI_ACTION_KNI)) {
+				 || qconf->neighbor4_struct->
+				 entries4[dst_port[j]].action == NEI_ACTION_KNI)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -826,17 +825,21 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 
 	//TODO test it, may need to use eth = rte_pktmbuf_mtod(m, struct ether_hdr *); ether_addr_copy(from, eth->d_addr);
 	ve[0] =
-		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-					   entries4[dst_port[0]].nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->
+					   neighbor4_struct->entries4[dst_port[0]].
+					   nexthop_hwaddr);
 	ve[1] =
-		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-					   entries4[dst_port[1]].nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->
+					   neighbor4_struct->entries4[dst_port[1]].
+					   nexthop_hwaddr);
 	ve[2] =
-		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-					   entries4[dst_port[2]].nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->
+					   neighbor4_struct->entries4[dst_port[2]].
+					   nexthop_hwaddr);
 	ve[3] =
-		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-					   entries4[dst_port[3]].nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->
+					   neighbor4_struct->entries4[dst_port[3]].
+					   nexthop_hwaddr);
 #if 0
 	ve[0] = val_eth[dst_port[0]];
 	ve[1] = val_eth[dst_port[1]];
@@ -1447,7 +1450,7 @@ static int parse_args(int argc, char **argv)
 
 			if (!strncmp
 				(lgopts[option_index].name, CMD_LINE_OPT_LOCAL4,
-				 sizeof(CMD_LINE_OPT_CALLBACK_SETUP))) {
+				 sizeof(CMD_LINE_OPT_LOCAL4))) {
 				if (!inet_pton(AF_INET, optarg, &ipv4_local_mask)) {
 					rte_exit(EXIT_FAILURE,
 							 "invalid ipv4 passed in --local4");
@@ -1456,7 +1459,7 @@ static int parse_args(int argc, char **argv)
 
 			if (!strncmp
 				(lgopts[option_index].name, CMD_LINE_OPT_LOCAL6,
-				 sizeof(CMD_LINE_OPT_CALLBACK_SETUP))) {
+				 sizeof(CMD_LINE_OPT_LOCAL6))) {
 				if (inet_pton(AF_INET6, optarg, &ipv6_local_mask)) {
 					rte_exit(EXIT_FAILURE,
 							 "invalid ipv4 passed in --local6");
@@ -1790,10 +1793,10 @@ static int alloc_kni_ports(void)
 			rte_exit(EXIT_FAILURE, "Can not use more than "
 					 "%d ports for kni\n", RTE_MAX_ETHPORTS);
 
-        //
-		if (kni_alloc(port, pktmbuf_pool[port])) {
-            rte_exit(EXIT_FAILURE, "failed to allocate kni");
-        }
+		//XXX we use another mbuf_pool here, its for incoming packets
+		if (kni_alloc(port, knimbuf_pool[port])) {
+			rte_exit(EXIT_FAILURE, "failed to allocate kni");
+		}
 	}
 	return 0;
 }
@@ -1904,22 +1907,13 @@ int main(int argc, char **argv)
 
 	check_all_ports_link_status((uint8_t) nb_ports, enabled_port_mask);
 
-	int *ctrlsock =
-		rte_malloc("control_main socket for lpm", sizeof(int), 0);
+	int ctrlsock = 0;
 	if (numa_on)
-		*ctrlsock = 1;			//FIXME set the correct value
-	else
-		*ctrlsock = 0;
+		ctrlsock = 1;			//FIXME set the correct value
+
 	//XXX ensure that control_main doesn't run on a core binded by dpdk lcores
 	//TODO spawn one thread per socketid
-	pthread_create(&tid, NULL, (void *) control_main, ctrlsock);
-
-	if ((ret = control_callback_setup(callback_setup))) {
-		perror("control_callback_setup failure with: ");
-		rte_exit(EXIT_FAILURE,
-				 "control callback setup returned error: err=%d,", ret);
-	}
-
+	void *handle = control_init(ctrlsock);
 
 	if ((ret =
 		 control_add_ipv4_local_entry(&ipv4_local_mask, &ipv4_local_mask,
@@ -1928,8 +1922,18 @@ int main(int argc, char **argv)
 	}
 	//ret = control_add_ipv6_local_entry(&ipv6_local_mask, &ipv6_local_mask, 128, 0);
 
+	pthread_create(&tid, NULL, (void *) control_main, handle);
+
+	if ((ret = control_callback_setup(callback_setup))) {
+		perror("control_callback_setup failure with: ");
+		rte_exit(EXIT_FAILURE,
+				 "control callback setup returned error: err=%d,", ret);
+	}
+
+
+
 	/* launch per-lcore init on every lcore */
-	rte_eal_mp_remote_launch(main_loop, NULL, CALL_MASTER);
+	rte_eal_mp_remote_launch(main_loop, NULL, SKIP_MASTER);
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
 		if (rte_eal_wait_lcore(lcore_id) < 0)
 			return -1;

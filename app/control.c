@@ -190,13 +190,11 @@ static int addr4(__rte_unused addr_action_t action, __s32 port_id,
 	return 0;
 }
 
-void *control_main(void *argv)
+void *control_init(unsigned socket_id)
 {
 	struct netl_handle *netl_h;
-	struct control_handle handle;
-	unsigned i = 0;
 
-	g_max_socket = *(int *) (argv);
+	g_max_socket = g_max_socket < socket_id ? socket_id : g_max_socket;
 
 	netl_h = netl_create();
 	if (netl_h == NULL) {
@@ -204,27 +202,33 @@ void *control_main(void *argv)
 		goto err;
 	}
 
-	do {
-		neighbor4_struct[i] =
-			nei_create(i == g_max_socket ? SOCKET_ID_ANY : (int) i);
-		if (neighbor4_struct[i] == NULL) {
-			RTE_LOG(ERR, L3FWD_CTRL,
-					"Couldn't initialize neighbor4 struct");
-			goto err;
-		}
-	} while (++i < g_max_socket);
+	neighbor4_struct[socket_id] = nei_create(socket_id);
+	if (neighbor4_struct[socket_id] == NULL) {
+		RTE_LOG(ERR, L3FWD_CTRL, "Couldn't initialize neighbor4 struct");
+		goto err;
+	}
 
 	netl_h->cb.addr4 = addr4;
 	netl_h->cb.neighbor4 = neighbor4;
 	netl_h->cb.route4 = route4;
+
+	return netl_h;
+  err:
+	rte_panic("failed to init control_main");
+}
+
+void *control_main(void *argv)
+{
+	struct netl_handle *netl_h;
+	struct control_handle handle;
+
+	netl_h = argv;
 
 	RTE_LOG(INFO, L3FWD_CTRL, "init ok\n");
 	netl_listen(netl_h, &handle);
 	RTE_LOG(INFO, L3FWD_CTRL, "netl_listen returned...\n");
 
 	return NULL;
-  err:
-	rte_panic("failed to init control_main");
 }
 
 int control_add_ipv4_local_entry(struct in_addr *nexthop,

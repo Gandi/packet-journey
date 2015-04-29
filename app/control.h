@@ -1,7 +1,8 @@
 #ifndef __RDPDK_APP_CONTROL_H
 #define __RDPDK_APP_CONTROL_H
 
-void *control_main(__rte_unused void *argv);
+void *control_init(unsigned nb_socket);
+void *control_main(void *argv);
 
 int control_callback_setup(const char *cb);
 int control_add_ipv4_local_entry(struct in_addr *nexthop,
