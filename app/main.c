@@ -975,8 +975,7 @@ static inline uint16_t *port_groupx4(uint16_t pn[FWDSTEP + 1],
 #endif							/* ENABLE_MULTI_BUFFER_OPTIMIZE */
 
 /* main processing loop */
-static int main_loop( __attribute__ ((unused))
-					 void *dummy)
+static int main_loop(__rte_unused void *dummy)
 {
 	struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
 	unsigned lcore_id;
@@ -1934,6 +1933,7 @@ int main(int argc, char **argv)
 
 	/* launch per-lcore init on every lcore */
 	rte_eal_mp_remote_launch(main_loop, NULL, SKIP_MASTER);
+	rte_eal_remote_launch(kni_main_loop, NULL, 0 /* master lcore */ );
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
 		if (rte_eal_wait_lcore(lcore_id) < 0)
 			return -1;
