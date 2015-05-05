@@ -62,7 +62,7 @@ start_vm() {
     IFS="$saveifs"
 
     screen -dmS $name \
-        $(which qemu-system-x86_64) -enable-kvm -cpu host -smp 2 \
+        $(which qemu-system-x86_64) -enable-kvm -cpu host -smp 3 \
         -nodefconfig -no-user-config -nodefaults \
         -m 372 \
         -display none \

@@ -1275,8 +1275,9 @@ static int init_lcore_rx_queues(void)
 /* display usage */
 static void print_usage(const char *prgname)
 {
-	printf("%s [EAL options] -- -p PORTMASK -P"
-		   "  [--config (port,queue,lcore)[,(port,queue,lcore]]"
+	printf("%s [EAL options]\n"
+		   "  [--config (port,queue,lcore)[,(port,queue,lcore]]\n"
+		   "  [--kniconfig (port,lcore_rx,lcore_tx,lcore_kthread...)]\n"
 		   "  [--enable-jumbo [--max-pkt-len PKTLEN]]\n"
 		   "  -p PORTMASK: hexadecimal bitmask of ports to configure\n"
 		   "  -P : enable promiscuous mode\n"
