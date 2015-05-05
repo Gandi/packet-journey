@@ -82,6 +82,8 @@
 #include "routing.h"
 #include "control.h"
 #include "kni.h"
+#include "cmdline.h"
+
 lookup_struct_t *ipv4_l3fwd_lookup_struct[NB_SOCKETS];
 lookup6_struct_t *ipv6_l3fwd_lookup_struct[NB_SOCKETS];
 neighbor_struct_t *neighbor4_struct[NB_SOCKETS];
@@ -174,6 +176,7 @@ static uint32_t enabled_port_mask = 0;
 static int promiscuous_on = 0; /**< Ports set in promiscuous mode off by default. */
 static int numa_on = 1;	/**< NUMA is enabled by default. */
 static char *callback_setup = NULL;
+static const char *unixsock_path = "/tmp/rdpdk.sock";
 
 struct mbuf_table {
 	uint16_t len;
@@ -1281,6 +1284,7 @@ static void print_usage(const char *prgname)
 		   "  --callback-setup: script called when ifaces are set up\n"
 		   "  --local4: specify ipv4 address which must be forwarded to the kni\n"
 		   "  --local6: specify ipv6 address which must be forwarded to the kni\n"
+		   "  --unixsock: specify the path for the cmdline unixsock (default: /tmp/rdpdk.sock)\n"
 		   "  --no-numa: optional, disable numa awareness\n"
 		   "  --enable-jumbo: enable jumbo frame"
 		   " which max packet len is PKTLEN in decimal (64-9600)\n",
@@ -1379,6 +1383,7 @@ static int parse_config(const char *q_arg)
 #define CMD_LINE_OPT_ENABLE_JUMBO "enable-jumbo"
 #define CMD_LINE_OPT_LOCAL4 "local4"
 #define CMD_LINE_OPT_LOCAL6 "local6"
+#define CMD_LINE_OPT_UNIXSOCK "unixsock"
 
 /* Parse the argument given in the command line of the application */
 static int parse_args(int argc, char **argv)
@@ -1393,6 +1398,7 @@ static int parse_args(int argc, char **argv)
 		{CMD_LINE_OPT_CALLBACK_SETUP, 1, 0, 0},
 		{CMD_LINE_OPT_LOCAL4, 1, 0, 0},
 		{CMD_LINE_OPT_LOCAL6, 1, 0, 0},
+		{CMD_LINE_OPT_UNIXSOCK, 1, 0, 0},
 		{CMD_LINE_OPT_NO_NUMA, 0, 0, 0},
 		{CMD_LINE_OPT_ENABLE_JUMBO, 0, 0, 0},
 		{NULL, 0, 0, 0}
@@ -1439,6 +1445,12 @@ static int parse_args(int argc, char **argv)
 					print_usage(prgname);
 					return -1;
 				}
+			}
+
+			if (!strncmp
+				(lgopts[option_index].name, CMD_LINE_OPT_UNIXSOCK,
+				 sizeof(CMD_LINE_OPT_UNIXSOCK))) {
+				unixsock_path = optarg;
 			}
 
 			if (!strncmp
@@ -1812,7 +1824,7 @@ int main(int argc, char **argv)
 	unsigned lcore_id;
 	uint32_t nb_lcores;
 	uint8_t portid, queue, socketid;
-	static pthread_t tid;
+	pthread_t tid;
 
 	/* init EAL */
 	ret = rte_eal_init(argc, argv);
@@ -1930,6 +1942,8 @@ int main(int argc, char **argv)
 	}
 
 
+	int sock = rdpdk_cmdline_init(unixsock_path);
+	rdpdk_cmdline_launch(sock);
 
 	/* launch per-lcore init on every lcore */
 	rte_eal_mp_remote_launch(main_loop, NULL, SKIP_MASTER);
@@ -1938,6 +1952,6 @@ int main(int argc, char **argv)
 		if (rte_eal_wait_lcore(lcore_id) < 0)
 			return -1;
 	}
-
+	rdpdk_cmdline_stop(sock, unixsock_path);
 	return 0;
 }
