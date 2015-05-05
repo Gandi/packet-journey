@@ -394,7 +394,7 @@ int kni_parse_config(const char *arg)
 		kni_port_params_array[port_id]->port_id = port_id;
 		//XXX we don't want to do RX in our case.
 		//kni_port_params_array[port_id]->lcore_rx = (uint8_t) int_fld[i++];
-		kni_port_params_array[port_id]->lcore_rx = -1;
+		kni_port_params_array[port_id]->lcore_rx = 127;
 
 		kni_port_params_array[port_id]->lcore_tx = (uint8_t) int_fld[i++];
 		if (kni_port_params_array[port_id]->lcore_rx >= RTE_MAX_LCORE ||
