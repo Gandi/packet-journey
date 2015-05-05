@@ -262,6 +262,9 @@ Subsystem sftp /usr/lib/openssh/sftp-server
 UsePAM yes
 EOF
 ssh-keygen -q -f /etc/ssh/ssh_host_rsa_key -b 768 -N ''
+
+ulimit -c unlimited
+sysctl -w kernel.core_pattern=/tmp/core
 /etc/init.d/ssh start
 
 mount -t tmpfs none /root
