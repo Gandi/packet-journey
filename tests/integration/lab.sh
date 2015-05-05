@@ -6,8 +6,6 @@ ROOT=$(readlink -f ${ROOT:-chroot})
 LINUX=$(readlink -f ${LINUX:-bzImage})
 DPDK_BUILD="${RTE_SDK}/${RTE_TARGET}"
 
-WHICH=$(which which)
-
 info() {
     echo "[1;34m[+] $@[0m"
 }
@@ -24,7 +22,7 @@ setup_tmp() {
 setup_switch_vde() {
     info "Setup VDE switch $1"
     start-stop-daemon -b --make-pidfile --pidfile "$TMP/switch-$1.pid" \
-        --start --startas $($WHICH vde_switch) -- \
+        --start --startas $(which vde_switch) -- \
         --sock "$TMP/switch-$1.sock" < /dev/zero
 }
 
@@ -63,9 +61,8 @@ start_vm() {
     done
     IFS="$saveifs"
 
-        #$($WHICH qemu-system-x86_64) -enable-kvm -cpu host -smp 2 \
     screen -dmS $name \
-        /home/nikita/qemu-test/bin/qemu-system-x86_64 -enable-kvm -cpu host -smp 2 \
+        $(which qemu-system-x86_64) -enable-kvm -cpu host -smp 2 \
         -nodefconfig -no-user-config -nodefaults \
         -m 372 \
         -display none \
@@ -93,8 +90,8 @@ start_vm() {
         -gdb unix:$TMP/vm-$name-kernel-gdb.pipe,server,nowait \
         -kernel $LINUX \
         -append "console=ttyS0 uts=$name root=/dev/root rootflags=trans=virtio,version=9p2000.u ro rootfstype=9p init=/bin/sh -c \"mount -t 9p labshare /media; exec /media/init" \
+        -net user,hostfwd=tcp::$sshport-:22 -net nic,macaddr=00:16:3e:47:fe:5f,model=e1000 \
         $netargs \
-        -net user,hostfwd=tcp::$sshport-:22 \
         "$@"
     echo "GDB server listening on.... $TMP/vm-$name-kernel-gdb.pipe"
     echo "monitor listening on....... $TMP/vm-$name-console.pipe"
@@ -117,3 +114,8 @@ sleep 0.5s
 VM=r1,r2 setup_switch   1
 VM=r2,r3 setup_switch   2
 #VM=r1,r2,r3 setup_switch   3
+
+echo "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i $(readlink -f lab)/integration -p 10021 root@localhost"
+echo "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i $(readlink -f lab)/integration -p 10022 root@localhost"
+echo "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i $(readlink -f lab)/integration -p 10023 root@localhost"
+

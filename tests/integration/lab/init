@@ -20,8 +20,12 @@ for fs in /run /var/run /var/tmp /var/log /tmp; do
 done
 
 mount -t devtmpfs none /dev
+mkdir /dev/pts
+mount -t devpts none /dev/pts
 
 /etc/init.d/udev start
+(cd /dev; /sbin/MAKEDEV tty)
+(cd /dev; /sbin/MAKEDEV pty)
 
 for intf in /sys/class/net/*; do
     intf=$(basename $intf)
@@ -124,6 +128,8 @@ EOF
   ;;
 r2)
   echo R2
+ip a
+ip link
 
   echo 128 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
   mkdir /mnt/huge
@@ -135,8 +141,8 @@ r2)
   ethtool -L eth1 combined 4
 
 #make it more portable  
-  /mnt/dpdkbuild/tools/dpdk_nic_bind.py -b igb_uio 00:07.0
   /mnt/dpdkbuild/tools/dpdk_nic_bind.py -b igb_uio 00:08.0
+  /mnt/dpdkbuild/tools/dpdk_nic_bind.py -b igb_uio 00:09.0
 
 #  ip a add 1.0.0.1/31 dev eth0
 #  ip a add 2001:1::1/127 dev eth0
@@ -228,5 +234,51 @@ EOF
   ;;
 esac
 
+mount -t tmpfs none /etc/ssh
+cat <<EOF > /etc/ssh/sshd_config
+Port 22
+Protocol 2
+HostKey /etc/ssh/ssh_host_rsa_key
+UsePrivilegeSeparation no
+KeyRegenerationInterval 3600
+ServerKeyBits 768
+SyslogFacility AUTH
+LogLevel INFO
+LoginGraceTime 120
+PermitRootLogin yes
+StrictModes yes
+RSAAuthentication yes
+PubkeyAuthentication yes
+IgnoreRhosts yes
+RhostsRSAAuthentication no
+HostbasedAuthentication no
+PermitEmptyPasswords no
+ChallengeResponseAuthentication no
+PrintMotd no
+PrintLastLog yes
+TCPKeepAlive yes
+AcceptEnv LANG LC_ADDRESS LC_COLLATE LC_CTYPE LC_IDENTIFICATION LC_MEASUREMENT LC_MESSAGES LC_MONETARY LC_NAME LC_NUMERIC LC_PAPER LC_TELEPHONE LC_TIME LC_ALL
+Subsystem sftp /usr/lib/openssh/sftp-server
+UsePAM yes
+EOF
+ssh-keygen -q -f /etc/ssh/ssh_host_rsa_key -b 768 -N ''
+/etc/init.d/ssh start
+
+mount -t tmpfs none /root
+chmod 700 /root
+mkdir /root/.ssh
+cp /media/integration.pub /root/.ssh/authorized_keys
+
+
+case $uts in
+r1|r3)
+  dhclient -v eth1
+
+  ;;
+r2)
+  dhclient -v eth2
+
+  ;;
+esac
+
 exec bash  -c " trap 'echo coucou signal' SIGHUP SIGINT SIGTERM; /sbin/getty -L ttyS1 -a root vt100"
-#exec bash -c " trap 'echo coucou signal' HUP INT TERM QUIT; /sbin/getty -L ttyS1 -a root 9600 vt102 "
