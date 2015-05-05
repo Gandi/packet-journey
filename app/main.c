@@ -1855,6 +1855,15 @@ int main(int argc, char **argv)
 
 	nb_lcores = rte_lcore_count();
 
+
+	int ctrlsock = 0;
+	if (numa_on)
+		ctrlsock = 1;			//FIXME set the correct value
+
+	//XXX ensure that control_main doesn't run on a core binded by dpdk lcores
+	//TODO spawn one thread per socketid
+	void *handle = control_init(ctrlsock);
+
 	/* Initialize KNI subsystem */
 	init_kni();
 
@@ -1918,14 +1927,6 @@ int main(int argc, char **argv)
 	}
 
 	check_all_ports_link_status((uint8_t) nb_ports, enabled_port_mask);
-
-	int ctrlsock = 0;
-	if (numa_on)
-		ctrlsock = 1;			//FIXME set the correct value
-
-	//XXX ensure that control_main doesn't run on a core binded by dpdk lcores
-	//TODO spawn one thread per socketid
-	void *handle = control_init(ctrlsock);
 
 	if ((ret =
 		 control_add_ipv4_local_entry(&ipv4_local_mask, &ipv4_local_mask,
