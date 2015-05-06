@@ -131,7 +131,7 @@ r2)
 ip a
 ip link
 
-  echo 128 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
+  echo 256 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
   mkdir /mnt/huge
   mount -t hugetlbfs nodev /mnt/huge
 

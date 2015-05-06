@@ -31,6 +31,8 @@
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#define _GNU_SOURCE
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -1019,6 +1021,10 @@ static int main_loop(__rte_unused void *dummy)
 				lcore_id, portid, queueid);
 	}
 
+	struct kni_port_params *p;
+	p = kni_port_params_array[portid];
+	int nb_kni = p->nb_kni;
+
 	while (1) {
 
 		cur_tsc = rte_rdtsc();
@@ -1040,6 +1046,10 @@ static int main_loop(__rte_unused void *dummy)
 				qconf->tx_mbufs[portid].len = 0;
 			}
 
+			//FIXME we must test if its correst to put it here, anyway we need to call it to be able to up kni ifaces
+			for (i = 0; i < nb_kni; i++) {
+				rte_kni_handle_request(p->kni[i]);
+			}
 			prev_tsc = cur_tsc;
 		}
 
@@ -1520,6 +1530,11 @@ static int parse_args(int argc, char **argv)
 	if (optind >= 0)
 		argv[optind - 1] = prgname;
 
+	/* Check that options were parsed ok */
+	if (kni_validate_parameters(enabled_port_mask) < 0) {
+		print_usage(prgname);
+		rte_exit(EXIT_FAILURE, "Invalid parameters\n");
+	}
 	ret = optind - 1;
 	optind = 0;					/* reset getopt lib */
 	return ret;
@@ -1746,10 +1761,8 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 	queueid = 0;
 	for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++) {
 		if (rte_lcore_is_enabled(lcore_id) == 0) {
-
-            printf("lcore_id %u is not enabled\n", lcore_id);
 			continue;
-        }
+		}
 
 		if (numa_on)
 			socketid = (uint8_t) rte_lcore_to_socket_id(lcore_id);
@@ -1776,7 +1789,6 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 		qconf->tx_queue_id[portid] = queueid;
 		queueid++;
 	}
-	printf("\n");
 }
 
 static int alloc_kni_ports(void)
@@ -1793,7 +1805,6 @@ static int alloc_kni_ports(void)
 		if (kni_port_params_array[i] && i >= nb_sys_ports)
 			rte_exit(EXIT_FAILURE, "Configured invalid "
 					 "port ID %u\n", i);
-
 
 	/* Initialise each port */
 	for (port = 0; port < nb_sys_ports; port++) {
@@ -1813,8 +1824,6 @@ static int alloc_kni_ports(void)
 	return 0;
 }
 
-
-
 int main(int argc, char **argv)
 {
 	struct lcore_conf *qconf;
@@ -1825,7 +1834,8 @@ int main(int argc, char **argv)
 	unsigned lcore_id;
 	uint32_t nb_lcores;
 	uint8_t portid, queue, socketid;
-	pthread_t tid;
+	pthread_t control_tid;
+	char thread_name[16];
 
 	/* Sanitize lcore_conf */
 	for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++) {
@@ -1942,7 +1952,9 @@ int main(int argc, char **argv)
 	}
 	//ret = control_add_ipv6_local_entry(&ipv6_local_mask, &ipv6_local_mask, 128, 0);
 
-	pthread_create(&tid, NULL, (void *) control_main, handle);
+	pthread_create(&control_tid, NULL, (void *) control_main, handle);
+	snprintf(thread_name, 16, "control-%d", 0);
+	pthread_setname_np(control_tid, thread_name);
 
 	if ((ret = control_callback_setup(callback_setup))) {
 		perror("control_callback_setup failure with: ");
@@ -1950,13 +1962,19 @@ int main(int argc, char **argv)
 				 "control callback setup returned error: err=%d,", ret);
 	}
 
-
 	int sock = rdpdk_cmdline_init(unixsock_path);
 	rdpdk_cmdline_launch(sock);
 
 	/* launch per-lcore init on every lcore */
-	rte_eal_mp_remote_launch(main_loop, NULL, SKIP_MASTER);
-	rte_eal_remote_launch(kni_main_loop, NULL, 0 /* master lcore */ );
+	//rte_eal_mp_remote_launch(main_loop, NULL, SKIP_MASTER);
+	rte_eal_remote_launch(main_loop, NULL, 1);
+	rte_eal_remote_launch(main_loop, NULL, 2);
+	printf("launching kni thread\n");
+	rte_eal_remote_launch(kni_main_loop, NULL, 3);
+	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+		snprintf(thread_name, 16, "lcore-slave-%d", lcore_id);
+		pthread_setname_np(lcore_config[lcore_id].thread_id, thread_name);
+	}
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
 		if (rte_eal_wait_lcore(lcore_id) < 0)
 			return -1;

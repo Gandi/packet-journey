@@ -58,7 +58,7 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 										 &nexthop_id);
 			if (s < 0) {
 				s = neighbor4_add_nexthop(neighbor4_struct[i], nexthop,
-									  &nexthop_id, NEI_ACTION_FWD);
+										  &nexthop_id, NEI_ACTION_FWD);
 				if (s < 0) {
 					RTE_LOG(ERR, L3FWD_CTRL,
 							"failed to add a nexthop during route adding...\n");
@@ -243,7 +243,7 @@ int control_add_ipv4_local_entry(struct in_addr *nexthop,
 								 &nexthop_id);
 	if (s < 0) {
 		s = neighbor4_add_nexthop(neighbor4_struct[i], nexthop,
-							  &nexthop_id, NEI_ACTION_KNI);
+								  &nexthop_id, NEI_ACTION_KNI);
 		if (s < 0) {
 			RTE_LOG(ERR, L3FWD_CTRL,
 					"failed to add a nexthop during route adding...\n");

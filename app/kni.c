@@ -78,9 +78,6 @@
 #include "kni.h"
 
 
-/* Macros for printing using RTE_LOG */
-#define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
-
 /* Max size of a single packet */
 #define MAX_PACKET_SZ           2048
 
@@ -212,7 +209,7 @@ static void kni_ingress(struct kni_port_params *p)
 		/* Burst rx from eth */
 		nb_rx = rte_eth_rx_burst(port_id, 0, pkts_burst, PKT_BURST_SZ);
 		if (unlikely(nb_rx > PKT_BURST_SZ)) {
-			RTE_LOG(ERR, APP, "Error receiving from eth\n");
+			RTE_LOG(ERR, KNI, "Error receiving from eth\n");
 			return;
 		}
 		/* Burst tx to kni */
@@ -247,7 +244,7 @@ static void kni_egress(struct kni_port_params *p)
 		/* Burst rx from kni */
 		num = rte_kni_rx_burst(p->kni[i], pkts_burst, PKT_BURST_SZ);
 		if (unlikely(num > PKT_BURST_SZ)) {
-			RTE_LOG(ERR, APP, "Error receiving from KNI\n");
+			RTE_LOG(ERR, KNI, "Error receiving from KNI\n");
 			return;
 		}
 		/* Burst tx to eth */
@@ -273,6 +270,7 @@ int kni_main_loop(__rte_unused void *arg)
 		LCORE_MAX
 	};
 	enum lcore_rxtx flag = LCORE_NONE;
+	RTE_LOG(INFO, KNI, "entering kni main loop on lcore %u\n", lcore_id);
 
 	nb_ports = (uint8_t) (nb_ports < RTE_MAX_ETHPORTS ?
 						  nb_ports : RTE_MAX_ETHPORTS);
@@ -290,7 +288,7 @@ int kni_main_loop(__rte_unused void *arg)
 	}
 
 	if (flag == LCORE_RX) {
-		RTE_LOG(INFO, APP, "Lcore %u is reading from port %d\n",
+		RTE_LOG(INFO, KNI, "Lcore %u is reading from port %d\n",
 				kni_port_params_array[i]->lcore_rx,
 				kni_port_params_array[i]->port_id);
 		while (1) {
@@ -300,7 +298,7 @@ int kni_main_loop(__rte_unused void *arg)
 			kni_ingress(kni_port_params_array[i]);
 		}
 	} else if (flag == LCORE_TX) {
-		RTE_LOG(INFO, APP, "Lcore %u is writing to port %d\n",
+		RTE_LOG(INFO, KNI, "Lcore %u is writing to port %d\n",
 				kni_port_params_array[i]->lcore_tx,
 				kni_port_params_array[i]->port_id);
 		while (1) {
@@ -310,7 +308,7 @@ int kni_main_loop(__rte_unused void *arg)
 			kni_egress(kni_port_params_array[i]);
 		}
 	} else
-		RTE_LOG(INFO, APP, "Lcore %u has nothing to do\n", lcore_id);
+		RTE_LOG(INFO, KNI, "Lcore %u has nothing to do\n", lcore_id);
 
 	return 0;
 }
@@ -324,11 +322,11 @@ static void print_config(void)
 	for (i = 0; i < RTE_MAX_ETHPORTS; i++) {
 		if (!p[i])
 			continue;
-		RTE_LOG(DEBUG, APP, "Port ID: %d\n", p[i]->port_id);
-		RTE_LOG(DEBUG, APP, "Rx lcore ID: %u, Tx lcore ID: %u\n",
+		RTE_LOG(DEBUG, KNI, "Port ID: %d\n", p[i]->port_id);
+		RTE_LOG(DEBUG, KNI, "Rx lcore ID: %u, Tx lcore ID: %u\n",
 				p[i]->lcore_rx, p[i]->lcore_tx);
 		for (j = 0; j < p[i]->nb_lcore_k; j++)
-			RTE_LOG(DEBUG, APP, "Kernel thread lcore ID: %u\n",
+			RTE_LOG(DEBUG, KNI, "Kernel thread lcore ID: %u\n",
 					p[i]->lcore_k[j]);
 	}
 }
@@ -376,7 +374,7 @@ int kni_parse_config(const char *arg)
 		}
 
 		i = 0;
-		port_id = (uint8_t) int_fld[i++];
+		port_id = (uint8_t) int_fld[FLD_PORT];
 		if (port_id >= RTE_MAX_ETHPORTS) {
 			printf("Port ID %d could not exceed the maximum %d\n",
 				   port_id, RTE_MAX_ETHPORTS);
@@ -393,12 +391,13 @@ int kni_parse_config(const char *arg)
 												   RTE_CACHE_LINE_SIZE);
 		kni_port_params_array[port_id]->port_id = port_id;
 		//XXX we don't want to do RX in our case.
-		//kni_port_params_array[port_id]->lcore_rx = (uint8_t) int_fld[i++];
+		//kni_port_params_array[port_id]->lcore_rx = (uint8_t) int_fld[FLD_LCORE_RX];
 		kni_port_params_array[port_id]->lcore_rx = 127;
 
-		kni_port_params_array[port_id]->lcore_tx = (uint8_t) int_fld[i++];
-		if (kni_port_params_array[port_id]->lcore_rx >= RTE_MAX_LCORE ||
-			kni_port_params_array[port_id]->lcore_tx >= RTE_MAX_LCORE) {
+		kni_port_params_array[port_id]->lcore_tx =
+			(uint8_t) int_fld[FLD_LCORE_TX];
+		if (kni_port_params_array[port_id]->lcore_rx >= RTE_MAX_LCORE
+			|| kni_port_params_array[port_id]->lcore_tx >= RTE_MAX_LCORE) {
 			printf("lcore_rx %u or lcore_tx %u ID could not "
 				   "exceed the maximum %u\n",
 				   kni_port_params_array[port_id]->lcore_rx,
@@ -406,6 +405,7 @@ int kni_parse_config(const char *arg)
 				   (unsigned) RTE_MAX_LCORE);
 			goto fail;
 		}
+		i = FLD_LCORE_TX + 1;
 		for (j = 0; i < nb_token && j < KNI_MAX_KTHREAD; i++, j++)
 			kni_port_params_array[port_id]->lcore_k[j] =
 				(uint8_t) int_fld[i];
@@ -426,8 +426,7 @@ int kni_parse_config(const char *arg)
 	return -1;
 }
 
-#if 0
-static int validate_parameters(uint32_t portmask)
+int kni_validate_parameters(uint32_t portmask)
 {
 	uint32_t i;
 
@@ -441,14 +440,15 @@ static int validate_parameters(uint32_t portmask)
 			(!(portmask & (1 << i)) && kni_port_params_array[i]))
 			rte_exit(EXIT_FAILURE, "portmask is not consistent "
 					 "to port ids specified in --config\n");
-
-		if (kni_port_params_array[i] && !rte_lcore_is_enabled((unsigned)
-															  (kni_port_params_array[i]->lcore_rx)))
-			rte_exit(EXIT_FAILURE,
-					 "lcore id %u for " "port %d receiving not enabled\n",
-					 kni_port_params_array[i]->lcore_rx,
-					 kni_port_params_array[i]->port_id);
-
+		//XXX we don't want to check that, the lcore_rx is set to 127
+		/*
+		   if (kni_port_params_array[i] && !rte_lcore_is_enabled((unsigned)
+		   (kni_port_params_array[i]->lcore_rx)))
+		   rte_exit(EXIT_FAILURE,
+		   "lcore id %u for " "port %d receiving not enabled\n",
+		   kni_port_params_array[i]->lcore_rx,
+		   kni_port_params_array[i]->port_id);
+		 */
 		if (kni_port_params_array[i] && !rte_lcore_is_enabled((unsigned)
 															  (kni_port_params_array[i]->lcore_tx)))
 			rte_exit(EXIT_FAILURE,
@@ -462,8 +462,6 @@ static int validate_parameters(uint32_t portmask)
 	return 0;
 }
 
-#define CMDLINE_OPT_CONFIG  "config"
-#endif
 /* Parse the arguments given in the command line of the application */
 /* Initialize KNI subsystem */
 void init_kni(void)
@@ -474,11 +472,14 @@ void init_kni(void)
 	/* Calculate the maximum number of KNI interfaces that will be used */
 	for (i = 0; i < RTE_MAX_ETHPORTS; i++) {
 		if (kni_port_params_array[i]) {
-			num_of_kni_ports += (params[i]->nb_lcore_k ?
-								 params[i]->nb_lcore_k : 1);
+			RTE_LOG(INFO, KNI, "number of kni lcore %d\n",
+					params[i]->nb_lcore_k);
+			num_of_kni_ports +=
+				(params[i]->nb_lcore_k ? params[i]->nb_lcore_k : 1);
 		}
 	}
 
+	RTE_LOG(INFO, KNI, "number of kni %d\n", num_of_kni_ports);
 	/* Invoke rte KNI init to preallocate the ports */
 	rte_kni_init(num_of_kni_ports);
 }
@@ -491,7 +492,7 @@ void init_kni_port(uint8_t port)
 	int ret;
 
 	/* Initialise device and RX/TX queues */
-	RTE_LOG(INFO, APP, "Initialising port %u ...\n", (unsigned) port);
+	RTE_LOG(INFO, KNI, "Initialising port %u ...\n", (unsigned) port);
 	fflush(stdout);
 	ret = rte_eth_dev_configure(port, 1, 1, &port_conf);
 	if (ret < 0)
@@ -527,11 +528,11 @@ static int kni_change_mtu(uint8_t port_id, unsigned new_mtu)
 	struct rte_eth_conf conf;
 
 	if (port_id >= rte_eth_dev_count()) {
-		RTE_LOG(ERR, APP, "Invalid port id %d\n", port_id);
+		RTE_LOG(ERR, KNI, "Invalid port id %d\n", port_id);
 		return -EINVAL;
 	}
 
-	RTE_LOG(INFO, APP, "Change MTU of port %d to %u\n", port_id, new_mtu);
+	RTE_LOG(INFO, KNI, "Change MTU of port %d to %u\n", port_id, new_mtu);
 
 	/* Stop specific port */
 	rte_eth_dev_stop(port_id);
@@ -548,14 +549,14 @@ static int kni_change_mtu(uint8_t port_id, unsigned new_mtu)
 		KNI_ENET_FCS_SIZE;
 	ret = rte_eth_dev_configure(port_id, 1, 1, &conf);
 	if (ret < 0) {
-		RTE_LOG(ERR, APP, "Fail to reconfigure port %d\n", port_id);
+		RTE_LOG(ERR, KNI, "Fail to reconfigure port %d\n", port_id);
 		return ret;
 	}
 
 	/* Restart specific port */
 	ret = rte_eth_dev_start(port_id);
 	if (ret < 0) {
-		RTE_LOG(ERR, APP, "Fail to restart port %d\n", port_id);
+		RTE_LOG(ERR, KNI, "Fail to restart port %d\n", port_id);
 		return ret;
 	}
 
@@ -567,13 +568,13 @@ static int kni_config_network_interface(uint8_t port_id, uint8_t if_up)
 {
 	int ret = 0;
 
-	RTE_LOG(INFO, APP, "----   kni_config_network_interface\n");
+	RTE_LOG(INFO, KNI, "----   kni_config_network_interface\n");
 	if (port_id >= rte_eth_dev_count() || port_id >= RTE_MAX_ETHPORTS) {
-		RTE_LOG(ERR, APP, "Invalid port id %d\n", port_id);
+		RTE_LOG(ERR, KNI, "Invalid port id %d\n", port_id);
 		return -EINVAL;
 	}
 
-	RTE_LOG(INFO, APP, "Configure network interface of %d %s\n",
+	RTE_LOG(INFO, KNI, "Configure network interface of %d %s\n",
 			port_id, if_up ? "up" : "down");
 
 	if (if_up != 0) {			/* Configure network interface up */
@@ -583,7 +584,7 @@ static int kni_config_network_interface(uint8_t port_id, uint8_t if_up)
 		rte_eth_dev_stop(port_id);
 
 	if (ret < 0)
-		RTE_LOG(ERR, APP, "Failed to start port %d\n", port_id);
+		RTE_LOG(ERR, KNI, "Failed to start port %d\n", port_id);
 
 	return ret;
 }
@@ -783,7 +784,7 @@ int main(int argc, char **argv)
 /* Display usage instructions */
 static void print_usage(const char *prgname)
 {
-	RTE_LOG(INFO, APP, "\nUsage: %s [EAL options] -- -p PORTMASK -P "
+	RTE_LOG(INFO, KNI, "\nUsage: %s [EAL options] -- -p PORTMASK -P "
 			"[--config (port,lcore_rx,lcore_tx,lcore_kthread...)"
 			"[,(port,lcore_rx,lcore_tx,lcore_kthread...)]]\n"
 			"    -p PORTMASK: hex bitmask of ports to use\n"

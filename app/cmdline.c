@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
@@ -8,7 +10,6 @@
 #include <sys/un.h>
 #include <termios.h>
 #include <unistd.h>
-#include <pthread.h>
 #include <poll.h>
 
 #include <rte_common.h>
@@ -243,11 +244,14 @@ static void *cmdline_run(void *data)
 
 int rdpdk_cmdline_launch(int sock)
 {
+	char thread_name[16];
 	cmdline_thread_loop = 1;
 	if (pthread_create
 		(&cmdline_tid, NULL, cmdline_run, (void *) (intptr_t) sock)) {
 		perror("failed to create cmdline thread");
 		rte_exit(EXIT_FAILURE, "failed to launch cmdline thread");
 	}
-	return 0;
+	snprintf(thread_name, 16, "cmdline-%d", 0);
+	pthread_setname_np(cmdline_tid, thread_name);
+	return cmdline_tid;
 }
