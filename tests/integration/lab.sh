@@ -81,7 +81,7 @@ start_vm() {
         -device virtio-9p-pci,id=fs-root,fsdev=fsdev-root,mount_tag=/dev/root \
         -fsdev local,security_model=passthrough,id=fsdev-lab,path=$(readlink -f lab),readonly \
         -device virtio-9p-pci,id=fs-lab,fsdev=fsdev-lab,mount_tag=labshare \
-        -fsdev local,security_model=passthrough,id=fsdev-build,path=$(readlink -f ../../build),readonly \
+        -fsdev local,security_model=passthrough,id=fsdev-build,path=$(readlink -f ../..),readonly \
         -device virtio-9p-pci,id=fs-build,fsdev=fsdev-build,mount_tag=buildshare \
         -fsdev local,security_model=passthrough,id=fsdev-dpdkbuild,path=$RTE_SDK,readonly \
         -device virtio-9p-pci,id=fs-dpdkbuild,fsdev=fsdev-dpdkbuild,mount_tag=dpdkbuildshare \

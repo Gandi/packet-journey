@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <assert.h>
+#include <net/if.h>
 
 #include <rte_common.h>
 #include <rte_log.h>
@@ -179,14 +180,18 @@ neighbor4(neighbor_action_t action,
 	return 0;
 }
 
-static int addr4(__rte_unused addr_action_t action, __s32 port_id,
-				 struct in_addr *addr, __u8 prefixlen)
+static int addr4(__rte_unused addr_action_t action, int32_t port_id,
+				 struct in_addr *addr, uint8_t prefixlen)
 {
 	char buf[255];
+	char ibuf[IFNAMSIZ];
 
-	printf("SALUT port=%d %s/%d\n", port_id,
+	if_indextoname(port_id, ibuf);
+	printf("SALUT port=%s %s/%d\n", ibuf,
 		   inet_ntop(AF_INET, addr, buf, 255), prefixlen);
 
+	//FIXME right now we are not using the port param
+	control_add_ipv4_local_entry(addr, addr, 32, 0 /*kni_port_id */ );
 	return 0;
 }
 

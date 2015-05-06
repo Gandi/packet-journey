@@ -1026,6 +1026,11 @@ static int main_loop(__rte_unused void *dummy)
 	struct kni_port_params *p;
 	p = kni_port_params_array[portid];
 	int nb_kni = p->nb_kni;
+	while (kni_port_rdy[portid] != nb_kni) {
+		for (i = 0; i < nb_kni; i++) {
+			rte_kni_handle_request(p->kni[i]);
+		}
+	}
 
 	while (1) {
 
@@ -1048,10 +1053,6 @@ static int main_loop(__rte_unused void *dummy)
 				qconf->tx_mbufs[portid].len = 0;
 			}
 
-			//FIXME we must test if its correst to put it here, anyway we need to call it to be able to up kni ifaces
-			for (i = 0; i < nb_kni; i++) {
-				rte_kni_handle_request(p->kni[i]);
-			}
 			prev_tsc = cur_tsc;
 		}
 

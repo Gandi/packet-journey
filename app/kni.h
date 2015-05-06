@@ -24,5 +24,6 @@ struct kni_port_params {
 } __rte_cache_aligned;
 
 extern struct kni_port_params *kni_port_params_array[RTE_MAX_ETHPORTS];
+extern uint8_t kni_port_rdy[RTE_MAX_ETHPORTS];
 
 #endif

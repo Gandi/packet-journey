@@ -1,5 +1,5 @@
-/mnt/build/app/build/l3fwd  --log-level 8 -l 0,1,2 -n 1 -- -p 0x3 --config '(0,0,1),(1,0,2)' --kniconfig '(0,0,0,0),(1,0,0,0)' --no-numa --callback /media/up
-gdb /mnt/build/app/build/l3fwd /tmp/core
+/mnt/build/build/app/build/l3fwd  --log-level 8 -l 0,1,2 -n 1 -- -p 0x3 --config '(0,0,1),(1,0,2)' --kniconfig '(0,0,0,0),(1,0,0,0)' --no-numa --callback /media/up
+gdb /mnt/build/build/app/build/l3fwd /tmp/core
 
 debug:
 build dpdk with something like `make RTE_KERNELDIR=/usr/src/linux-3.18.10-dpdk O=build_kvm EXTRA_CFLAGS="-g -O0"`

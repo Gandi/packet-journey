@@ -110,6 +110,7 @@
 #define KNI_SECOND_PER_DAY      86400
 
 struct kni_port_params *kni_port_params_array[RTE_MAX_ETHPORTS];
+uint8_t kni_port_rdy[RTE_MAX_ETHPORTS] = { 0 };
 
 
 /* Options for configuring ethernet port */
@@ -580,6 +581,7 @@ static int kni_config_network_interface(uint8_t port_id, uint8_t if_up)
 	if (if_up != 0) {			/* Configure network interface up */
 		rte_eth_dev_stop(port_id);
 		ret = rte_eth_dev_start(port_id);
+		kni_port_rdy[port_id]++;
 	} else						/* Configure network interface down */
 		rte_eth_dev_stop(port_id);
 
