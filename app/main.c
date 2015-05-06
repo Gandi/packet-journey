@@ -1827,6 +1827,15 @@ int main(int argc, char **argv)
 	uint8_t portid, queue, socketid;
 	pthread_t tid;
 
+	/* Sanitize lcore_conf */
+	for (lcore_id = 0; lcore_id< RTE_MAX_LCORE; lcore_id++) {
+		qconf = lcore_conf[lcore_id];
+		qconf->ipv4_lookup_struct = NULL;
+		qconf->ipv6_lookup_struct = NULL;
+		qconf->neighbor4_struct = NULL;
+		qconf->neighbor6_struct = NULL;
+	}
+
 	/* init EAL */
 	ret = rte_eal_init(argc, argv);
 	if (ret < 0)
