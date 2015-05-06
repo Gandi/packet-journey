@@ -212,6 +212,21 @@ void *control_init(unsigned socket_id)
 	netl_h->cb.neighbor4 = neighbor4;
 	netl_h->cb.route4 = route4;
 
+	struct ether_addr invalid_mac =
+		{ {0x00, 0x00, 0x00, 0x00, 0x00, 0x00} };
+	struct in_addr invalid_ip = { INADDR_ANY };
+	uint8_t nexthop_id;
+	if (neighbor4_add_nexthop
+		(neighbor4_struct[socket_id], &invalid_ip, &nexthop_id,
+		 NEI_ACTION_DROP) < 0) {
+		RTE_LOG(ERR, L3FWD_CTRL,
+				"Couldn't add drop target in neighbor table");
+		goto err;
+	}
+	neighbor4_refcount_incr(neighbor4_struct[socket_id], nexthop_id);
+	neighbor4_set_lladdr_port(neighbor4_struct[socket_id], nexthop_id,
+							  &invalid_mac, BAD_PORT);
+
 	return netl_h;
   err:
 	rte_panic("failed to init control_main");

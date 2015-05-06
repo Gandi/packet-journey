@@ -15,5 +15,7 @@
 #define L3FWD_DEBUG_TRACE(fmt, args...)
 #endif
 
+/* Used to mark destination port as 'invalid'. */
+#define	BAD_PORT	((uint16_t)-1)
 
 #endif

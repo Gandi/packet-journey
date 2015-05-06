@@ -153,10 +153,6 @@ static struct in6_addr ipv6_local_mask;
 /* Configure how many packets ahead to prefetch, when reading packets */
 #define PREFETCH_OFFSET	3
 
-/* Used to mark destination port as 'invalid'. */
-#define	BAD_PORT	((uint16_t)-1)
-
-
 /*
  * Configurable number of RX/TX ring descriptors
  */
@@ -684,30 +680,30 @@ processx4_step1(struct rte_mbuf *pkt[FWDSTEP], __m128i * dip,
 }
 
 /*
- * Lookup into LPM for destination port.
- * If lookup fails, use incoming port (portid) as destination port.
+ * Lookup into LPM for neighbor id.
+ * If lookup fails, drop.
  */
 static inline void
 processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
-				uint8_t portid, struct rte_mbuf *pkt[FWDSTEP],
-				uint16_t dprt[FWDSTEP])
+				struct rte_mbuf *pkt[FWDSTEP], uint16_t neighbor[FWDSTEP])
 {
 	rte_xmm_t dst;
 	const __m128i bswap_mask = _mm_set_epi8(12, 13, 14, 15, 8, 9, 10, 11,
 											4, 5, 6, 7, 0, 1, 2, 3);
 
 	/* Byte swap 4 IPV4 addresses. */
+	/* XXX: Do we know this is V4 only yet? */
 	dip = _mm_shuffle_epi8(dip, bswap_mask);
 
 	/* if all 4 packets are IPV4. */
 	if (likely(flag != 0)) {
-		rte_lpm_lookupx4(qconf->ipv4_lookup_struct, dip, dprt, portid);
+		rte_lpm_lookupx4(qconf->ipv4_lookup_struct, dip, neighbor, 0);
 	} else {
 		dst.x = dip;
-		dprt[0] = get_dst_port(qconf, pkt[0], dst.u32[0], portid);
-		dprt[1] = get_dst_port(qconf, pkt[1], dst.u32[1], portid);
-		dprt[2] = get_dst_port(qconf, pkt[2], dst.u32[2], portid);
-		dprt[3] = get_dst_port(qconf, pkt[3], dst.u32[3], portid);
+		neighbor[0] = get_dst_port(qconf, pkt[0], dst.u32[0], 0);
+		neighbor[1] = get_dst_port(qconf, pkt[1], dst.u32[1], 0);
+		neighbor[2] = get_dst_port(qconf, pkt[2], dst.u32[2], 0);
+		neighbor[3] = get_dst_port(qconf, pkt[3], dst.u32[3], 0);
 	}
 }
 
@@ -851,6 +847,12 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	ve[2] = val_eth[dst_port[2]];
 	ve[3] = val_eth[dst_port[3]];
 #endif
+
+	/* Pivot dst_port */
+	dst_port[0] = qconf->neighbor4_struct->entries4[dst_port[0]].port_id;
+	dst_port[1] = qconf->neighbor4_struct->entries4[dst_port[1]].port_id;
+	dst_port[2] = qconf->neighbor4_struct->entries4[dst_port[2]].port_id;
+	dst_port[3] = qconf->neighbor4_struct->entries4[dst_port[3]].port_id;
 
 	te[0] = _mm_load_si128(p[0]);
 	te[1] = _mm_load_si128(p[1]);
@@ -1075,7 +1077,7 @@ static int main_loop(__rte_unused void *dummy)
 			k = RTE_ALIGN_FLOOR(nb_rx, FWDSTEP);
 			for (j = 0; j != k; j += FWDSTEP) {
 				processx4_step2(qconf, dip[j / FWDSTEP],
-								flag[j / FWDSTEP], portid,
+								flag[j / FWDSTEP],
 								&pkts_burst[j], &dst_port[j]);
 			}
 
