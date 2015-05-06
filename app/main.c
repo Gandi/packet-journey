@@ -1644,8 +1644,7 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask)
 	uint8_t portid, count, all_ports_up, print_flag = 0;
 	struct rte_eth_link link;
 
-	printf("\nChecking link status");
-	fflush(stdout);
+	printf("\nChecking link status\n");
 	for (count = 0; count <= MAX_CHECK_TIME; count++) {
 		all_ports_up = 1;
 		for (portid = 0; portid < port_num; portid++) {
@@ -1707,14 +1706,13 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 	}
 
 	/* init port */
-	printf("Initializing port %d ... ", portid);
-	fflush(stdout);
+	printf("Initializing port %d ...\n", portid);
 
 	nb_rx_queue = get_port_n_rx_queues(portid);
 	n_tx_queue = nb_lcores;
 	if (n_tx_queue > MAX_TX_QUEUE_PER_PORT)
 		n_tx_queue = MAX_TX_QUEUE_PER_PORT;
-	printf("Creating queues: nb_rxq=%d nb_txq=%u... ",
+	printf("Creating queues: nb_rxq=%d nb_txq=%u...\n",
 		   nb_rx_queue, (unsigned) n_tx_queue);
 
 	ret = rte_eth_dev_configure(portid, nb_rx_queue,
@@ -1747,16 +1745,18 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 	/* init one TX queue per couple (lcore,port) */
 	queueid = 0;
 	for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++) {
-		if (rte_lcore_is_enabled(lcore_id) == 0)
+		if (rte_lcore_is_enabled(lcore_id) == 0) {
+
+            printf("lcore_id %u is not enabled\n", lcore_id);
 			continue;
+        }
 
 		if (numa_on)
 			socketid = (uint8_t) rte_lcore_to_socket_id(lcore_id);
 		else
 			socketid = 0;
 
-		printf("txq=%u,%d,%d ", lcore_id, queueid, socketid);
-		fflush(stdout);
+		printf("txq=%u,%d,%d\n", lcore_id, queueid, socketid);
 
 		rte_eth_dev_info_get(portid, dev_info);
 		txconf = &dev_info->default_txconf;
@@ -1886,8 +1886,7 @@ int main(int argc, char **argv)
 			continue;
 		qconf = &lcore_conf[lcore_id];
 
-		printf("\nInitializing rx queues on lcore %u ... ", lcore_id);
-		fflush(stdout);
+		printf("\nInitializing rx queues on lcore %u ...\n", lcore_id);
 
 		if (numa_on)
 			socketid = (uint8_t) rte_lcore_to_socket_id(lcore_id);
@@ -1899,8 +1898,7 @@ int main(int argc, char **argv)
 			portid = qconf->rx_queue_list[queue].port_id;
 			queueid = qconf->rx_queue_list[queue].queue_id;
 
-			printf("rxq=%d,%d,%d ", portid, queueid, socketid);
-			fflush(stdout);
+			printf("rxq=%d,%d,%d\n", portid, queueid, socketid);
 
 			ret = rte_eth_rx_queue_setup(portid, queueid, nb_rxd,
 										 socketid,

@@ -13,7 +13,9 @@ error() {
     echo "[1;31m[+] $@[0m"
 }
 setup_tmp() {
-    TMP=$(mktemp -d)
+    TMP=/tmp/rdpdk/
+    mkdir $TMP
+    chmod 777 $TMP
     #trap "rm -rf $TMP" EXIT
     #info "TMP is $TMP"
 }
@@ -69,11 +71,8 @@ start_vm() {
         \
         -chardev stdio,id=charserial0,signal=off \
         -chardev socket,id=charserial1,path=$TMP/vm-$name-serial.pipe,server,nowait \
-        -chardev socket,id=charserial2,path=$TMP/vm-$name-test.pipe,server,nowait \
         -device isa-serial,chardev=charserial0,id=serial0 \
-        -device isa-serial,chardev=charserial1,id=gdb0 \
-        -device virtio-serial \
-        -device virtserialport,chardev=charserial2,name=console0 \
+        -device isa-serial,chardev=charserial1,id=serial1 \
         \
         -chardev socket,id=con0,path=$TMP/vm-$name-console.pipe,server,nowait \
         -mon chardev=con0,mode=readline,default \
