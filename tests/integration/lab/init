@@ -246,6 +246,7 @@ SyslogFacility AUTH
 LogLevel INFO
 LoginGraceTime 120
 PermitRootLogin yes
+PermitUserEnvironment yes
 StrictModes yes
 RSAAuthentication yes
 PubkeyAuthentication yes
@@ -271,7 +272,12 @@ mount -t tmpfs none /root
 chmod 700 /root
 mkdir /root/.ssh
 cp /media/integration.pub /root/.ssh/authorized_keys
+cp /media/gdbinit /root/.gdbinit
 
+cat <<EOF > /root/.ssh/environment
+DPDK_PATH=$1
+BUILD_PATH=$2
+EOF
 
 case $uts in
 r1|r3)

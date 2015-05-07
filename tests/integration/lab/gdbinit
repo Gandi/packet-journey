@@ -1,0 +1,10 @@
+set disassembly-flavor intel
+set disable-randomization off
+set history filename /tmp/gdb.history
+set print pretty on
+
+python
+import os
+gdb.execute('set substitute-path ' + os.environ['BUILD_PATH'] + ' /mnt/build')
+gdb.execute('set substitute-path ' + os.environ['DPDK_PATH'] + ' /mnt/dpdkbuild')
+end
