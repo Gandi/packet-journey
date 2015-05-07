@@ -688,7 +688,8 @@ processx4_step1(struct rte_mbuf *pkt[FWDSTEP], __m128i * dip,
  */
 static inline void
 processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
-				struct rte_mbuf *pkt[FWDSTEP], uint16_t port_id, uint16_t neighbor[FWDSTEP])
+				struct rte_mbuf *pkt[FWDSTEP], uint16_t port_id,
+				uint16_t neighbor[FWDSTEP])
 {
 	rte_xmm_t dst;
 	const __m128i bswap_mask = _mm_set_epi8(12, 13, 14, 15, 8, 9, 10, 11,
