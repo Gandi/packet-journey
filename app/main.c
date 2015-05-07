@@ -796,7 +796,6 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			}
 			j++;
 			for (k = 0; k < nb_kni; k++) {
-				//FIXME in the case of action == NEI_ACTION_KNI, we have a more specific kni_port_id in the port field, right now it should work as long as we have only one kni
 				num = rte_kni_tx_burst(p->kni[k], knimbuf, i);
 				stats[lcore_id].nb_kni_tx += nb_rx;
 				rte_kni_handle_request(p->kni[k]);
