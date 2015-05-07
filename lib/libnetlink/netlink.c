@@ -7,6 +7,8 @@
 
 #include "libnetlink.h"
 
+struct ether_addr invalid_mac = { {0x00, 0x00, 0x00, 0x00, 0x00} };
+
 static inline __u32 rta_getattr_u32(const struct rtattr *rta)
 {
 	return *(__u32 *) RTA_DATA(rta);
@@ -298,18 +300,32 @@ netl_handler(struct netl_handle *h,
 		switch (neighbor->ndm_family) {
 		case AF_INET:
 			if (h->cb.neighbor4 != NULL) {
-				h->cb.neighbor4(action, neighbor->ndm_ifindex,
-								RTA_DATA(tb[NDA_DST]),
-								RTA_DATA(tb[NDA_LLADDR]),
-								neighbor->ndm_state, args, vlanid);
+				if (tb[NDA_LLADDR]) {
+					h->cb.neighbor4(action, neighbor->ndm_ifindex,
+									RTA_DATA(tb[NDA_DST]),
+									RTA_DATA(tb[NDA_LLADDR]),
+									neighbor->ndm_state, args, vlanid);
+				} else {
+					h->cb.neighbor4(action, neighbor->ndm_ifindex,
+									RTA_DATA(tb[NDA_DST]),
+									&invalid_mac,
+									neighbor->ndm_state, args, vlanid);
+				}
 			}
 			break;
 		case AF_INET6:
 			if (h->cb.neighbor6 != NULL) {
-				h->cb.neighbor6(action, neighbor->ndm_ifindex,
-								RTA_DATA(tb[NDA_DST]),
-								RTA_DATA(tb[NDA_LLADDR]),
-								neighbor->ndm_state, args, vlanid);
+				if (tb[NDA_LLADDR]) {
+					h->cb.neighbor6(action, neighbor->ndm_ifindex,
+									RTA_DATA(tb[NDA_DST]),
+									RTA_DATA(tb[NDA_LLADDR]),
+									neighbor->ndm_state, args, vlanid);
+				} else {
+					h->cb.neighbor6(action, neighbor->ndm_ifindex,
+									RTA_DATA(tb[NDA_DST]),
+									&invalid_mac,
+									neighbor->ndm_state, args, vlanid);
+				}
 			}
 			break;
 		default:
