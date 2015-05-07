@@ -1984,6 +1984,7 @@ int main(int argc, char **argv)
 	}
 	snprintf(thread_name, 16, "lcore-master");
 	pthread_setname_np(pthread_self(), thread_name);
+	pthread_join(control_tid, NULL);
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
 		if (rte_eal_wait_lcore(lcore_id) < 0)
 			return -1;

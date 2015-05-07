@@ -154,7 +154,8 @@ neighbor4(neighbor_action_t action,
 
 		if (s <= 0) {
 			RTE_LOG(ERR, L3FWD_CTRL,
-					"received a neighbor announce for an unmanaged iface %s\n", ibuf);
+					"received a neighbor announce for an unmanaged iface %s\n",
+					ibuf);
 			return -1;
 		}
 
