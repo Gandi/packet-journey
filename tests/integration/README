@@ -1,4 +1,4 @@
-/mnt/build/build/app/build/l3fwd  --log-level 8 -l 0,1,2 -n 1 -- -p 0x3 --config '(0,0,1),(1,0,2)' --kniconfig '(0,0,0,0),(1,0,0,0)' --no-numa --callback /media/up
+/mnt/build/build/app/build/l3fwd  --log-level 8 -l 0,1,2,3 -n 1 -- -p 0x3 --config '(0,0,1),(1,0,2)' --kniconfig '(0,3,3,0),(1,3,3,0)' --no-numa --callback /media/up
 gdb /mnt/build/build/app/build/l3fwd /tmp/core
 
 debug:
