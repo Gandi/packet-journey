@@ -185,14 +185,18 @@ static int addr4(__rte_unused addr_action_t action, int32_t port_id,
 {
 	char buf[255];
 	char ibuf[IFNAMSIZ];
-	unsigned port_id, kni_num;
+	unsigned kni_num;
+	uint8_t neighbor_id;
 
 	if_indextoname(port_id, ibuf);
 	sscanf(ibuf, "vEth%d_%d", &port_id, &kni_num);
 	printf("SALUT port=%s %s/%d\n", ibuf,
 		   inet_ntop(AF_INET, addr, buf, 255), prefixlen);
 
-	control_add_ipv4_local_entry(addr, addr, 32, port_id);
+	neighbor_id = control_add_ipv4_local_entry(addr, addr, 32, port_id);
+
+	kni_ports_id[port_id] = neighbor_id;
+
 	return 0;
 }
 
@@ -280,7 +284,7 @@ int control_add_ipv4_local_entry(struct in_addr *nexthop,
 	}
 	neighbor4_set_port(neighbor4_struct[i], nexthop_id, port_id);
 	neighbor4_refcount_incr(neighbor4_struct[i], nexthop_id);
-	return 0;
+	return nexthop_id;
 }
 
 int control_callback_setup(const char *cb)

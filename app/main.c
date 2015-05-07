@@ -243,6 +243,7 @@ static struct rte_eth_conf port_conf = {
 
 static struct rte_mempool *pktmbuf_pool[NB_SOCKETS];
 static struct rte_mempool *knimbuf_pool[RTE_MAX_ETHPORTS];
+uint8_t kni_ports_id[RTE_MAX_ETHPORTS];
 
 #define IPV4_L3FWD_LPM_MAX_RULES         524288
 #define IPV6_L3FWD_LPM_MAX_RULES         524288
@@ -601,13 +602,13 @@ get_dst_port(const struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	if (pkt->ol_flags & PKT_RX_IPV4_HDR) {
 		if (rte_lpm_lookup(qconf->ipv4_lookup_struct, dst_ipv4,
 						   &next_hop) != 0)
-			next_hop = portid;
+			next_hop = 0;
 	} else if (pkt->ol_flags & PKT_RX_IPV6_HDR) {
 		eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
 		ipv6_hdr = (struct ipv6_hdr *) (eth_hdr + 1);
 		if (rte_lpm6_lookup(qconf->ipv6_lookup_struct,
 							ipv6_hdr->dst_addr, &next_hop) != 0)
-			next_hop = portid;
+			next_hop = 0;
 	} else {
 		next_hop = portid;
 	}
@@ -687,11 +688,12 @@ processx4_step1(struct rte_mbuf *pkt[FWDSTEP], __m128i * dip,
  */
 static inline void
 processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
-				struct rte_mbuf *pkt[FWDSTEP], uint16_t neighbor[FWDSTEP])
+				struct rte_mbuf *pkt[FWDSTEP], uint16_t port_id, uint16_t neighbor[FWDSTEP])
 {
 	rte_xmm_t dst;
 	const __m128i bswap_mask = _mm_set_epi8(12, 13, 14, 15, 8, 9, 10, 11,
 											4, 5, 6, 7, 0, 1, 2, 3);
+	uint8_t neighbor_id;
 
 	/* Byte swap 4 IPV4 addresses. */
 	/* XXX: Do we know this is V4 only yet? */
@@ -702,10 +704,11 @@ processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
 		rte_lpm_lookupx4(qconf->ipv4_lookup_struct, dip, neighbor, 0);
 	} else {
 		dst.x = dip;
-		neighbor[0] = get_dst_port(qconf, pkt[0], dst.u32[0], 0);
-		neighbor[1] = get_dst_port(qconf, pkt[1], dst.u32[1], 0);
-		neighbor[2] = get_dst_port(qconf, pkt[2], dst.u32[2], 0);
-		neighbor[3] = get_dst_port(qconf, pkt[3], dst.u32[3], 0);
+		neighbor_id = kni_ports_id[port_id];
+		neighbor[0] = get_dst_port(qconf, pkt[0], dst.u32[0], neighbor_id);
+		neighbor[1] = get_dst_port(qconf, pkt[1], dst.u32[1], neighbor_id);
+		neighbor[2] = get_dst_port(qconf, pkt[2], dst.u32[2], neighbor_id);
+		neighbor[3] = get_dst_port(qconf, pkt[3], dst.u32[3], neighbor_id);
 	}
 }
 
@@ -1082,7 +1085,7 @@ static int main_loop(__rte_unused void *dummy)
 			for (j = 0; j != k; j += FWDSTEP) {
 				processx4_step2(qconf, dip[j / FWDSTEP],
 								flag[j / FWDSTEP],
-								&pkts_burst[j], &dst_port[j]);
+								&pkts_burst[j], portid, &dst_port[j]);
 			}
 
 			//send through the kni packets which don't have an available neighbor

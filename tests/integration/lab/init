@@ -141,8 +141,8 @@ ip link
   ethtool -L eth1 combined 4
 
 #make it more portable  
+  /mnt/dpdkbuild/tools/dpdk_nic_bind.py -b igb_uio 00:07.0
   /mnt/dpdkbuild/tools/dpdk_nic_bind.py -b igb_uio 00:08.0
-  /mnt/dpdkbuild/tools/dpdk_nic_bind.py -b igb_uio 00:09.0
 
 #  ip a add 1.0.0.1/31 dev eth0
 #  ip a add 2001:1::1/127 dev eth0
