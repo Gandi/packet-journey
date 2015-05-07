@@ -259,20 +259,7 @@ struct lcore_conf {
 	neighbor_struct_t *neighbor6_struct;
 } __rte_cache_aligned;
 
-struct lcore_stats {
-	/* total packet processed recently */
-	uint64_t nb_rx;
-	/* total packet sent recently */
-	uint64_t nb_tx;
-	/* total packet sent to kni recently */
-	uint64_t nb_kni_tx;
-	/* total packet dropped recently */
-	uint64_t nb_dropped;
-	/* total iterations looped recently */
-	uint64_t nb_iteration_looped;
-} __rte_cache_aligned;
-
-static struct lcore_stats stats[RTE_MAX_LCORE] __rte_cache_aligned;
+struct lcore_stats stats[RTE_MAX_LCORE] __rte_cache_aligned;
 
 static struct lcore_conf lcore_conf[RTE_MAX_LCORE];
 static rte_spinlock_t spinlock_conf[RTE_MAX_ETHPORTS] =
@@ -1032,8 +1019,8 @@ static int main_loop(__rte_unused void *dummy)
 	RTE_LOG(INFO, L3FWD, "entering main loop on lcore %u\n", lcore_id);
 
 	for (i = 0; i < qconf->n_rx_queue; i++) {
-
 		portid = qconf->rx_queue_list[i].port_id;
+		stats[lcore_id].port_id = portid;
 		queueid = qconf->rx_queue_list[i].queue_id;
 		RTE_LOG(INFO, L3FWD, " -- lcoreid=%u portid=%hhu rxqueueid=%hhu\n",
 				lcore_id, portid, queueid);

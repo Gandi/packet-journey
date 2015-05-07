@@ -14,6 +14,7 @@
 
 #include <rte_common.h>
 #include <rte_log.h>
+#include <rte_lcore.h>
 
 #include <cmdline_rdline.h>
 #include <cmdline_parse.h>
@@ -73,6 +74,80 @@ cmdline_parse_inst_t cmd_obj_acl_add = {
 			   },
 };
 
+//----- CMD STATS
+
+struct cmd_stats_result {
+	cmdline_fixed_string_t stats;
+};
+
+static void cmd_stats_parsed( __attribute__ ((unused))
+							 void *parsed_result,
+							 struct cmdline *cl, __attribute__ ((unused))
+							 void *data)
+{
+	uint64_t total_packets_dropped, total_packets_tx, total_packets_rx;
+	uint64_t total_packets_kni_tx, total_packets_kni_rx;
+	unsigned lcoreid;
+
+	total_packets_dropped = 0;
+	total_packets_tx = 0;
+	total_packets_rx = 0;
+	total_packets_kni_tx = 0;
+	total_packets_kni_rx = 0;
+
+	cmdline_printf(cl,
+				   "\nLcore statistics ====================================");
+
+	for (lcoreid = 0; lcoreid < RTE_MAX_LCORE; lcoreid++) {
+		if (!rte_lcore_is_enabled(lcoreid))
+			continue;
+
+		cmdline_printf(cl,
+					   "\nStatistics for lcore %u portid %lu ---------------"
+					   "\nLoop iteration: %lu" "\nPackets sent: %lu"
+					   "\nPackets received: %lu" "\nPackets kni sent: %lu"
+					   "\nPackets kni received: %lu"
+					   "\nPackets dropped: %lu", lcoreid,
+					   stats[lcoreid].port_id,
+					   stats[lcoreid].nb_iteration_looped,
+					   stats[lcoreid].nb_tx, stats[lcoreid].nb_rx,
+					   stats[lcoreid].nb_kni_tx, stats[lcoreid].nb_kni_rx,
+					   stats[lcoreid].nb_dropped);
+
+		total_packets_dropped += stats[lcoreid].nb_dropped;
+		total_packets_tx += stats[lcoreid].nb_tx;
+		total_packets_rx += stats[lcoreid].nb_rx;
+		total_packets_kni_tx += stats[lcoreid].nb_kni_tx;
+		total_packets_kni_rx += stats[lcoreid].nb_kni_rx;
+	}
+	cmdline_printf(cl,
+				   "\nAggregate statistics ==============================="
+				   "\nTotal packets sent: %lu"
+				   "\nTotal packets received: %lu"
+				   "\nTotal packets kni sent: %lu"
+				   "\nTotal packets kni received: %lu"
+				   "\nTotal packets dropped: %lu", total_packets_tx,
+				   total_packets_rx, total_packets_kni_tx,
+				   total_packets_kni_rx, total_packets_dropped);
+	cmdline_printf(cl,
+				   "\n====================================================\n");
+}
+
+cmdline_parse_token_string_t cmd_stats_stats =
+TOKEN_STRING_INITIALIZER(struct cmd_stats_result, stats, "stats");
+
+cmdline_parse_inst_t cmd_stats = {
+	.f = cmd_stats_parsed,		/* function to call */
+	.data = NULL,				/* 2nd arg of func */
+	.help_str = "show stats",
+	.tokens = {					/* token list, NULL terminated */
+			   (void *) &cmd_stats_stats,
+			   NULL,
+			   },
+};
+
+
+
 //----- CMD HELP
 
 struct cmd_help_result {
@@ -87,7 +162,7 @@ static void cmd_help_parsed( __attribute__ ((unused))
 	cmdline_printf(cl,
 				   "commands:\n"
 				   "- acl_add IP CIDR PROTONUM PORT\n"
-				   "- del obj_name\n" "- show obj_name\n\n");
+				   "- stats\n" "- help\n\n");
 }
 
 cmdline_parse_token_string_t cmd_help_help =
@@ -107,6 +182,7 @@ cmdline_parse_inst_t cmd_help = {
 
 cmdline_parse_ctx_t main_ctx[] = {
 	(cmdline_parse_inst_t *) & cmd_obj_acl_add,
+	(cmdline_parse_inst_t *) & cmd_stats,
 	(cmdline_parse_inst_t *) & cmd_help,
 	NULL,
 };
