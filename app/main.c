@@ -1971,12 +1971,6 @@ int main(int argc, char **argv)
 	snprintf(thread_name, 16, "control-%d", 0);
 	pthread_setname_np(control_tid, thread_name);
 
-	if ((ret = control_callback_setup(callback_setup))) {
-		perror("control_callback_setup failure with: ");
-		rte_exit(EXIT_FAILURE,
-				 "control callback setup returned error: err=%d,", ret);
-	}
-
 	int sock = rdpdk_cmdline_init(unixsock_path);
 	rdpdk_cmdline_launch(sock);
 
@@ -1984,6 +1978,13 @@ int main(int argc, char **argv)
 	//rte_eal_mp_remote_launch(main_loop, NULL, SKIP_MASTER);
 	rte_eal_remote_launch(main_loop, NULL, 1);
 	rte_eal_remote_launch(main_loop, NULL, 2);
+
+	if ((ret = control_callback_setup(callback_setup))) {
+		perror("control_callback_setup failure with: ");
+		rte_exit(EXIT_FAILURE,
+				 "control callback setup returned error: err=%d,", ret);
+	}
+
 	printf("launching kni thread\n");
 	rte_eal_remote_launch(kni_main_loop, NULL, 3);
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {

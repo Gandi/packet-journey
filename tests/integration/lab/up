@@ -1,3 +1,6 @@
 #!/bin/sh
 
-date >>/tmp/log
+ip link set vEth0_0 up
+ip link set vEth1_0 up
+ip add add 10.0.0.1/31 dev vEth0_0
+ip add add 10.0.0.3/31 dev vEth1_0
