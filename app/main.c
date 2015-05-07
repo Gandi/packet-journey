@@ -1948,13 +1948,6 @@ int main(int argc, char **argv)
 
 	check_all_ports_link_status((uint8_t) nb_ports, enabled_port_mask);
 
-	if ((ret =
-		 control_add_ipv4_local_entry(&ipv4_local_mask, &ipv4_local_mask,
-									  32, 0 /*kni_port_id */ ))) {
-		rte_exit(EXIT_FAILURE, "failed to add an ipv4 local mask");
-	}
-	//ret = control_add_ipv6_local_entry(&ipv6_local_mask, &ipv6_local_mask, 128, 0);
-
 	pthread_create(&control_tid, NULL, (void *) control_main, handle);
 	snprintf(thread_name, 16, "control-%d", 0);
 	pthread_setname_np(control_tid, thread_name);
@@ -1978,6 +1971,8 @@ int main(int argc, char **argv)
 		snprintf(thread_name, 16, "lcore-slave-%d", lcore_id);
 		pthread_setname_np(lcore_config[lcore_id].thread_id, thread_name);
 	}
+	snprintf(thread_name, 16, "lcore-master");
+	pthread_setname_np(pthread_self(), thread_name);
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
 		if (rte_eal_wait_lcore(lcore_id) < 0)
 			return -1;
