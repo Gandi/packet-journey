@@ -642,6 +642,7 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	ve = val_eth[dp];
 #endif
 	dst_port[0] = dp;
+	dst_port[0] = qconf->neighbor4_struct->entries4[dp].port_id;
 	rfc1812_process(ipv4_hdr, dst_port, pkt->ol_flags);
 
 	te = _mm_blend_epi16(te, ve, MASK_ETH);
