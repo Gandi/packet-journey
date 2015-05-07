@@ -259,6 +259,21 @@ struct lcore_conf {
 	neighbor_struct_t *neighbor6_struct;
 } __rte_cache_aligned;
 
+struct lcore_stats {
+	/* total packet processed recently */
+	uint64_t nb_rx;
+	/* total packet sent recently */
+	uint64_t nb_tx;
+	/* total packet sent to kni recently */
+	uint64_t nb_kni_tx;
+	/* total packet dropped recently */
+	uint64_t nb_dropped;
+	/* total iterations looped recently */
+	uint64_t nb_iteration_looped;
+} __rte_cache_aligned;
+
+static struct lcore_stats stats[RTE_MAX_LCORE] __rte_cache_aligned;
+
 static struct lcore_conf lcore_conf[RTE_MAX_LCORE];
 static rte_spinlock_t spinlock_conf[RTE_MAX_ETHPORTS] =
 	{ RTE_SPINLOCK_INITIALIZER };
@@ -712,7 +727,7 @@ static inline int
 processx4_step_checkneighbor(struct lcore_conf *qconf,
 							 struct rte_mbuf **pkt, uint16_t * dst_port,
 							 __m128i * dip, uint32_t * flag, int nb_rx,
-							 uint8_t portid)
+							 uint8_t portid, unsigned lcore_id)
 {
 	int i, j, num;
 	uint32_t nb_kni, k;
@@ -796,6 +811,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			for (k = 0; k < nb_kni; k++) {
 				//FIXME in the case of action == NEI_ACTION_KNI, we have a more specific kni_port_id in the port field, right now it should work as long as we have only one kni
 				num = rte_kni_tx_burst(p->kni[k], knimbuf, i);
+				stats[lcore_id].nb_kni_tx += nb_rx;
 				rte_kni_handle_request(p->kni[k]);
 				if (unlikely(num < i)) {
 					/* Free mbufs not tx to kni interface */
@@ -1033,7 +1049,7 @@ static int main_loop(__rte_unused void *dummy)
 	}
 
 	while (1) {
-
+		stats[lcore_id].nb_iteration_looped++;
 		cur_tsc = rte_rdtsc();
 
 		/*
@@ -1067,6 +1083,7 @@ static int main_loop(__rte_unused void *dummy)
 			if (nb_rx == 0)
 				continue;
 
+			stats[lcore_id].nb_rx += nb_rx;
 #if (ENABLE_MULTI_BUFFER_OPTIMIZE == 1)
 
 			k = RTE_ALIGN_FLOOR(nb_rx, FWDSTEP);
@@ -1084,7 +1101,7 @@ static int main_loop(__rte_unused void *dummy)
 
 			//send through the kni packets which don't have an available neighbor
 			processx4_step_checkneighbor(qconf, pkts_burst, dst_port, dip,
-										 flag, nb_rx, portid);
+										 flag, nb_rx, portid, lcore_id);
 
 			/*
 			 * Finish packet processing and group consecutive
@@ -1172,8 +1189,10 @@ static int main_loop(__rte_unused void *dummy)
 				k = pnum[j];
 
 				if (likely(pn != BAD_PORT)) {
+					stats[lcore_id].nb_tx += k;
 					send_packetsx4(qconf, pn, pkts_burst + j, k);
 				} else {
+					stats[lcore_id].nb_dropped += k;
 					for (m = j; m != j + k; m++)
 						rte_pktmbuf_free(pkts_burst[m]);
 				}
