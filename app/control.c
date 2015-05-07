@@ -145,7 +145,18 @@ neighbor4(neighbor_action_t action,
 	if (action == NEIGHBOR_ADD) {
 		if (lladdr == NULL)
 			return -1;
+		char ibuf[IFNAMSIZ];
+		unsigned kni_num;
 		RTE_LOG(DEBUG, L3FWD_CTRL, "adding ipv4 neighbor...\n");
+
+		if_indextoname(port_id, ibuf);
+		s = sscanf(ibuf, "vEth%d_%d", &port_id, &kni_num);
+
+		if (s <= 0) {
+			RTE_LOG(ERR, L3FWD_CTRL,
+					"received a neighbor announce for an unmanaged iface %s\n", ibuf);
+			return -1;
+		}
 
 		s = neighbor4_lookup_nexthop(neighbor4_struct[socketid], addr,
 									 &nexthop_id);
@@ -158,6 +169,7 @@ neighbor4(neighbor_action_t action,
 				return -1;
 			}
 		}
+		//printf("%s\n", ibuf);
 		neighbor4_set_lladdr_port(neighbor4_struct[socketid], nexthop_id,
 								  lladdr, port_id);
 		neighbor4_set_state(neighbor4_struct[socketid], nexthop_id, flags);
