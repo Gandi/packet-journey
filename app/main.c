@@ -648,10 +648,12 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	}
 
 	dst_port[0] = qconf->neighbor4_struct->entries4[dp].port_id;
-	rfc1812_process(ipv4_hdr, dst_port, pkt->ol_flags);
 
-	te = _mm_blend_epi16(te, ve, MASK_ETH);
-	_mm_store_si128((__m128i *) eth_hdr, te);
+	if (likely(neighbor->action == NEI_ACTION_FWD)) {
+		rfc1812_process(ipv4_hdr, dst_port, pkt->ol_flags);
+		te = _mm_blend_epi16(te, ve, MASK_ETH);
+		_mm_store_si128((__m128i *) eth_hdr, te);
+	}
 }
 
 /*
