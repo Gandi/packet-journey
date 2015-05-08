@@ -243,7 +243,7 @@ static struct rte_eth_conf port_conf = {
 
 static struct rte_mempool *pktmbuf_pool[NB_SOCKETS];
 static struct rte_mempool *knimbuf_pool[RTE_MAX_ETHPORTS];
-uint8_t kni_ports_id[RTE_MAX_ETHPORTS];
+uint8_t kni_neighbor_id[RTE_MAX_ETHPORTS];
 
 #define IPV4_L3FWD_LPM_MAX_RULES         524288
 #define IPV6_L3FWD_LPM_MAX_RULES         524288
@@ -714,7 +714,7 @@ processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
 		rte_lpm_lookupx4(qconf->ipv4_lookup_struct, dip, neighbor, 0);
 	} else {
 		dst.x = dip;
-		neighbor_id = kni_ports_id[port_id];
+		neighbor_id = kni_neighbor_id[port_id];
 		neighbor[0] = get_dst_port(qconf, pkt[0], dst.u32[0], neighbor_id);
 		neighbor[1] = get_dst_port(qconf, pkt[1], dst.u32[1], neighbor_id);
 		neighbor[2] = get_dst_port(qconf, pkt[2], dst.u32[2], neighbor_id);

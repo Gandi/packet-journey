@@ -37,6 +37,6 @@ struct lcore_stats {
 
 extern struct lcore_stats stats[RTE_MAX_LCORE];
 
-extern uint8_t kni_ports_id[RTE_MAX_ETHPORTS];
+extern uint8_t kni_neighbor_id[RTE_MAX_ETHPORTS];
 
 #endif
