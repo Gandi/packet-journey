@@ -33,11 +33,12 @@ setup_switch() {
     info "Setup switch $1"
     switch="br-dpdk-$1"
     brctl addbr $switch
+    ip link set $switch up
     saveifs="$IFS"
     IFS=,
     for vm in $VM; do
         link="tap-$vm-$1"
-        ip link set $link up 
+        ip link set $link up
         brctl addif $switch $link
     done
     IFS="$saveifs"
