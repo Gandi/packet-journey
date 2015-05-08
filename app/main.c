@@ -625,6 +625,7 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	uint32_t dst_ipv4;
 	uint16_t dp;
 	__m128i te, ve;
+	struct nei_entry4 *neighbor;
 
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
 	ipv4_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
@@ -633,15 +634,19 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	dst_ipv4 = rte_be_to_cpu_32(dst_ipv4);
 	dp = get_dst_port(qconf, pkt, dst_ipv4, portid);
 
+	neighbor = &qconf->neighbor4_struct->entries4[dp];
+
 	//TODO test it, may need to use eth = rte_pktmbuf_mtod(m, struct ether_hdr *); ether_addr_copy(from, eth->d_addr);
-	te = _mm_load_si128((__m128i *) eth_hdr);
-	ve = _mm_load_si128((__m128i *) & qconf->
-						neighbor4_struct->entries4[dp].nexthop_hwaddr);
+	
+	if (likely(neighbor->action == NEI_ACTION_FWD)) {
+		te = _mm_load_si128((__m128i *) eth_hdr);
+		ve = _mm_load_si128((__m128i *) & neighbor->nexthop_hwaddr);
 #if 0
-	te = _mm_load_si128((__m128i *) eth_hdr);
-	ve = val_eth[dp];
+		te = _mm_load_si128((__m128i *) eth_hdr);
+		ve = val_eth[dp];
 #endif
-	dst_port[0] = dp;
+	}
+
 	dst_port[0] = qconf->neighbor4_struct->entries4[dp].port_id;
 	rfc1812_process(ipv4_hdr, dst_port, pkt->ol_flags);
 
