@@ -628,6 +628,7 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	struct nei_entry4 *neighbor;
 
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
+	/* XXX: only v4? Shouldn't this be read in the get_dst_port function?! */
 	ipv4_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
 
 	dst_ipv4 = ipv4_hdr->dst_addr;
