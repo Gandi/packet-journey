@@ -6,12 +6,13 @@
 
 
 struct nei_entry4 {
+	struct ether_addr nexthop_hwaddr; /* 3 bytes */
+	uint8_t pad[5];                   /* 5 bytes */
+
 	uint8_t in_use;
 	uint8_t valid;
-	//uint8_t output_port;
 
 	struct in_addr addr;
-	struct ether_addr nexthop_hwaddr;
 
 	//unsigned long inserted;
 	//unsigned long delayed;
