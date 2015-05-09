@@ -621,22 +621,34 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 			   uint16_t * dst_port, uint8_t portid)
 {
 	struct ether_hdr *eth_hdr;
-	struct ipv4_hdr *ipv4_hdr;
-	uint32_t dst_ipv4;
 	uint16_t dp;
 	__m128i te, ve;
+	struct ipv4_hdr *ipv4_hdr;
+	struct ipv6_hdr *ipv6_hdr;
 	struct nei_entry4 *neighbor;
 
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
-	/* XXX: only v4? Shouldn't this be read in the get_dst_port function?! */
-	ipv4_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
 
-	dst_ipv4 = ipv4_hdr->dst_addr;
-	dst_ipv4 = rte_be_to_cpu_32(dst_ipv4);
-	dp = get_dst_port(qconf, pkt, dst_ipv4, portid);
+	if (pkt->ol_flags & PKT_RX_IPV4_HDR) { /* XXX: PKT_RX_IPV4_HDR_EXT ? */
+		ipv4_hdr =
+			(struct ipv4_hdr *) (rte_pktmbuf_mtod(pkt, unsigned char *) +
+								 sizeof(struct ether_hdr));
+
+		dp = get_ipv4_dst_port(ipv4_hdr, 0,
+									 qconf->ipv4_lookup_struct);
+
+	} else if (pkt->ol_flags & PKT_RX_IPV6_HDR) { /* XXX: PKT_RX_IPV6_HDR_EXT ? */
+		ipv6_hdr =
+			(struct ipv6_hdr *) (rte_pktmbuf_mtod(pkt, unsigned char *) +
+								 sizeof(struct ether_hdr));
+
+		dp =
+			get_ipv6_dst_port(ipv6_hdr, 0, qconf->ipv6_lookup_struct);
+	} else {
+		dp = kni_neighbor_id[portid];
+	}
 
 	neighbor = &qconf->neighbor4_struct->entries4[dp];
-
 	//TODO test it, may need to use eth = rte_pktmbuf_mtod(m, struct ether_hdr *); ether_addr_copy(from, eth->d_addr);
 	
 	if (likely(neighbor->action == NEI_ACTION_FWD)) {
@@ -648,12 +660,29 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 #endif
 	}
 
-	dst_port[0] = qconf->neighbor4_struct->entries4[dp].port_id;
+	dst_port[0] = neighbor->port_id;
 
 	if (likely(neighbor->action == NEI_ACTION_FWD)) {
 		rfc1812_process(ipv4_hdr, dst_port, pkt->ol_flags);
 		te = _mm_blend_epi16(te, ve, MASK_ETH);
 		_mm_store_si128((__m128i *) eth_hdr, te);
+	} else if (neighbor->action == NEI_ACTION_KNI) {
+		struct kni_port_params *p = kni_port_params_array[neighbor->port_id];
+		uint32_t nb_kni = p->nb_kni;
+		uint32_t k;
+		int num, i = 1;
+
+		for (k = 0; k < nb_kni; k++) {
+			num = rte_kni_tx_burst(p->kni[k], &pkt, i);
+
+			if (unlikely(num < i)) {
+				/* Free mbufs not tx to kni interface */
+				kni_burst_free_mbufs(&pkt, i - num);
+			}
+
+			dst_port[0] = BAD_PORT;
+		}
+
 	}
 }
 
