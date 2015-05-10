@@ -1114,8 +1114,10 @@ static int main_loop(__rte_unused void *dummy)
 			}
 
 			//send through the kni packets which don't have an available neighbor
-			processx4_step_checkneighbor(qconf, pkts_burst, dst_port, dip,
-										 flag, nb_rx, portid, lcore_id);
+			nb_rx =
+				processx4_step_checkneighbor(qconf, pkts_burst, dst_port,
+											 dip, flag, nb_rx, portid,
+											 lcore_id);
 
 			/*
 			 * Finish packet processing and group consecutive
