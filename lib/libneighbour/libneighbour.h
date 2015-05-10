@@ -6,8 +6,8 @@
 
 
 struct nei_entry4 {
-	struct ether_addr nexthop_hwaddr; /* 3 bytes */
-	uint8_t pad[5];                   /* 5 bytes */
+	struct ether_addr nexthop_hwaddr;	/* 3 bytes */
+	uint8_t pad[5];				/* 5 bytes */
 
 	uint8_t in_use;
 	uint8_t valid;

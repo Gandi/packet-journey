@@ -618,7 +618,7 @@ get_dst_port(const struct lcore_conf *qconf, struct rte_mbuf *pkt,
 
 static inline void
 process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
-			   uint16_t * dst_port, uint8_t portid)
+			   uint16_t * dst_port, uint8_t portid, unsigned lcore_id)
 {
 	struct ether_hdr *eth_hdr;
 	uint16_t dp;
@@ -629,60 +629,46 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
 
-	if (pkt->ol_flags & PKT_RX_IPV4_HDR) { /* XXX: PKT_RX_IPV4_HDR_EXT ? */
-		ipv4_hdr =
-			(struct ipv4_hdr *) (rte_pktmbuf_mtod(pkt, unsigned char *) +
-								 sizeof(struct ether_hdr));
+	if (pkt->ol_flags & PKT_RX_IPV4_HDR) {	/* XXX: PKT_RX_IPV4_HDR_EXT ? */
+		ipv4_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
 
-		dp = get_ipv4_dst_port(ipv4_hdr, 0,
-									 qconf->ipv4_lookup_struct);
+		dp = get_ipv4_dst_port(ipv4_hdr, 0, qconf->ipv4_lookup_struct);
 
-	} else if (pkt->ol_flags & PKT_RX_IPV6_HDR) { /* XXX: PKT_RX_IPV6_HDR_EXT ? */
-		ipv6_hdr =
-			(struct ipv6_hdr *) (rte_pktmbuf_mtod(pkt, unsigned char *) +
-								 sizeof(struct ether_hdr));
+		neighbor = &qconf->neighbor4_struct->entries4[dp];
+	} else if (pkt->ol_flags & PKT_RX_IPV6_HDR) {	/* XXX: PKT_RX_IPV6_HDR_EXT ? */
+		ipv6_hdr = (struct ipv6_hdr *) (eth_hdr + 1);
 
-		dp =
-			get_ipv6_dst_port(ipv6_hdr, 0, qconf->ipv6_lookup_struct);
+		dp = get_ipv6_dst_port(ipv6_hdr, 0, qconf->ipv6_lookup_struct);
+		//FIXME may need to replace ->entries4 by ->entries6
+		neighbor = &qconf->neighbor6_struct->entries4[dp];
 	} else {
 		dp = kni_neighbor_id[portid];
-	}
-
-	neighbor = &qconf->neighbor4_struct->entries4[dp];
-	//TODO test it, may need to use eth = rte_pktmbuf_mtod(m, struct ether_hdr *); ether_addr_copy(from, eth->d_addr);
-	
-	if (likely(neighbor->action == NEI_ACTION_FWD)) {
-		te = _mm_load_si128((__m128i *) eth_hdr);
-		ve = _mm_load_si128((__m128i *) & neighbor->nexthop_hwaddr);
-#if 0
-		te = _mm_load_si128((__m128i *) eth_hdr);
-		ve = val_eth[dp];
-#endif
+		neighbor = &qconf->neighbor4_struct->entries4[dp];
 	}
 
 	dst_port[0] = neighbor->port_id;
 
 	if (likely(neighbor->action == NEI_ACTION_FWD)) {
-		rfc1812_process(ipv4_hdr, dst_port, pkt->ol_flags);
+		//TODO test it, may need to use eth = rte_pktmbuf_mtod(m, struct ether_hdr *); ether_addr_copy(from, eth->d_addr);
+		te = _mm_load_si128((__m128i *) eth_hdr);
+		ve = _mm_load_si128((__m128i *) & neighbor->nexthop_hwaddr);
 		te = _mm_blend_epi16(te, ve, MASK_ETH);
 		_mm_store_si128((__m128i *) eth_hdr, te);
+		rfc1812_process(ipv4_hdr, dst_port, pkt->ol_flags);
 	} else if (neighbor->action == NEI_ACTION_KNI) {
-		struct kni_port_params *p = kni_port_params_array[neighbor->port_id];
+		struct kni_port_params *p =
+			kni_port_params_array[neighbor->port_id];
 		uint32_t nb_kni = p->nb_kni;
 		uint32_t k;
-		int num, i = 1;
 
 		for (k = 0; k < nb_kni; k++) {
-			num = rte_kni_tx_burst(p->kni[k], &pkt, i);
-
-			if (unlikely(num < i)) {
-				/* Free mbufs not tx to kni interface */
-				kni_burst_free_mbufs(&pkt, i - num);
-			}
-
+			rte_kni_tx_burst(p->kni[k], &pkt, 1);
+			stats[lcore_id].nb_kni_tx++;;
+			stats[lcore_id].nb_dropped--;
+			//XXX maybe not needed
+			rte_kni_handle_request(p->kni[k]);
 			dst_port[0] = BAD_PORT;
 		}
-
 	}
 }
 
@@ -1188,15 +1174,18 @@ static int main_loop(__rte_unused void *dummy)
 			/* Process up to last 3 packets one by one. */
 			switch (nb_rx % FWDSTEP) {
 			case 3:
-				process_packet(qconf, pkts_burst[j], dst_port + j, portid);
+				process_packet(qconf, pkts_burst[j], dst_port + j, portid,
+							   lcore_id);
 				GROUP_PORT_STEP(dlp, dst_port, lp, pnum, j);
 				j++;
 			case 2:
-				process_packet(qconf, pkts_burst[j], dst_port + j, portid);
+				process_packet(qconf, pkts_burst[j], dst_port + j, portid,
+							   lcore_id);
 				GROUP_PORT_STEP(dlp, dst_port, lp, pnum, j);
 				j++;
 			case 1:
-				process_packet(qconf, pkts_burst[j], dst_port + j, portid);
+				process_packet(qconf, pkts_burst[j], dst_port + j, portid,
+							   lcore_id);
 				GROUP_PORT_STEP(dlp, dst_port, lp, pnum, j);
 				j++;
 			}
