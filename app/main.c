@@ -740,7 +740,6 @@ processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
 	}
 }
 
-
 static inline int
 processx4_step_checkneighbor(struct lcore_conf *qconf,
 							 struct rte_mbuf **pkt, uint16_t * dst_port,
@@ -778,8 +777,12 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					dip[j] = dip[nb_rx];
 					flag[j] = flag[nb_rx];
 				}
-			}
-			j++;
+
+				L3FWD_DEBUG_TRACE(
+						"0: j %d nb_rx %d i %d nb_kni %d lcore_id %d\n", j,
+						nb_rx, i, nb_kni, lcore_id);
+			} else
+				j++;
 	case 3:
 			if (unlikely
 				(!qconf->neighbor4_struct->entries4[dst_port[j]].
@@ -796,8 +799,11 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					dip[j] = dip[nb_rx];
 					flag[j] = flag[nb_rx];
 				}
-			}
-			j++;
+				L3FWD_DEBUG_TRACE(
+						"3: j %d nb_rx %d i %d nb_kni %d lcore_id %d\n", j,
+						nb_rx, i, nb_kni, lcore_id);
+			} else
+				j++;
 	case 2:
 			if (unlikely
 				(!qconf->neighbor4_struct->entries4[dst_port[j]].
@@ -814,8 +820,11 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					dip[j] = dip[nb_rx];
 					flag[j] = flag[nb_rx];
 				}
-			}
-			j++;
+				L3FWD_DEBUG_TRACE(
+						"2: j %d nb_rx %d i %d nb_kni %d lcore_id %d\n", j,
+						nb_rx, i, nb_kni, lcore_id);
+			} else
+				j++;
 	case 1:
 			if (unlikely
 				(!qconf->neighbor4_struct->entries4[dst_port[j]].
@@ -832,8 +841,13 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					dip[j] = dip[nb_rx];
 					flag[j] = flag[nb_rx];
 				}
-			}
-			j++;
+				L3FWD_DEBUG_TRACE(
+						"1: j %d nb_rx %d i %d nb_kni %d lcore_id %d\n", j,
+						nb_rx, i, nb_kni, lcore_id);
+			} else
+				j++;
+			if (i == 0)
+				continue;
 			for (k = 0; k < nb_kni; k++) {
 				num = rte_kni_tx_burst(p->kni[k], knimbuf, i);
 				stats[lcore_id].nb_kni_tx += nb_rx;
