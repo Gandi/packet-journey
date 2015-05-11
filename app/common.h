@@ -1,6 +1,7 @@
 #ifndef __RDPDK_APP_COMMON_H
 #define __RDPDK_APP_COMMON_H
 
+
 #define NB_SOCKETS 8
 #define RTE_LOGTYPE_L3FWD RTE_LOGTYPE_USER1
 #define RTE_LOGTYPE_L3FWD_CTRL RTE_LOGTYPE_USER1
@@ -37,6 +38,5 @@ struct lcore_stats {
 
 extern struct lcore_stats stats[RTE_MAX_LCORE];
 
-extern uint8_t kni_neighbor_id[RTE_MAX_ETHPORTS];
 
 #endif

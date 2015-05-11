@@ -35,13 +35,13 @@ int main(void)
 	TEST(s == 0, "neighbor add should succeed")
 
 		TEST(id == 0, "first entry is expected to be at index 0")
-		TEST(t->entries4[id].state == 0,
+		TEST(t->entries4[id].neighbor.state == 0,
 			 "Flags should be zeroed upon insert")
-		TEST(t->entries4[id].in_use == 1,
+		TEST(t->entries4[id].neighbor.in_use == 1,
 			 "Entry should be flagged in_use after insertion")
 
-		TEST(t->entries4[1].in_use == 0 ||
-			 t->entries4[NEI_NUM_ENTRIES - 1].in_use == 0,
+		TEST(t->entries4[1].neighbor.in_use == 0 ||
+			 t->entries4[NEI_NUM_ENTRIES - 1].neighbor.in_use == 0,
 			 "Unknown entries should be invalid")
 
 		nexthop.s_addr = IP4(1, 2, 3, 5);
@@ -50,7 +50,7 @@ int main(void)
 		TEST(id == 1, "entry is expected to be at index 1")
 
 		neighbor4_delete(t, 0);
-	TEST(t->entries4[0].in_use == 0,
+	TEST(t->entries4[0].neighbor.in_use == 0,
 		 "First entry has been deleted, it should not be in_use anymore")
 
 		nexthop.s_addr = IP4(1, 2, 3, 6);
@@ -58,7 +58,7 @@ int main(void)
 	TEST(s == 0, "neighbor add should succeed")
 		TEST(id == 0,
 			 "first entry was empty, new entry should take index 0")
-		TEST(t->entries4[0].in_use == 1,
+		TEST(t->entries4[0].neighbor.in_use == 1,
 			 "First entry should be in use again")
 #if 0
 	__s32 port_id = 1;

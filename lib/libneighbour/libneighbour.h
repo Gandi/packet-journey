@@ -4,29 +4,32 @@
 
 #define NEI_NUM_ENTRIES 256
 
-
-struct nei_entry4 {
+struct nei_entry {
 	struct ether_addr nexthop_hwaddr;	/* 3 bytes */
 	uint8_t pad[5];				/* 5 bytes */
 
 	uint8_t in_use;
 	uint8_t valid;
 
-	struct in_addr addr;
-
-	//unsigned long inserted;
-	//unsigned long delayed;
-	//uint8_t state;
-	__u8 state;
 #define NEI_STATE_REACHABLE 0x01
 #define NEI_STATE_STALE     0x02
 #define NEI_STATE_DELAY     0x03
-	__s32 port_id;
-	uint8_t action;
+	__u8 state;
+
 #define NEI_ACTION_FWD      0x01
 #define NEI_ACTION_DROP     0x02
 #define NEI_ACTION_KNI      0x03
+	uint8_t action;
+
+	__s32 port_id;
+
 	int refcnt;
+};
+
+struct nei_entry4 {
+	struct nei_entry neighbor;
+
+	struct in_addr addr;
 };
 
 struct nei_table {

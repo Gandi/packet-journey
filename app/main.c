@@ -243,7 +243,7 @@ static struct rte_eth_conf port_conf = {
 
 static struct rte_mempool *pktmbuf_pool[NB_SOCKETS];
 static struct rte_mempool *knimbuf_pool[RTE_MAX_ETHPORTS];
-uint8_t kni_neighbor_id[RTE_MAX_ETHPORTS];
+struct nei_entry kni_neighbor[RTE_MAX_ETHPORTS];
 
 #define IPV4_L3FWD_LPM_MAX_RULES         524288
 #define IPV6_L3FWD_LPM_MAX_RULES         524288
@@ -593,7 +593,7 @@ rfc1812_process(struct ipv4_hdr *ipv4_hdr, uint16_t * dp, uint32_t flags)
 
 static inline __attribute__ ((always_inline)) uint16_t
 get_dst_port(const struct lcore_conf *qconf, struct rte_mbuf *pkt,
-			 uint32_t dst_ipv4, uint8_t portid)
+			 uint32_t dst_ipv4, struct nei_entry *kni_neighbor)
 {
 	uint8_t next_hop;
 	struct ipv6_hdr *ipv6_hdr;
@@ -610,7 +610,7 @@ get_dst_port(const struct lcore_conf *qconf, struct rte_mbuf *pkt,
 							ipv6_hdr->dst_addr, &next_hop) != 0)
 			next_hop = 0;
 	} else {
-		next_hop = portid;
+		next_hop = kni_neighbor->port_id;
 	}
 
 	return next_hop;
@@ -625,7 +625,7 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	__m128i te, ve;
 	struct ipv4_hdr *ipv4_hdr;
 	struct ipv6_hdr *ipv6_hdr;
-	struct nei_entry4 *neighbor;
+	struct nei_entry *neighbor;
 
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
 
@@ -634,16 +634,15 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 
 		dp = get_ipv4_dst_port(ipv4_hdr, 0, qconf->ipv4_lookup_struct);
 
-		neighbor = &qconf->neighbor4_struct->entries4[dp];
+		neighbor = &qconf->neighbor4_struct->entries4[dp].neighbor;
 	} else if (pkt->ol_flags & PKT_RX_IPV6_HDR) {	/* XXX: PKT_RX_IPV6_HDR_EXT ? */
 		ipv6_hdr = (struct ipv6_hdr *) (eth_hdr + 1);
 
 		dp = get_ipv6_dst_port(ipv6_hdr, 0, qconf->ipv6_lookup_struct);
 		//FIXME may need to replace ->entries4 by ->entries6
-		neighbor = &qconf->neighbor6_struct->entries4[dp];
+		neighbor = &qconf->neighbor6_struct->entries4[dp].neighbor;
 	} else {
-		dp = kni_neighbor_id[portid];
-		neighbor = &qconf->neighbor4_struct->entries4[dp];
+		neighbor = &kni_neighbor[portid];
 	}
 
 	dst_port[0] = neighbor->port_id;
@@ -655,6 +654,8 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 		te = _mm_blend_epi16(te, ve, MASK_ETH);
 		_mm_store_si128((__m128i *) eth_hdr, te);
 		rfc1812_process(ipv4_hdr, dst_port, pkt->ol_flags);
+
+		/* XXX: Need to rewrite source mac */
 	} else if (neighbor->action == NEI_ACTION_KNI) {
 		struct kni_port_params *p =
 			kni_port_params_array[neighbor->port_id];
@@ -665,8 +666,6 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 			rte_kni_tx_burst(p->kni[k], &pkt, 1);
 			stats[lcore_id].nb_kni_tx++;;
 			stats[lcore_id].nb_dropped--;
-			//XXX maybe not needed
-			rte_kni_handle_request(p->kni[k]);
 			dst_port[0] = BAD_PORT;
 		}
 	}
@@ -718,7 +717,7 @@ processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
 	rte_xmm_t dst;
 	const __m128i bswap_mask = _mm_set_epi8(12, 13, 14, 15, 8, 9, 10, 11,
 											4, 5, 6, 7, 0, 1, 2, 3);
-	uint8_t neighbor_id;
+	struct nei_entry *neighbor_entry;
 
 	/* Byte swap 4 IPV4 addresses. */
 	/* XXX: Do we know this is V4 only yet? */
@@ -729,11 +728,15 @@ processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
 		rte_lpm_lookupx4(qconf->ipv4_lookup_struct, dip, neighbor, 0);
 	} else {
 		dst.x = dip;
-		neighbor_id = kni_neighbor_id[port_id];
-		neighbor[0] = get_dst_port(qconf, pkt[0], dst.u32[0], neighbor_id);
-		neighbor[1] = get_dst_port(qconf, pkt[1], dst.u32[1], neighbor_id);
-		neighbor[2] = get_dst_port(qconf, pkt[2], dst.u32[2], neighbor_id);
-		neighbor[3] = get_dst_port(qconf, pkt[3], dst.u32[3], neighbor_id);
+		neighbor_entry = &kni_neighbor[port_id];
+		neighbor[0] =
+			get_dst_port(qconf, pkt[0], dst.u32[0], neighbor_entry);
+		neighbor[1] =
+			get_dst_port(qconf, pkt[1], dst.u32[1], neighbor_entry);
+		neighbor[2] =
+			get_dst_port(qconf, pkt[2], dst.u32[2], neighbor_entry);
+		neighbor[3] =
+			get_dst_port(qconf, pkt[3], dst.u32[3], neighbor_entry);
 	}
 }
 
@@ -761,9 +764,11 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 
 	case 0:
 			if (unlikely
-				(!qconf->neighbor4_struct->entries4[dst_port[j]].valid
+				(!qconf->neighbor4_struct->entries4[dst_port[j]].
+				 neighbor.valid
 				 || qconf->neighbor4_struct->
-				 entries4[dst_port[j]].action == NEI_ACTION_KNI)) {
+				 entries4[dst_port[j]].neighbor.action ==
+				 NEI_ACTION_KNI)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -777,9 +782,11 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			j++;
 	case 3:
 			if (unlikely
-				(!qconf->neighbor4_struct->entries4[dst_port[j]].valid
+				(!qconf->neighbor4_struct->entries4[dst_port[j]].
+				 neighbor.valid
 				 || qconf->neighbor4_struct->
-				 entries4[dst_port[j]].action == NEI_ACTION_KNI)) {
+				 entries4[dst_port[j]].neighbor.action ==
+				 NEI_ACTION_KNI)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -793,9 +800,11 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			j++;
 	case 2:
 			if (unlikely
-				(!qconf->neighbor4_struct->entries4[dst_port[j]].valid
+				(!qconf->neighbor4_struct->entries4[dst_port[j]].
+				 neighbor.valid
 				 || qconf->neighbor4_struct->
-				 entries4[dst_port[j]].action == NEI_ACTION_KNI)) {
+				 entries4[dst_port[j]].neighbor.action ==
+				 NEI_ACTION_KNI)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -809,9 +818,11 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			j++;
 	case 1:
 			if (unlikely
-				(!qconf->neighbor4_struct->entries4[dst_port[j]].valid
+				(!qconf->neighbor4_struct->entries4[dst_port[j]].
+				 neighbor.valid
 				 || qconf->neighbor4_struct->
-				 entries4[dst_port[j]].action == NEI_ACTION_KNI)) {
+				 entries4[dst_port[j]].neighbor.action ==
+				 NEI_ACTION_KNI)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -857,19 +868,19 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	//TODO test it, may need to use eth = rte_pktmbuf_mtod(m, struct ether_hdr *); ether_addr_copy(from, eth->d_addr);
 	ve[0] =
 		_mm_load_si128((__m128i *) & qconf->
-					   neighbor4_struct->entries4[dst_port[0]].
+					   neighbor4_struct->entries4[dst_port[0]].neighbor.
 					   nexthop_hwaddr);
 	ve[1] =
 		_mm_load_si128((__m128i *) & qconf->
-					   neighbor4_struct->entries4[dst_port[1]].
+					   neighbor4_struct->entries4[dst_port[1]].neighbor.
 					   nexthop_hwaddr);
 	ve[2] =
 		_mm_load_si128((__m128i *) & qconf->
-					   neighbor4_struct->entries4[dst_port[2]].
+					   neighbor4_struct->entries4[dst_port[2]].neighbor.
 					   nexthop_hwaddr);
 	ve[3] =
 		_mm_load_si128((__m128i *) & qconf->
-					   neighbor4_struct->entries4[dst_port[3]].
+					   neighbor4_struct->entries4[dst_port[3]].neighbor.
 					   nexthop_hwaddr);
 #if 0
 	ve[0] = val_eth[dst_port[0]];
@@ -879,10 +890,14 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 #endif
 
 	/* Pivot dst_port */
-	dst_port[0] = qconf->neighbor4_struct->entries4[dst_port[0]].port_id;
-	dst_port[1] = qconf->neighbor4_struct->entries4[dst_port[1]].port_id;
-	dst_port[2] = qconf->neighbor4_struct->entries4[dst_port[2]].port_id;
-	dst_port[3] = qconf->neighbor4_struct->entries4[dst_port[3]].port_id;
+	dst_port[0] =
+		qconf->neighbor4_struct->entries4[dst_port[0]].neighbor.port_id;
+	dst_port[1] =
+		qconf->neighbor4_struct->entries4[dst_port[1]].neighbor.port_id;
+	dst_port[2] =
+		qconf->neighbor4_struct->entries4[dst_port[2]].neighbor.port_id;
+	dst_port[3] =
+		qconf->neighbor4_struct->entries4[dst_port[3]].neighbor.port_id;
 
 	te[0] = _mm_load_si128(p[0]);
 	te[1] = _mm_load_si128(p[1]);
@@ -1626,6 +1641,14 @@ static int init_mem(unsigned nb_mbuf)
 	unsigned lcore_id;
 	uint8_t nb_sys_ports, port;
 	char s[64];
+
+	memset(&kni_neighbor, 0, sizeof(kni_neighbor));
+
+	for (port = 0; port < RTE_MAX_ETHPORTS; port++) {
+		kni_neighbor[port].in_use = 1;
+		kni_neighbor[port].action = NEI_ACTION_KNI;
+		kni_neighbor[port].port_id = port;
+	}
 
 	for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++) {
 		if (rte_lcore_is_enabled(lcore_id) == 0)

@@ -9,4 +9,6 @@ int control_add_ipv4_local_entry(struct in_addr *nexthop,
 								 struct in_addr *saddr, uint8_t depth,
 								 uint32_t port_id);
 
+extern struct nei_entry kni_neighbor[RTE_MAX_ETHPORTS];
+
 #endif
