@@ -778,9 +778,9 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					flag[j] = flag[nb_rx];
 				}
 
-				L3FWD_DEBUG_TRACE(
-						"0: j %d nb_rx %d i %d nb_kni %d lcore_id %d\n", j,
-						nb_rx, i, nb_kni, lcore_id);
+				L3FWD_DEBUG_TRACE
+					("0: j %d nb_rx %d i %d nb_kni %d lcore_id %d\n", j,
+					 nb_rx, i, nb_kni, lcore_id);
 			} else
 				j++;
 	case 3:
@@ -799,9 +799,9 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					dip[j] = dip[nb_rx];
 					flag[j] = flag[nb_rx];
 				}
-				L3FWD_DEBUG_TRACE(
-						"3: j %d nb_rx %d i %d nb_kni %d lcore_id %d\n", j,
-						nb_rx, i, nb_kni, lcore_id);
+				L3FWD_DEBUG_TRACE
+					("3: j %d nb_rx %d i %d nb_kni %d lcore_id %d\n", j,
+					 nb_rx, i, nb_kni, lcore_id);
 			} else
 				j++;
 	case 2:
@@ -820,9 +820,9 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					dip[j] = dip[nb_rx];
 					flag[j] = flag[nb_rx];
 				}
-				L3FWD_DEBUG_TRACE(
-						"2: j %d nb_rx %d i %d nb_kni %d lcore_id %d\n", j,
-						nb_rx, i, nb_kni, lcore_id);
+				L3FWD_DEBUG_TRACE
+					("2: j %d nb_rx %d i %d nb_kni %d lcore_id %d\n", j,
+					 nb_rx, i, nb_kni, lcore_id);
 			} else
 				j++;
 	case 1:
@@ -841,9 +841,9 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					dip[j] = dip[nb_rx];
 					flag[j] = flag[nb_rx];
 				}
-				L3FWD_DEBUG_TRACE(
-						"1: j %d nb_rx %d i %d nb_kni %d lcore_id %d\n", j,
-						nb_rx, i, nb_kni, lcore_id);
+				L3FWD_DEBUG_TRACE
+					("1: j %d nb_rx %d i %d nb_kni %d lcore_id %d\n", j,
+					 nb_rx, i, nb_kni, lcore_id);
 			} else
 				j++;
 			if (i == 0)
@@ -854,8 +854,14 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 				rte_kni_handle_request(p->kni[k]);
 				if (unlikely(num < i)) {
 					/* Free mbufs not tx to kni interface */
-					kni_burst_free_mbufs(&knimbuf[num], i - num);
+					if (num > 0)
+						kni_burst_free_mbufs(&knimbuf[num], i - num);
+					else
+						kni_burst_free_mbufs(&knimbuf[0], i);
 				}
+				L3FWD_DEBUG_TRACE
+					("k %d nb_rx %d i %d num %d lcore_id %d\n", k, nb_rx,
+					 i, num, lcore_id);
 			}
 		}						// while loop end
 	}
