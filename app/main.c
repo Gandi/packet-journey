@@ -476,7 +476,11 @@ l3fwd_simple_forward(struct rte_mbuf *m, uint8_t portid,
 
 	eth_hdr = rte_pktmbuf_mtod(m, struct ether_hdr *);
 
+#ifdef RDPDK_QEMU
+	if (eth_hdr->ether_type = rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
+#else
 	if (m->ol_flags & PKT_RX_IPV4_HDR) {
+#endif
 		/* Handle IPv4 headers. */
 		ipv4_hdr =
 			(struct ipv4_hdr *) (rte_pktmbuf_mtod(m, unsigned char *) +
@@ -597,12 +601,21 @@ get_dst_port(const struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	struct ipv6_hdr *ipv6_hdr;
 	struct ether_hdr *eth_hdr;
 
+#ifdef RDPDK_QEMU
+	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
+	if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
+#else
 	if (pkt->ol_flags & PKT_RX_IPV4_HDR) {
+#endif
 		if (rte_lpm_lookup(qconf->ipv4_lookup_struct, dst_ipv4,
 						   &next_hop) != 0)
 			next_hop = 0;
+#ifdef RDPDK_QEMU
+	} else if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv6)) {
+#else
 	} else if (pkt->ol_flags & PKT_RX_IPV6_HDR) {
 		eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
+#endif
 		ipv6_hdr = (struct ipv6_hdr *) (eth_hdr + 1);
 		if (rte_lpm6_lookup(qconf->ipv6_lookup_struct,
 							ipv6_hdr->dst_addr, &next_hop) != 0)
@@ -627,14 +640,23 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
 
-	if (pkt->ol_flags & PKT_RX_IPV4_HDR) {	/* XXX: PKT_RX_IPV4_HDR_EXT ? */
+#ifdef RDPDK_QEMU
+	if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
+#else
+	if (pkt->ol_flags & PKT_RX_IPV4_HDR) {
+#endif
 		ipv4_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
 
 		dp = get_ipv4_dst_port(ipv4_hdr, 0, qconf->ipv4_lookup_struct);
 		L3FWD_DEBUG_TRACE("process_packet4 res %d\n", dp);
 
 		neighbor = &qconf->neighbor4_struct->entries4[dp].neighbor;
-	} else if (pkt->ol_flags & PKT_RX_IPV6_HDR) {	/* XXX: PKT_RX_IPV6_HDR_EXT ? */
+
+#ifdef RDPDK_QEMU
+	} else if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv6)) {
+#else
+	} else if (pkt->ol_flags & PKT_RX_IPV4_HDR) {
+#endif
 		ipv6_hdr = (struct ipv6_hdr *) (eth_hdr + 1);
 
 		dp = get_ipv6_dst_port(ipv6_hdr, 0, qconf->ipv6_lookup_struct);
@@ -670,6 +692,8 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 			dst_port[0] = BAD_PORT;
 		}
 		return 1;
+	} else {
+		return 0;
 	}
 }
 
@@ -1143,6 +1167,8 @@ static int main_loop(__rte_unused void *dummy)
 
 			/* Process up to last 3 packets one by one. */
 			j = 0;
+			L3FWD_DEBUG_TRACE("main_loop nb_rx %d before process_packet\n",
+							  nb_rx);
 			switch (nb_rx % FWDSTEP) {
 			case 3:
 				j = process_packet(qconf, pkts_burst[nb_rx - 3],
