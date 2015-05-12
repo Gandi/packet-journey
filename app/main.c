@@ -635,7 +635,9 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	uint16_t dp;
 	__m128i te, ve;
 	struct ipv4_hdr *ipv4_hdr;
+#if 0
 	struct ipv6_hdr *ipv6_hdr;
+#endif
 	struct nei_entry *neighbor;
 
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
@@ -651,7 +653,7 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 		L3FWD_DEBUG_TRACE("process_packet4 res %d\n", dp);
 
 		neighbor = &qconf->neighbor4_struct->entries4[dp].neighbor;
-
+#if 0
 #ifdef RDPDK_QEMU
 	} else if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv6)) {
 #else
@@ -663,6 +665,7 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 		//FIXME may need to replace ->entries4 by ->entries6
 		neighbor = &qconf->neighbor6_struct->entries4[dp].neighbor;
 		L3FWD_DEBUG_TRACE("process_packet6 res %d\n", dp);
+#endif
 	} else {
 		L3FWD_DEBUG_TRACE("process_packet4 res kni\n");
 		neighbor = &kni_neighbor[portid];
