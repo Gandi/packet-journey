@@ -15,6 +15,7 @@
 #include <rte_common.h>
 #include <rte_log.h>
 #include <rte_lcore.h>
+#include <rte_lpm.h>
 
 #include <cmdline_rdline.h>
 #include <cmdline_parse.h>
@@ -24,14 +25,69 @@
 #include <cmdline_parse_string.h>
 #include <cmdline.h>
 
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <libneighbour.h>
+
 #include "common.h"
 #include "cmdline.h"
+#include "routing.h"
 
 #define CMDLINE_MAX_SOCK 32
 #define CMDLINE_POLL_TIMEOUT 10000
 
 static pthread_t cmdline_tid;
 static int cmdline_thread_loop;
+
+//----- CMD LPM_LKP
+
+struct cmd_obj_lpm_lkp_result {
+	cmdline_fixed_string_t action;
+	cmdline_ipaddr_t ip;
+};
+
+static void cmd_obj_lpm_lkp_parsed(void *parsed_result,
+								   struct cmdline *cl,
+								   __rte_unused void *data)
+{
+	struct cmd_obj_lpm_lkp_result *res = parsed_result;
+	uint8_t next_hop;
+	int i;
+
+	if (1 || res->ip.family == 4) {
+		i = rte_lpm_lookup(ipv4_l3fwd_lookup_struct[0],
+						   res->ip.addr.ipv4.s_addr, &next_hop);
+		if (i == -ENOENT) {
+			cmdline_printf(cl, "not found\n");
+		} else {
+			struct in_addr addr =
+				neighbor4_struct[0]->entries4[next_hop].addr;
+			cmdline_printf(cl, "present, next_hop %s\n", inet_ntoa(addr));
+		}
+	}
+
+}
+
+cmdline_parse_token_string_t cmd_obj_action_lpm_lkp =
+TOKEN_STRING_INITIALIZER(struct cmd_obj_lpm_lkp_result, action, "lpm_lkp");
+cmdline_parse_token_ipaddr_t cmd_obj_lpm_ip =
+TOKEN_IPADDR_INITIALIZER(struct cmd_obj_lpm_lkp_result, ip);
+
+cmdline_parse_inst_t cmd_obj_lpm_lkp = {
+	.f = cmd_obj_lpm_lkp_parsed,	/* function to call */
+	.data = NULL,				/* 2nd arg of func */
+	.help_str = "Do a lookup in lpm table (ip, version)",
+	.tokens = {					/* token list, NULL terminated */
+			   (void *) &cmd_obj_action_lpm_lkp,
+			   (void *) &cmd_obj_lpm_ip,
+			   NULL,
+			   },
+};
+
+//----- CMD ACL_ADD
 
 struct cmd_obj_acl_add_result {
 	cmdline_fixed_string_t action;
@@ -162,6 +218,7 @@ static void cmd_help_parsed( __attribute__ ((unused))
 	cmdline_printf(cl,
 				   "commands:\n"
 				   "- acl_add IP CIDR PROTONUM PORT\n"
+				   "- lpm_lkp IP[/DEPTH]\n"
 				   "- stats\n" "- help\n\n");
 }
 
@@ -182,6 +239,7 @@ cmdline_parse_inst_t cmd_help = {
 
 cmdline_parse_ctx_t main_ctx[] = {
 	(cmdline_parse_inst_t *) & cmd_obj_acl_add,
+	(cmdline_parse_inst_t *) & cmd_obj_lpm_lkp,
 	(cmdline_parse_inst_t *) & cmd_stats,
 	(cmdline_parse_inst_t *) & cmd_help,
 	NULL,

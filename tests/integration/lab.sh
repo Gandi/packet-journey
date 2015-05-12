@@ -67,7 +67,7 @@ start_vm() {
     screen -dmS $name \
         $(which qemu-system-x86_64) -enable-kvm -cpu host -smp 4 \
         -nodefconfig -no-user-config -nodefaults \
-        -m 372 \
+        -m 512 \
         -display none \
         \
         -chardev stdio,id=charserial0,signal=off \
