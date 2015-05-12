@@ -8,7 +8,7 @@
 #define RTE_LOGTYPE_CMDLINE RTE_LOGTYPE_USER1
 #define FWDSTEP	4
 
-#ifndef RDPDK_DEBUG
+#ifdef RDPDK_DEBUG
 #define L3FWD_DEBUG_TRACE(fmt, args...) do {                        \
 		RTE_LOG(ERR, L3FWD, "%s: " fmt, __func__, ## args); \
 	} while (0)
