@@ -161,10 +161,8 @@ static struct in6_addr ipv6_local_mask;
 static uint16_t nb_rxd = RTE_TEST_RX_DESC_DEFAULT;
 static uint16_t nb_txd = RTE_TEST_TX_DESC_DEFAULT;
 
-#if (ENABLE_MULTI_BUFFER_OPTIMIZE != 1)
 /* ethernet addresses of ports */
-static struct ether_addr ports_eth_addr[RTE_MAX_ETHPORTS];
-#endif
+struct ether_addr ports_eth_addr[RTE_MAX_ETHPORTS];
 
 /* replace first 12B of the ethernet header. */
 #define	MASK_ETH	0x3f
@@ -1616,7 +1614,6 @@ static int parse_args(int argc, char **argv)
 	return ret;
 }
 
-#if (ENABLE_MULTI_BUFFER_OPTIMIZE != 1)
 static void
 print_ethaddr(const char *name, const struct ether_addr *eth_addr)
 {
@@ -1624,13 +1621,10 @@ print_ethaddr(const char *name, const struct ether_addr *eth_addr)
 	ether_format_addr(buf, ETHER_ADDR_FMT_SIZE, eth_addr);
 	printf("%s%s", name, buf);
 }
-#endif
 
 static void setup_lpm(int socketid)
 {
 	struct rte_lpm6_config config;
-	//uint32_t i;
-	//int ret;
 	char s[64];
 
 	/* create the LPM table */
@@ -1716,7 +1710,6 @@ static int init_mem(unsigned nb_mbuf)
 
 		if (knimbuf_pool[port] == NULL) {
 			snprintf(s, sizeof(s), "knimbuf_pool_%d", port);
-			//FIXME use something that map socketid to portid
 			knimbuf_pool[port] =
 				rte_mempool_create(s, nb_mbuf, MBUF_SIZE,
 								   MEMPOOL_CACHE_SIZE,
@@ -1824,17 +1817,8 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 	/*
 	 * prepare dst and src MACs for each port.
 	 */
-	//XXX we use neighbor table instead
-	/*
-	   rte_eth_macaddr_get(portid, &ports_eth_addr[portid]);
-	   print_ethaddr(" Address:", &ports_eth_addr[portid]);
-	   printf(", ");
-
-	   (uint64_t *) (val_eth + portid) =
-	   ETHER_LOCAL_ADMIN_ADDR + ((uint64_t) portid << 40);
-	   ether_addr_copy(&ports_eth_addr[portid],
-	   (struct ether_addr *) (val_eth + portid) + 1);
-	 */
+	rte_eth_macaddr_get(portid, &ports_eth_addr[portid]);
+	print_ethaddr(" Address:", &ports_eth_addr[portid]);
 
 	/* init memory */
 	ret = init_mem(NB_MBUF);

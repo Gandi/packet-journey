@@ -1,6 +1,15 @@
 #!/bin/sh
 
-ip link set vEth0_0 up
-ip link set vEth1_0 up
-ip add add 1.0.0.1/31 dev vEth0_0
-ip add add 1.0.0.3/31 dev vEth1_0
+link1=$1
+link2=$3
+mac1=$2
+mac2=$4
+
+ip link set $link1 up
+ip link set $link2 up
+
+ip link set $link1 address $mac1
+ip link set $link2 address $mac2
+
+ip add add 1.0.0.1/31 dev $link1
+ip add add 1.0.0.3/31 dev $link2

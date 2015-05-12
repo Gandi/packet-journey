@@ -18,6 +18,8 @@
 #include "control.h"
 #include "routing.h"
 
+#define CTRL_CBK_MAX_SIZE 256
+
 struct control_handle {
 	unsigned socketid;
 };
@@ -303,5 +305,21 @@ int control_add_ipv4_local_entry(struct in_addr *nexthop,
 
 int control_callback_setup(const char *cb)
 {
-	return system(cb);
+	char cmd[CTRL_CBK_MAX_SIZE];
+	int len;
+	char ether1[ETHER_ADDR_FMT_SIZE];
+	char ether2[ETHER_ADDR_FMT_SIZE];
+
+	ether_format_addr(ether1, ETHER_ADDR_FMT_SIZE, ports_eth_addr);
+	ether_format_addr(ether2, ETHER_ADDR_FMT_SIZE, ports_eth_addr + 1);
+
+	len =
+		snprintf(cmd, CTRL_CBK_MAX_SIZE, "%s %s %s %s %s", cb, "vEth0_0",
+				 ether1, "vEth1_0", ether2);
+	if (len > CTRL_CBK_MAX_SIZE) {
+		rte_panic("control callback too long");
+	}
+
+	RTE_LOG(INFO, L3FWD_CTRL, "executing command `%s`\n", cmd);
+	return system(cmd);
 }
