@@ -614,7 +614,7 @@ get_dst_port(const struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	return next_hop;
 }
 
-static inline void
+static inline int
 process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 			   uint16_t * dst_port, uint8_t portid, unsigned lcore_id)
 {
@@ -631,6 +631,7 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 		ipv4_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
 
 		dp = get_ipv4_dst_port(ipv4_hdr, 0, qconf->ipv4_lookup_struct);
+		L3FWD_DEBUG_TRACE("process_packet4 res %d\n", dp);
 
 		neighbor = &qconf->neighbor4_struct->entries4[dp].neighbor;
 	} else if (pkt->ol_flags & PKT_RX_IPV6_HDR) {	/* XXX: PKT_RX_IPV6_HDR_EXT ? */
@@ -639,7 +640,9 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 		dp = get_ipv6_dst_port(ipv6_hdr, 0, qconf->ipv6_lookup_struct);
 		//FIXME may need to replace ->entries4 by ->entries6
 		neighbor = &qconf->neighbor6_struct->entries4[dp].neighbor;
+		L3FWD_DEBUG_TRACE("process_packet6 res %d\n", dp);
 	} else {
+		L3FWD_DEBUG_TRACE("process_packet4 res kni\n");
 		neighbor = &kni_neighbor[portid];
 	}
 
@@ -652,7 +655,7 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 		te = _mm_blend_epi16(te, ve, MASK_ETH);
 		_mm_store_si128((__m128i *) eth_hdr, te);
 		rfc1812_process(ipv4_hdr, dst_port, pkt->ol_flags);
-
+		return 0;
 		/* XXX: Need to rewrite source mac */
 	} else if (neighbor->action == NEI_ACTION_KNI) {
 		struct kni_port_params *p =
@@ -666,6 +669,7 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 			stats[lcore_id].nb_dropped--;
 			dst_port[0] = BAD_PORT;
 		}
+		return 1;
 	}
 }
 
@@ -724,6 +728,8 @@ processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
 	/* if all 4 packets are IPV4. */
 	if (likely(flag != 0)) {
 		rte_lpm_lookupx4(qconf->ipv4_lookup_struct, dip, neighbor, 0);
+		L3FWD_DEBUG_TRACE("lookpx4 res %d:%d:%d:%d\n", neighbor[0],
+						  neighbor[1], neighbor[2], neighbor[3]);
 	} else {
 		dst.x = dip;
 		neighbor_entry = &kni_neighbor[port_id];
@@ -735,6 +741,8 @@ processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
 			get_dst_port(qconf, pkt[2], dst.u32[2], neighbor_entry);
 		neighbor[3] =
 			get_dst_port(qconf, pkt[3], dst.u32[3], neighbor_entry);
+		L3FWD_DEBUG_TRACE("get_dst_portx4 res %d:%d:%d:%d\n", neighbor[0],
+						  neighbor[1], neighbor[2], neighbor[3]);
 	}
 }
 
@@ -1133,6 +1141,25 @@ static int main_loop(__rte_unused void *dummy)
 			stats[lcore_id].nb_rx += nb_rx;
 #if (ENABLE_MULTI_BUFFER_OPTIMIZE == 1)
 
+			/* Process up to last 3 packets one by one. */
+			j = 0;
+			switch (nb_rx % FWDSTEP) {
+			case 3:
+				j = process_packet(qconf, pkts_burst[nb_rx - 3],
+								   dst_port + nb_rx - 3, portid, lcore_id);
+			case 2:
+				j += process_packet(qconf, pkts_burst[nb_rx - 2],
+									dst_port + nb_rx - 2, portid,
+									lcore_id);
+			case 1:
+				j += process_packet(qconf, pkts_burst[nb_rx - 1],
+									dst_port + nb_rx - 1, portid,
+									lcore_id);
+			}
+			nb_rx -= j;
+			L3FWD_DEBUG_TRACE("main_loop nb_rx %d after process_packet\n",
+							  nb_rx);
+
 			k = RTE_ALIGN_FLOOR(nb_rx, FWDSTEP);
 			for (j = 0; j != k; j += FWDSTEP) {
 				processx4_step1(&pkts_burst[j],
@@ -1147,10 +1174,11 @@ static int main_loop(__rte_unused void *dummy)
 			}
 
 			//send through the kni packets which don't have an available neighbor
-			nb_rx =
-				processx4_step_checkneighbor(qconf, pkts_burst, dst_port,
-											 dip, flag, nb_rx, portid,
-											 lcore_id);
+			if (likely(nb_rx))
+				nb_rx =
+					processx4_step_checkneighbor(qconf, pkts_burst,
+												 dst_port, dip, flag,
+												 nb_rx, portid, lcore_id);
 
 			/*
 			 * Finish packet processing and group consecutive
@@ -1209,18 +1237,12 @@ static int main_loop(__rte_unused void *dummy)
 			/* Process up to last 3 packets one by one. */
 			switch (nb_rx % FWDSTEP) {
 			case 3:
-				process_packet(qconf, pkts_burst[j], dst_port + j, portid,
-							   lcore_id);
 				GROUP_PORT_STEP(dlp, dst_port, lp, pnum, j);
 				j++;
 			case 2:
-				process_packet(qconf, pkts_burst[j], dst_port + j, portid,
-							   lcore_id);
 				GROUP_PORT_STEP(dlp, dst_port, lp, pnum, j);
 				j++;
 			case 1:
-				process_packet(qconf, pkts_burst[j], dst_port + j, portid,
-							   lcore_id);
 				GROUP_PORT_STEP(dlp, dst_port, lp, pnum, j);
 				j++;
 			}
