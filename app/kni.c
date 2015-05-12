@@ -192,41 +192,6 @@ void kni_burst_free_mbufs(struct rte_mbuf **pkts, unsigned num)
 }
 
 /**
- * Interface to burst rx and enqueue mbufs into rx_q
- */
-static void kni_ingress(struct kni_port_params *p)
-{
-	uint8_t i, port_id;
-	unsigned nb_rx, num;
-	uint32_t nb_kni;
-	struct rte_mbuf *pkts_burst[PKT_BURST_SZ];
-
-	if (p == NULL)
-		return;
-
-	nb_kni = p->nb_kni;
-	port_id = p->port_id;
-	for (i = 0; i < nb_kni; i++) {
-		/* Burst rx from eth */
-		nb_rx = rte_eth_rx_burst(port_id, 0, pkts_burst, PKT_BURST_SZ);
-		if (unlikely(nb_rx > PKT_BURST_SZ)) {
-			RTE_LOG(ERR, KNI, "Error receiving from eth\n");
-			return;
-		}
-		/* Burst tx to kni */
-		num = rte_kni_tx_burst(p->kni[i], pkts_burst, nb_rx);
-		kni_stats[port_id].rx_packets += num;
-
-		rte_kni_handle_request(p->kni[i]);
-		if (unlikely(num < nb_rx)) {
-			/* Free mbufs not tx to kni interface */
-			kni_burst_free_mbufs(&pkts_burst[num], nb_rx - num);
-			kni_stats[port_id].rx_dropped += nb_rx - num;
-		}
-	}
-}
-
-/**
  * Interface to dequeue mbufs from tx_q and burst tx
  */
 static void kni_egress(struct kni_port_params *p)
@@ -270,46 +235,16 @@ int kni_main_loop(__rte_unused void *arg)
 		LCORE_TX,
 		LCORE_MAX
 	};
-	enum lcore_rxtx flag = LCORE_NONE;
 	RTE_LOG(INFO, KNI, "entering kni main loop on lcore %u\n", lcore_id);
 
-	nb_ports = (uint8_t) (nb_ports < RTE_MAX_ETHPORTS ?
-						  nb_ports : RTE_MAX_ETHPORTS);
-	for (i = 0; i < nb_ports; i++) {
-		if (!kni_port_params_array[i])
-			continue;
-		if (kni_port_params_array[i]->lcore_rx == (uint8_t) lcore_id) {
-			flag = LCORE_RX;
+	while (1) {
+		f_stop = rte_atomic32_read(&kni_stop);
+		if (f_stop)
 			break;
-		} else if (kni_port_params_array[i]->lcore_tx ==
-				   (uint8_t) lcore_id) {
-			flag = LCORE_TX;
-			break;
-		}
-	}
-
-	if (flag == LCORE_RX) {
-		RTE_LOG(INFO, KNI, "Lcore %u is reading from port %d\n",
-				kni_port_params_array[i]->lcore_rx,
-				kni_port_params_array[i]->port_id);
-		while (1) {
-			f_stop = rte_atomic32_read(&kni_stop);
-			if (f_stop)
-				break;
-			kni_ingress(kni_port_params_array[i]);
-		}
-	} else if (flag == LCORE_TX) {
-		RTE_LOG(INFO, KNI, "Lcore %u is writing to port %d\n",
-				kni_port_params_array[i]->lcore_tx,
-				kni_port_params_array[i]->port_id);
-		while (1) {
-			f_stop = rte_atomic32_read(&kni_stop);
-			if (f_stop)
-				break;
+		for (i = 0; i < nb_ports; i++) {
 			kni_egress(kni_port_params_array[i]);
 		}
-	} else
-		RTE_LOG(INFO, KNI, "Lcore %u has nothing to do\n", lcore_id);
+	}
 
 	return 0;
 }
