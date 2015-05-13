@@ -5,8 +5,7 @@
 #define NEI_NUM_ENTRIES 256
 
 struct nei_entry {
-	struct ether_addr nexthop_hwaddr;	/* 3 bytes */
-	uint8_t pad[5];				/* 5 bytes */
+	struct ether_addr nexthop_hwaddr;	/* 6 bytes */
 
 	uint8_t in_use;
 	uint8_t valid;
@@ -14,22 +13,24 @@ struct nei_entry {
 #define NEI_STATE_REACHABLE 0x01
 #define NEI_STATE_STALE     0x02
 #define NEI_STATE_DELAY     0x03
-	__u8 state;
+	uint8_t state;
 
 #define NEI_ACTION_FWD      0x01
 #define NEI_ACTION_DROP     0x02
 #define NEI_ACTION_KNI      0x03
 	uint8_t action;
 
-	__s32 port_id;
+	int32_t port_id;
 
-	int refcnt;
+	int32_t refcnt;
 };
 
+//must be 16bytes aligned
 struct nei_entry4 {
 	struct nei_entry neighbor;
 
 	struct in_addr addr;
+	uint8_t pad[8];  				/* 6 bytes */
 };
 
 struct nei_table {
