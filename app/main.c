@@ -687,12 +687,19 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 			kni_port_params_array[neighbor->port_id];
 		uint32_t nb_kni = p->nb_kni;
 		uint32_t k;
+		int res;
 
 		for (k = 0; k < nb_kni; k++) {
-			rte_kni_tx_burst(p->kni[k], &pkt, 1);
-			stats[lcore_id].nb_kni_tx++;;
-			stats[lcore_id].nb_dropped--;
-			dst_port[0] = BAD_PORT;
+			res = rte_kni_tx_burst(p->kni[k], &pkt, 1);
+			if (res == 1) {
+				stats[lcore_id].nb_kni_tx++;
+			} else {
+				stats[lcore_id].nb_kni_tx++;
+				kni_burst_free_mbufs(&pkt, 1);
+			}
+			//XXX not needed since we decrement nb_rx in main_loop
+			//stats[lcore_id].nb_dropped--;
+			//dst_port[0] = BAD_PORT;
 		}
 		return 1;
 	} else {

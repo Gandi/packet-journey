@@ -72,8 +72,8 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 				return -1;
 			}
 		}
-		s = rte_lpm_add(ipv4_l3fwd_lookup_struct[socketid], rte_be_to_cpu_32(addr->s_addr),
-						depth, nexthop_id);
+		s = rte_lpm_add(ipv4_l3fwd_lookup_struct[socketid],
+						rte_be_to_cpu_32(addr->s_addr), depth, nexthop_id);
 		if (s < 0) {
 			RTE_LOG(ERR, L3FWD_CTRL,
 					"failed to add a route in lpm during route adding...\n");
@@ -291,8 +291,8 @@ int control_add_ipv4_local_entry(struct in_addr *nexthop,
 			return -1;
 		}
 	}
-	s = rte_lpm_add(ipv4_l3fwd_lookup_struct[i], rte_be_to_cpu_32(saddr->s_addr),
-					depth, nexthop_id);
+	s = rte_lpm_add(ipv4_l3fwd_lookup_struct[i],
+					rte_be_to_cpu_32(saddr->s_addr), depth, nexthop_id);
 	if (s < 0) {
 		RTE_LOG(ERR, L3FWD_CTRL,
 				"failed to add a route in lpm during route adding...\n");

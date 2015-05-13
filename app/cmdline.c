@@ -218,8 +218,7 @@ static void cmd_help_parsed( __attribute__ ((unused))
 	cmdline_printf(cl,
 				   "commands:\n"
 				   "- acl_add IP CIDR PROTONUM PORT\n"
-				   "- lpm_lkp IP[/DEPTH]\n"
-				   "- stats\n" "- help\n\n");
+				   "- lpm_lkp IP[/DEPTH]\n" "- stats\n" "- help\n\n");
 }
 
 cmdline_parse_token_string_t cmd_help_help =
