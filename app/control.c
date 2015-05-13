@@ -72,7 +72,7 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 				return -1;
 			}
 		}
-		s = rte_lpm_add(ipv4_l3fwd_lookup_struct[socketid], addr->s_addr,
+		s = rte_lpm_add(ipv4_l3fwd_lookup_struct[socketid], rte_be_to_cpu_32(addr->s_addr),
 						depth, nexthop_id);
 		if (s < 0) {
 			RTE_LOG(ERR, L3FWD_CTRL,
@@ -95,7 +95,7 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 		}
 
 		s = rte_lpm_delete(ipv4_l3fwd_lookup_struct[socketid],
-						   addr->s_addr, depth);
+						   rte_be_to_cpu_32(addr->s_addr), depth);
 		if (s < 0) {
 			RTE_LOG(ERR, L3FWD_CTRL, "failed to deletie route...\n");
 			return -1;
@@ -291,7 +291,7 @@ int control_add_ipv4_local_entry(struct in_addr *nexthop,
 			return -1;
 		}
 	}
-	s = rte_lpm_add(ipv4_l3fwd_lookup_struct[i], saddr->s_addr,
+	s = rte_lpm_add(ipv4_l3fwd_lookup_struct[i], rte_be_to_cpu_32(saddr->s_addr),
 					depth, nexthop_id);
 	if (s < 0) {
 		RTE_LOG(ERR, L3FWD_CTRL,
