@@ -90,22 +90,8 @@ lookup_struct_t *ipv4_l3fwd_lookup_struct[NB_SOCKETS];
 lookup6_struct_t *ipv6_l3fwd_lookup_struct[NB_SOCKETS];
 neighbor_struct_t *neighbor4_struct[NB_SOCKETS];
 neighbor_struct_t *neighbor6_struct[NB_SOCKETS];
-static struct in_addr ipv4_local_mask;
-static struct in6_addr ipv6_local_mask;
 
 #define DO_RFC_1812_CHECKS
-
-
-/*
- *  When set to zero, simple forwaring path is eanbled.
- *  When set to one, optimized forwarding path is enabled.
- *  Note that LPM optimisation path uses SSE4.1 instructions.
- */
-#if (!defined(__SSE4_1__))
-#define ENABLE_MULTI_BUFFER_OPTIMIZE	0
-#else
-#define ENABLE_MULTI_BUFFER_OPTIMIZE	1
-#endif
 
 #include <rte_lpm.h>
 #include <rte_lpm6.h>
@@ -459,92 +445,6 @@ get_ipv6_dst_port(void *ipv6_hdr, uint8_t portid,
 					   0) ? next_hop : portid);
 }
 
-#if (ENABLE_MULTI_BUFFER_OPTIMIZE != 1)
-static inline void l3fwd_simple_forward(struct rte_mbuf *m, uint8_t portid,
-										struct lcore_conf *qconf)
-	__attribute__ ((unused));
-
-static inline __attribute__ ((always_inline))
-void
-l3fwd_simple_forward(struct rte_mbuf *m, uint8_t portid,
-					 struct lcore_conf *qconf)
-{
-	struct ether_hdr *eth_hdr;
-	struct ipv4_hdr *ipv4_hdr;
-	void *d_addr_bytes;
-	uint8_t dst_port;
-
-	eth_hdr = rte_pktmbuf_mtod(m, struct ether_hdr *);
-
-#ifdef RDPDK_QEMU
-	if (eth_hdr->ether_type = rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
-#else
-	if (m->ol_flags & PKT_RX_IPV4_HDR) {
-#endif
-		/* Handle IPv4 headers. */
-		ipv4_hdr =
-			(struct ipv4_hdr *) (rte_pktmbuf_mtod(m, unsigned char *) +
-								 sizeof(struct ether_hdr));
-
-#ifdef DO_RFC_1812_CHECKS
-		/* Check to make sure the packet is valid (RFC1812) */
-		if (is_valid_ipv4_pkt(ipv4_hdr, m->pkt_len) < 0) {
-			rte_pktmbuf_free(m);
-			return;
-		}
-#endif
-
-		dst_port = get_ipv4_dst_port(ipv4_hdr, portid,
-									 qconf->ipv4_lookup_struct);
-		if (dst_port >= RTE_MAX_ETHPORTS ||
-			(enabled_port_mask & 1 << dst_port) == 0)
-			dst_port = portid;
-
-		/* 02:00:00:00:00:xx */
-		d_addr_bytes = &eth_hdr->d_addr.addr_bytes[0];
-		*((uint64_t *) d_addr_bytes) = ETHER_LOCAL_ADMIN_ADDR +
-			((uint64_t) dst_port << 40);
-
-#ifdef DO_RFC_1812_CHECKS
-		/* Update time to live and header checksum */
-		--(ipv4_hdr->time_to_live);
-		++(ipv4_hdr->hdr_checksum);
-#endif
-
-		/* src addr */
-		ether_addr_copy(&ports_eth_addr[dst_port], &eth_hdr->s_addr);
-
-		send_single_packet(m, dst_port);
-
-	} else {
-		/* Handle IPv6 headers. */
-		struct ipv6_hdr *ipv6_hdr;
-
-		ipv6_hdr =
-			(struct ipv6_hdr *) (rte_pktmbuf_mtod(m, unsigned char *) +
-								 sizeof(struct ether_hdr));
-
-		dst_port =
-			get_ipv6_dst_port(ipv6_hdr, portid, qconf->ipv6_lookup_struct);
-
-		if (dst_port >= RTE_MAX_ETHPORTS
-			|| (enabled_port_mask & 1 << dst_port) == 0)
-			dst_port = portid;
-
-		/* 02:00:00:00:00:xx */
-		d_addr_bytes = &eth_hdr->d_addr.addr_bytes[0];
-		*((uint64_t *) d_addr_bytes) = ETHER_LOCAL_ADMIN_ADDR +
-			((uint64_t) dst_port << 40);
-
-		/* src addr */
-		ether_addr_copy(&ports_eth_addr[dst_port], &eth_hdr->s_addr);
-
-		send_single_packet(m, dst_port);
-	}
-
-}
-#endif
-
 #ifdef DO_RFC_1812_CHECKS
 
 #define	IPV4_MIN_VER_IHL	0x45
@@ -590,8 +490,6 @@ rfc1812_process(struct ipv4_hdr *ipv4_hdr, uint16_t * dp, uint32_t flags)
 #define	rfc1812_process(mb, dp)	do { } while (0)
 #endif							/* DO_RFC_1812_CHECKS */
 
-
-#if (ENABLE_MULTI_BUFFER_OPTIMIZE == 1)
 
 static inline __attribute__ ((always_inline)) uint16_t
 get_dst_port(const struct lcore_conf *qconf, struct rte_mbuf *pkt,
@@ -925,7 +823,6 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	p[2] = (rte_pktmbuf_mtod(pkt[2], __m128i *));
 	p[3] = (rte_pktmbuf_mtod(pkt[3], __m128i *));
 
-	//TODO test it, may need to use eth = rte_pktmbuf_mtod(m, struct ether_hdr *); ether_addr_copy(from, eth->d_addr);
 	ve[0] =
 		_mm_load_si128((__m128i *) & qconf->
 					   neighbor4_struct->entries4[dst_port[0]].neighbor.
@@ -1084,8 +981,6 @@ static inline uint16_t *port_groupx4(uint16_t pn[FWDSTEP + 1],
 	return lp;
 }
 
-#endif							/* ENABLE_MULTI_BUFFER_OPTIMIZE */
-
 /* main processing loop */
 static int main_loop(__rte_unused void *dummy)
 {
@@ -1097,8 +992,6 @@ static int main_loop(__rte_unused void *dummy)
 	struct lcore_conf *qconf;
 	const uint64_t drain_tsc = (rte_get_tsc_hz() + US_PER_S - 1) /
 		US_PER_S * BURST_TX_DRAIN_US;
-
-#if (ENABLE_MULTI_BUFFER_OPTIMIZE == 1)
 	int32_t k;
 	uint16_t dlp;
 	uint16_t *lp;
@@ -1106,7 +999,6 @@ static int main_loop(__rte_unused void *dummy)
 	__m128i dip[MAX_PKT_BURST / FWDSTEP];
 	uint32_t flag[MAX_PKT_BURST / FWDSTEP];
 	uint16_t pnum[MAX_PKT_BURST + 1];
-#endif
 
 	prev_tsc = 0;
 
@@ -1173,7 +1065,6 @@ static int main_loop(__rte_unused void *dummy)
 				continue;
 
 			stats[lcore_id].nb_rx += nb_rx;
-#if (ENABLE_MULTI_BUFFER_OPTIMIZE == 1)
 
 			/* Process up to last 3 packets one by one. */
 			j = 0;
@@ -1307,27 +1198,6 @@ static int main_loop(__rte_unused void *dummy)
 						rte_pktmbuf_free(pkts_burst[m]);
 				}
 			}
-
-#else							/* ENABLE_MULTI_BUFFER_OPTIMIZE == 0 */
-
-			/* Prefetch first packets */
-			for (j = 0; j < PREFETCH_OFFSET && j < nb_rx; j++) {
-				rte_prefetch0(rte_pktmbuf_mtod(pkts_burst[j], void *));
-			}
-
-			/* Prefetch and forward already prefetched packets */
-			for (j = 0; j < (nb_rx - PREFETCH_OFFSET); j++) {
-				rte_prefetch0(rte_pktmbuf_mtod
-							  (pkts_burst[j + PREFETCH_OFFSET], void *));
-				l3fwd_simple_forward(pkts_burst[j], portid, qconf);
-			}
-
-			/* Forward remaining prefetched packets */
-			for (; j < nb_rx; j++) {
-				l3fwd_simple_forward(pkts_burst[j], portid, qconf);
-			}
-#endif							/* ENABLE_MULTI_BUFFER_OPTIMIZE */
-
 		}
 	}
 }
@@ -1524,8 +1394,6 @@ static int parse_config(const char *q_arg)
 #define CMD_LINE_OPT_CALLBACK_SETUP "callback-setup"
 #define CMD_LINE_OPT_NO_NUMA "no-numa"
 #define CMD_LINE_OPT_ENABLE_JUMBO "enable-jumbo"
-#define CMD_LINE_OPT_LOCAL4 "local4"
-#define CMD_LINE_OPT_LOCAL6 "local6"
 #define CMD_LINE_OPT_UNIXSOCK "unixsock"
 
 /* Parse the argument given in the command line of the application */
@@ -1539,8 +1407,6 @@ static int parse_args(int argc, char **argv)
 		{CMD_LINE_OPT_CONFIG, 1, 0, 0},
 		{CMD_LINE_OPT_KNICONFIG, 1, 0, 0},
 		{CMD_LINE_OPT_CALLBACK_SETUP, 1, 0, 0},
-		{CMD_LINE_OPT_LOCAL4, 1, 0, 0},
-		{CMD_LINE_OPT_LOCAL6, 1, 0, 0},
 		{CMD_LINE_OPT_UNIXSOCK, 1, 0, 0},
 		{CMD_LINE_OPT_NO_NUMA, 0, 0, 0},
 		{CMD_LINE_OPT_ENABLE_JUMBO, 0, 0, 0},
@@ -1600,24 +1466,6 @@ static int parse_args(int argc, char **argv)
 				(lgopts[option_index].name, CMD_LINE_OPT_CALLBACK_SETUP,
 				 sizeof(CMD_LINE_OPT_CALLBACK_SETUP))) {
 				callback_setup = optarg;
-			}
-
-			if (!strncmp
-				(lgopts[option_index].name, CMD_LINE_OPT_LOCAL4,
-				 sizeof(CMD_LINE_OPT_LOCAL4))) {
-				if (!inet_pton(AF_INET, optarg, &ipv4_local_mask)) {
-					rte_exit(EXIT_FAILURE,
-							 "invalid ipv4 passed in --local4");
-				}
-			}
-
-			if (!strncmp
-				(lgopts[option_index].name, CMD_LINE_OPT_LOCAL6,
-				 sizeof(CMD_LINE_OPT_LOCAL6))) {
-				if (inet_pton(AF_INET6, optarg, &ipv6_local_mask)) {
-					rte_exit(EXIT_FAILURE,
-							 "invalid ipv4 passed in --local6");
-				}
 			}
 
 			if (!strncmp(lgopts[option_index].name, CMD_LINE_OPT_NO_NUMA,

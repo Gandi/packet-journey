@@ -75,6 +75,7 @@
 #include <rte_malloc.h>
 #include <rte_kni.h>
 
+#include "common.h"
 #include "kni.h"
 
 
@@ -94,20 +95,11 @@
 /* How many objects (mbufs) to keep in per-lcore mempool cache */
 #define MEMPOOL_CACHE_SZ        PKT_BURST_SZ
 
-/* Number of RX ring descriptors */
-#define NB_RXD                  128
-
-/* Number of TX ring descriptors */
-#define NB_TXD                  512
-
 /* Total octets in ethernet header */
 #define KNI_ENET_HEADER_SIZE    14
 
 /* Total octets in the FCS */
 #define KNI_ENET_FCS_SIZE       4
-
-#define KNI_US_PER_SECOND       1000000
-#define KNI_SECOND_PER_DAY      86400
 
 struct kni_port_params *kni_port_params_array[RTE_MAX_ETHPORTS];
 uint8_t kni_port_rdy[RTE_MAX_ETHPORTS] = { 0 };
@@ -127,56 +119,10 @@ static struct rte_eth_conf port_conf = {
 			   },
 };
 
-/* Structure type for recording kni interface specific stats */
-struct kni_interface_stats {
-	/* number of pkts received from NIC, and sent to KNI */
-	uint64_t rx_packets;
-
-	/* number of pkts received from NIC, but failed to send to KNI */
-	uint64_t rx_dropped;
-
-	/* number of pkts received from KNI, and sent to NIC */
-	uint64_t tx_packets;
-
-	/* number of pkts received from KNI, but failed to send to NIC */
-	uint64_t tx_dropped;
-};
-
-/* kni device statistics array */
-static struct kni_interface_stats kni_stats[RTE_MAX_ETHPORTS];
-
 static int kni_change_mtu(uint8_t port_id, unsigned new_mtu);
 static int kni_config_network_interface(uint8_t port_id, uint8_t if_up);
 
 static rte_atomic32_t kni_stop = RTE_ATOMIC32_INIT(0);
-
-#if 0
-/* Print out statistics on packets handled */
-static void print_stats(void)
-{
-	uint8_t i;
-
-	printf("\n**KNI example application statistics**\n"
-		   "======  ==============  ============  ============  ============  ============\n"
-		   " Port    Lcore(RX/TX)    rx_packets    rx_dropped    tx_packets    tx_dropped\n"
-		   "------  --------------  ------------  ------------  ------------  ------------\n");
-	for (i = 0; i < RTE_MAX_ETHPORTS; i++) {
-		if (!kni_port_params_array[i])
-			continue;
-
-		printf("%7d %10u/%2u %13" PRIu64 " %13" PRIu64 " %13" PRIu64 " "
-			   "%13" PRIu64 "\n", i,
-			   kni_port_params_array[i]->lcore_rx,
-			   kni_port_params_array[i]->lcore_tx,
-			   kni_stats[i].rx_packets,
-			   kni_stats[i].rx_dropped,
-			   kni_stats[i].tx_packets, kni_stats[i].tx_dropped);
-	}
-	printf
-		("======  ==============  ============  ============  ============  ============\n");
-}
-
-#endif
 
 void kni_burst_free_mbufs(struct rte_mbuf **pkts, unsigned num)
 {
@@ -194,7 +140,7 @@ void kni_burst_free_mbufs(struct rte_mbuf **pkts, unsigned num)
 /**
  * Interface to dequeue mbufs from tx_q and burst tx
  */
-static void kni_egress(struct kni_port_params *p)
+static void kni_egress(struct kni_port_params *p, uint32_t lcore_id)
 {
 	uint8_t i, port_id;
 	unsigned nb_tx, num;
@@ -215,11 +161,11 @@ static void kni_egress(struct kni_port_params *p)
 		}
 		/* Burst tx to eth */
 		nb_tx = rte_eth_tx_burst(port_id, 0, pkts_burst, (uint16_t) num);
-		kni_stats[port_id].tx_packets += nb_tx;
+		stats[lcore_id].nb_kni_tx += nb_tx;
 		if (unlikely(nb_tx < num)) {
 			/* Free mbufs not tx to NIC */
 			kni_burst_free_mbufs(&pkts_burst[nb_tx], num - nb_tx);
-			kni_stats[port_id].tx_dropped += num - nb_tx;
+			stats[lcore_id].nb_kni_dropped += num - nb_tx;
 		}
 	}
 }
@@ -229,12 +175,6 @@ int kni_main_loop(__rte_unused void *arg)
 	uint8_t i, nb_ports = rte_eth_dev_count();
 	int32_t f_stop;
 	const unsigned lcore_id = rte_lcore_id();
-	enum lcore_rxtx {
-		LCORE_NONE,
-		LCORE_RX,
-		LCORE_TX,
-		LCORE_MAX
-	};
 	RTE_LOG(INFO, KNI, "entering kni main loop on lcore %u\n", lcore_id);
 
 	while (1) {
@@ -242,13 +182,12 @@ int kni_main_loop(__rte_unused void *arg)
 		if (f_stop)
 			break;
 		for (i = 0; i < nb_ports; i++) {
-			kni_egress(kni_port_params_array[i]);
+			kni_egress(kni_port_params_array[i], lcore_id);
 		}
 	}
 
 	return 0;
 }
-
 
 static void print_config(void)
 {
@@ -420,43 +359,6 @@ void init_kni(void)
 	rte_kni_init(num_of_kni_ports);
 }
 
-#if 0
-
-/* Initialise a single port on an Ethernet device */
-void init_kni_port(uint8_t port)
-{
-	int ret;
-
-	/* Initialise device and RX/TX queues */
-	RTE_LOG(INFO, KNI, "Initialising port %u ...\n", (unsigned) port);
-	fflush(stdout);
-	ret = rte_eth_dev_configure(port, 1, 1, &port_conf);
-	if (ret < 0)
-		rte_exit(EXIT_FAILURE, "Could not configure port%u (%d)\n",
-				 (unsigned) port, ret);
-
-	ret = rte_eth_rx_queue_setup(port, 0, NB_RXD,
-								 rte_eth_dev_socket_id(port), NULL,
-								 pktmbuf_pool);
-	if (ret < 0)
-		rte_exit(EXIT_FAILURE, "Could not setup up RX queue for "
-				 "port%u (%d)\n", (unsigned) port, ret);
-
-	ret = rte_eth_tx_queue_setup(port, 0, NB_TXD,
-								 rte_eth_dev_socket_id(port), NULL);
-	if (ret < 0)
-		rte_exit(EXIT_FAILURE, "Could not setup up TX queue for "
-				 "port%u (%d)\n", (unsigned) port, ret);
-
-	ret = rte_eth_dev_start(port);
-	if (ret < 0)
-		rte_exit(EXIT_FAILURE, "Could not start port%u (%d)\n",
-				 (unsigned) port, ret);
-
-	if (promiscuous_on)
-		rte_eth_promiscuous_enable(port);
-}
-#endif
 /* Callback for request of changing MTU */
 static int kni_change_mtu(uint8_t port_id, unsigned new_mtu)
 {
