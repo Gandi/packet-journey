@@ -703,9 +703,8 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			if (unlikely
 				(!qconf->neighbor4_struct->entries.t4[dst_port[j]].
 				 neighbor.valid
-				 || qconf->neighbor4_struct->
-				 entries.t4[dst_port[j]].neighbor.action ==
-				 NEI_ACTION_KNI)) {
+				 || qconf->neighbor4_struct->entries.
+				 t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -725,9 +724,8 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			if (unlikely
 				(!qconf->neighbor4_struct->entries.t4[dst_port[j]].
 				 neighbor.valid
-				 || qconf->neighbor4_struct->
-				 entries.t4[dst_port[j]].neighbor.action ==
-				 NEI_ACTION_KNI)) {
+				 || qconf->neighbor4_struct->entries.
+				 t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -746,9 +744,8 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			if (unlikely
 				(!qconf->neighbor4_struct->entries.t4[dst_port[j]].
 				 neighbor.valid
-				 || qconf->neighbor4_struct->
-				 entries.t4[dst_port[j]].neighbor.action ==
-				 NEI_ACTION_KNI)) {
+				 || qconf->neighbor4_struct->entries.
+				 t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -767,9 +764,8 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			if (unlikely
 				(!qconf->neighbor4_struct->entries.t4[dst_port[j]].
 				 neighbor.valid
-				 || qconf->neighbor4_struct->
-				 entries.t4[dst_port[j]].neighbor.action ==
-				 NEI_ACTION_KNI)) {
+				 || qconf->neighbor4_struct->entries.
+				 t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -824,21 +820,17 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	p[3] = (rte_pktmbuf_mtod(pkt[3], __m128i *));
 
 	ve[0] =
-		_mm_load_si128((__m128i *) & qconf->
-					   neighbor4_struct->entries.t4[dst_port[0]].neighbor.
-					   nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
+					   entries.t4[dst_port[0]].neighbor.nexthop_hwaddr);
 	ve[1] =
-		_mm_load_si128((__m128i *) & qconf->
-					   neighbor4_struct->entries.t4[dst_port[1]].neighbor.
-					   nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
+					   entries.t4[dst_port[1]].neighbor.nexthop_hwaddr);
 	ve[2] =
-		_mm_load_si128((__m128i *) & qconf->
-					   neighbor4_struct->entries.t4[dst_port[2]].neighbor.
-					   nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
+					   entries.t4[dst_port[2]].neighbor.nexthop_hwaddr);
 	ve[3] =
-		_mm_load_si128((__m128i *) & qconf->
-					   neighbor4_struct->entries.t4[dst_port[3]].neighbor.
-					   nexthop_hwaddr);
+		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
+					   entries.t4[dst_port[3]].neighbor.nexthop_hwaddr);
 #if 0
 	ve[0] = val_eth[dst_port[0]];
 	ve[1] = val_eth[dst_port[1]];

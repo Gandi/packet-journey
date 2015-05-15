@@ -23,7 +23,7 @@ struct nei_entry {
 	int32_t port_id;
 
 	int32_t refcnt;
-}; //18bytes
+};								//18bytes
 
 //must be 16bytes aligned
 struct nei_entry4 {
@@ -41,10 +41,10 @@ struct nei_entry6 {
 };
 
 struct nei_table {
-    union {
-        struct nei_entry4 t4[NEI_NUM_ENTRIES];
-        struct nei_entry6 t6[NEI_NUM_ENTRIES];
-    } entries;
+	union {
+		struct nei_entry4 t4[NEI_NUM_ENTRIES];
+		struct nei_entry6 t6[NEI_NUM_ENTRIES];
+	} entries;
 };
 
 int
