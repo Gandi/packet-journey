@@ -17,7 +17,7 @@ neighbor4_lookup_nexthop(struct nei_table *t, struct in_addr *nexthop,
 	struct nei_entry4 *entry;
 
 	for (i = 0; i < NEI_NUM_ENTRIES; i++) {
-		entry = &(t->entries4[i]);
+		entry = &(t->entries.t4[i]);
 		if (entry->neighbor.in_use
 			&& entry->addr.s_addr == nexthop->s_addr) {
 			*nexthop_id = i;
@@ -36,7 +36,7 @@ neighbor4_add_nexthop(struct nei_table *t, struct in_addr *nexthop,
 	struct nei_entry4 *entry;
 
 	for (i = 0; i < NEI_NUM_ENTRIES; i++) {
-		entry = &(t->entries4[i]);
+		entry = &(t->entries.t4[i]);
 		if (entry->neighbor.in_use == 0) {
 			*nexthop_id = i;
 
@@ -58,7 +58,7 @@ int neighbor4_refcount_incr(struct nei_table *t, uint8_t nexthop_id)
 {
 	struct nei_entry4 *entry;
 
-	entry = &(t->entries4[nexthop_id]);
+	entry = &(t->entries.t4[nexthop_id]);
 
 	if (entry->neighbor.in_use == 0)
 		return -1;
@@ -70,7 +70,7 @@ int neighbor4_refcount_decr(struct nei_table *t, uint8_t nexthop_id)
 {
 	struct nei_entry4 *entry;
 
-	entry = &(t->entries4[nexthop_id]);
+	entry = &(t->entries.t4[nexthop_id]);
 
 	if (entry->neighbor.in_use == 0)
 		return -1;
@@ -87,7 +87,7 @@ neighbor4_set_lladdr_port(struct nei_table *t, uint8_t nexthop_id,
 {
 	struct nei_entry4 *entry;
 
-	entry = &t->entries4[nexthop_id];
+	entry = &t->entries.t4[nexthop_id];
 
 	if (entry->neighbor.in_use == 0)
 		return -1;
@@ -104,7 +104,7 @@ neighbor4_set_state(struct nei_table *t, uint8_t nexthop_id, __u8 flags)
 {
 	struct nei_entry4 *entry;
 
-	entry = &t->entries4[nexthop_id];
+	entry = &t->entries.t4[nexthop_id];
 
 	if (entry->neighbor.in_use == 0)
 		return -1;
@@ -118,7 +118,7 @@ neighbor4_set_port(struct nei_table *t, uint8_t nexthop_id, __s32 port_id)
 {
 	struct nei_entry4 *entry;
 
-	entry = &t->entries4[nexthop_id];
+	entry = &t->entries.t4[nexthop_id];
 
 	if (entry->neighbor.in_use == 0)
 		return -1;
@@ -131,7 +131,7 @@ void neighbor4_delete(struct nei_table *t, uint8_t nexthop_id)
 {
 	struct nei_entry4 *entry;
 
-	entry = &t->entries4[nexthop_id];
+	entry = &t->entries.t4[nexthop_id];
 
 	if (entry->neighbor.in_use == 0)
 		return;
@@ -154,7 +154,7 @@ struct nei_table *nei_create(int socketid)
 	if (nei_table == NULL)
 		return NULL;
 
-	memset(nei_table->entries4, 0, sizeof(nei_table->entries4));
+	memset(nei_table->entries.t6, 0, sizeof(nei_table->entries.t6));
 
 	return nei_table;
 }

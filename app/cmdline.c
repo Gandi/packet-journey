@@ -16,6 +16,7 @@
 #include <rte_log.h>
 #include <rte_lcore.h>
 #include <rte_lpm.h>
+#include <rte_lpm6.h>
 
 #include <cmdline_rdline.h>
 #include <cmdline_parse.h>
@@ -56,19 +57,29 @@ static void cmd_obj_lpm_lkp_parsed(void *parsed_result,
 	struct cmd_obj_lpm_lkp_result *res = parsed_result;
 	uint8_t next_hop;
 	int i;
+    char buf[INET6_ADDRSTRLEN];
 
-	if (1 || res->ip.family == 4) {
+	if (res->ip.family == AF_INET) {
 		i = rte_lpm_lookup(ipv4_l3fwd_lookup_struct[0],
-						   res->ip.addr.ipv4.s_addr, &next_hop);
+						   rte_be_to_cpu_32(res->ip.addr.ipv4.s_addr), &next_hop);
 		if (i == -ENOENT) {
 			cmdline_printf(cl, "not found\n");
 		} else {
-			struct in_addr addr =
-				neighbor4_struct[0]->entries4[next_hop].addr;
-			cmdline_printf(cl, "present, next_hop %s\n", inet_ntoa(addr));
+			struct in_addr *addr =
+				&neighbor4_struct[0]->entries.t4[next_hop].addr;
+			cmdline_printf(cl, "present, next_hop %s\n", inet_ntop(AF_INET, addr, buf, INET6_ADDRSTRLEN));
+		}
+	} else if (res->ip.family == AF_INET6) {
+		i = rte_lpm6_lookup(ipv6_l3fwd_lookup_struct[0],
+						   res->ip.addr.ipv6.s6_addr, &next_hop);
+		if (i == -ENOENT) {
+			cmdline_printf(cl, "not found\n");
+		} else {
+			struct in6_addr *addr =
+				&neighbor6_struct[0]->entries.t6[next_hop].addr;
+			cmdline_printf(cl, "present, next_hop %s\n", inet_ntop(AF_INET6, addr, buf, INET6_ADDRSTRLEN));
 		}
 	}
-
 }
 
 cmdline_parse_token_string_t cmd_obj_action_lpm_lkp =
