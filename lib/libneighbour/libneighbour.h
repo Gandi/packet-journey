@@ -45,7 +45,6 @@ struct nei_table {
 		struct nei_entry4 t4[NEI_NUM_ENTRIES];
 		struct nei_entry6 t6[NEI_NUM_ENTRIES];
 	} entries;
-	uint8_t family;
 };
 
 int neighbor4_lookup_nexthop(struct nei_table *, struct in_addr *nexthop,
