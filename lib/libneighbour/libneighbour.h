@@ -45,29 +45,35 @@ struct nei_table {
 		struct nei_entry4 t4[NEI_NUM_ENTRIES];
 		struct nei_entry6 t6[NEI_NUM_ENTRIES];
 	} entries;
+	uint8_t family;
 };
 
-int
-neighbor4_lookup_nexthop(struct nei_table *, struct in_addr *, uint8_t *);
+int neighbor4_lookup_nexthop(struct nei_table *, struct in_addr *nexthop,
+							 uint8_t * nexthop_id);
 int neighbor4_add_nexthop(struct nei_table *, struct in_addr *nexthop,
 						  uint8_t * nexthop_id, uint8_t action);
 int neighbor4_refcount_incr(struct nei_table *, uint8_t);
 int neighbor4_refcount_decr(struct nei_table *, uint8_t);
-
-int
-neighbor4_set_lladdr_port(struct nei_table *, uint8_t, struct ether_addr *,
-						  __s32 port_id);
-int neighbor4_set_state(struct nei_table *, uint8_t, __u8 flags);
-
-//if (neighbor4_refcount(neighbor, nexthop_id) > 0)
-// neighbor4_flag_invalid(neighbor, nexthop_id);
-//else
-// neighbor4_free(neighbor, nexthop_id)
-void neighbor4_delete(struct nei_table *, uint8_t);
+int neighbor4_set_lladdr_port(struct nei_table *, uint8_t,
+							  struct ether_addr *lladdr, int32_t port_id);
+int neighbor4_set_state(struct nei_table *, uint8_t, uint8_t flags);
 int neighbor4_set_port(struct nei_table *t, uint8_t nexthop_id,
-					   __s32 port_id);
+					   int32_t port_id);
+void neighbor4_delete(struct nei_table *, uint8_t);
+
+int neighbor6_lookup_nexthop(struct nei_table *, struct in6_addr *nexthop,
+							 uint8_t * nexthop_id);
+int neighbor6_add_nexthop(struct nei_table *, struct in6_addr *nexthop,
+						  uint8_t * nexthop_id, uint8_t action);
+int neighbor6_refcount_incr(struct nei_table *, uint8_t);
+int neighbor6_refcount_decr(struct nei_table *, uint8_t);
+int neighbor6_set_lladdr_port(struct nei_table *, uint8_t,
+							  struct ether_addr *lladdr, int32_t port_id);
+int neighbor6_set_state(struct nei_table *, uint8_t, uint8_t flags);
+int neighbor6_set_port(struct nei_table *t, uint8_t nexthop_id,
+					   int32_t port_id);
+void neighbor6_delete(struct nei_table *, uint8_t);
 
 
 struct nei_table *nei_create(int socketid);
-
 void nei_free(struct nei_table *nei);

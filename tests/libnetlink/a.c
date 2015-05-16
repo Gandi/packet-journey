@@ -28,7 +28,7 @@ struct netl_handle *h = NULL;
 static int neighbor4(neighbor_action_t action,
 					 __s32 port_id, struct in_addr *addr,
 					 struct ether_addr *lladdr, __u8 flags,
-					 rdpdk_unused(void *args), uint16_t vlanid)
+					 uint16_t vlanid, rdpdk_unused(void *args))
 {
 	char action_buf[4];
 	char abuf[256];
@@ -80,7 +80,7 @@ static int neighbor4(neighbor_action_t action,
 static int neighbor6(neighbor_action_t action,
 					 __s32 port_id, struct in6_addr *addr,
 					 struct ether_addr *lladdr, __u8 flags,
-					 rdpdk_unused(void *args), uint16_t vlanid)
+					 uint16_t vlanid, rdpdk_unused(void *args))
 {
 	char action_buf[4];
 	char abuf[256];
@@ -130,7 +130,7 @@ static int neighbor6(neighbor_action_t action,
 }
 
 static int addr4(addr_action_t action, __s32 port_id, struct in_addr *addr,
-				 __u8 prefixlen)
+				 __u8 prefixlen, rdpdk_unused(void *args))
 {
 	char action_buf[4];
 	char abuf[256];
@@ -151,7 +151,8 @@ static int addr4(addr_action_t action, __s32 port_id, struct in_addr *addr,
 }
 
 static int addr6(addr_action_t action, __s32 port_id,
-				 struct in6_addr *addr, __u8 prefixlen)
+				 struct in6_addr *addr, __u8 prefixlen,
+				 rdpdk_unused(void *args))
 {
 	char action_buf[4];
 	char abuf[256];
@@ -215,7 +216,8 @@ route4(rdpdk_unused(struct rtmsg *route), route_action_t action,
 static int
 link(link_action_t action, int ifid,
 	 struct ether_addr *lladdr, int mtu,
-	 const char *name, oper_state_t state, uint16_t vlanid)
+	 const char *name, oper_state_t state, uint16_t vlanid,
+	 rdpdk_unused(void *args))
 {
 	char action_buf[4];
 	char ebuf[32];

@@ -157,7 +157,7 @@ netl_handler(struct netl_handle *h,
 
 			if (h->cb.link != NULL) {
 				h->cb.link(action, ifid, &lladdr, mtu,
-						   ifname, state, vlanid);
+						   ifname, state, vlanid, args);
 			}
 
 		}
@@ -203,14 +203,14 @@ netl_handler(struct netl_handle *h,
 			if (h->cb.addr4 != NULL) {
 				h->cb.addr4(action, ifa->ifa_index,
 							(struct in_addr *) buf_addr,
-							ifa->ifa_prefixlen);
+							ifa->ifa_prefixlen, args);
 			}
 			break;
 		case AF_INET6:
 			if (h->cb.addr6 != NULL) {
 				h->cb.addr6(action, ifa->ifa_index,
 							(struct in6_addr *) buf_addr,
-							ifa->ifa_prefixlen);
+							ifa->ifa_prefixlen, args);
 			}
 			break;
 		default:
@@ -304,12 +304,12 @@ netl_handler(struct netl_handle *h,
 					h->cb.neighbor4(action, neighbor->ndm_ifindex,
 									RTA_DATA(tb[NDA_DST]),
 									RTA_DATA(tb[NDA_LLADDR]),
-									neighbor->ndm_state, args, vlanid);
+									neighbor->ndm_state, vlanid, args);
 				} else {
 					h->cb.neighbor4(action, neighbor->ndm_ifindex,
 									RTA_DATA(tb[NDA_DST]),
 									&invalid_mac,
-									neighbor->ndm_state, args, vlanid);
+									neighbor->ndm_state, vlanid, args);
 				}
 			}
 			break;
@@ -319,12 +319,12 @@ netl_handler(struct netl_handle *h,
 					h->cb.neighbor6(action, neighbor->ndm_ifindex,
 									RTA_DATA(tb[NDA_DST]),
 									RTA_DATA(tb[NDA_LLADDR]),
-									neighbor->ndm_state, args, vlanid);
+									neighbor->ndm_state, vlanid, args);
 				} else {
 					h->cb.neighbor6(action, neighbor->ndm_ifindex,
 									RTA_DATA(tb[NDA_DST]),
 									&invalid_mac,
-									neighbor->ndm_state, args, vlanid);
+									neighbor->ndm_state, vlanid, args);
 				}
 			}
 			break;

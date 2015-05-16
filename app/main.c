@@ -533,9 +533,7 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	uint16_t dp;
 	__m128i te, ve;
 	struct ipv4_hdr *ipv4_hdr;
-#if 0
 	struct ipv6_hdr *ipv6_hdr;
-#endif
 	struct nei_entry *neighbor;
 
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
@@ -551,7 +549,6 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 		L3FWD_DEBUG_TRACE("process_packet4 res %d\n", dp);
 
 		neighbor = &qconf->neighbor4_struct->entries.t4[dp].neighbor;
-#if 0
 #ifdef RDPDK_QEMU
 	} else if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv6)) {
 #else
@@ -560,10 +557,8 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 		ipv6_hdr = (struct ipv6_hdr *) (eth_hdr + 1);
 
 		dp = get_ipv6_dst_port(ipv6_hdr, 0, qconf->ipv6_lookup_struct);
-		//FIXME may need to replace ->entries4 by ->entries6
-		neighbor = &qconf->neighbor6_struct->entries.t4[dp].neighbor;
+		neighbor = &qconf->neighbor6_struct->entries.t6[dp].neighbor;
 		L3FWD_DEBUG_TRACE("process_packet6 res %d\n", dp);
-#endif
 	} else {
 		L3FWD_DEBUG_TRACE("process_packet4 res kni\n");
 		neighbor = &kni_neighbor[portid];
@@ -595,9 +590,6 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 				stats[lcore_id].nb_kni_tx++;
 				kni_burst_free_mbufs(&pkt, 1);
 			}
-			//XXX not needed since we decrement nb_rx in main_loop
-			//stats[lcore_id].nb_dropped--;
-			//dst_port[0] = BAD_PORT;
 		}
 		return 1;
 	} else {
@@ -831,12 +823,6 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	ve[3] =
 		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
 					   entries.t4[dst_port[3]].neighbor.nexthop_hwaddr);
-#if 0
-	ve[0] = val_eth[dst_port[0]];
-	ve[1] = val_eth[dst_port[1]];
-	ve[2] = val_eth[dst_port[2]];
-	ve[3] = val_eth[dst_port[3]];
-#endif
 
 	/* Pivot dst_port */
 	dst_port[0] =
@@ -1287,8 +1273,6 @@ static void print_usage(const char *prgname)
 		   "  -P : enable promiscuous mode\n"
 		   "  --config (port,queue,lcore): rx queues configuration\n"
 		   "  --callback-setup: script called when ifaces are set up\n"
-		   "  --local4: specify ipv4 address which must be forwarded to the kni\n"
-		   "  --local6: specify ipv6 address which must be forwarded to the kni\n"
 		   "  --unixsock: specify the path for the cmdline unixsock (default: /tmp/rdpdk.sock)\n"
 		   "  --no-numa: optional, disable numa awareness\n"
 		   "  --enable-jumbo: enable jumbo frame"
@@ -1542,7 +1526,7 @@ static void setup_lpm(int socketid)
 	ipv6_l3fwd_lookup_struct[socketid] = rte_lpm6_create(s, socketid,
 														 &config);
 	if (ipv6_l3fwd_lookup_struct[socketid] == NULL)
-		rte_exit(EXIT_FAILURE, "Unable to create the l3fwd LPM table"
+		rte_exit(EXIT_FAILURE, "Unable to create the l3fwd LPM6 table"
 				 " on socket %d\n", socketid);
 }
 

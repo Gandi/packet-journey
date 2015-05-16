@@ -39,25 +39,27 @@ struct netl_handle {
 		int (*link) (link_action_t action, int ifid,
 					 struct ether_addr *, int mtu,
 					 const char *name, oper_state_t state,
-					 uint16_t vlanid);
-		int (*addr4) (addr_action_t action, __s32 port_id,
-					  struct in_addr * addr, __u8 prefixlen);
-		int (*addr6) (addr_action_t action, __s32 port_id,
-					  struct in6_addr * addr, __u8 prefixlen);
+					 uint16_t vlanid, void *args);
+		int (*addr4) (addr_action_t action, int32_t port_id,
+					  struct in_addr * addr, uint8_t prefixlen,
+					  void *args);
+		int (*addr6) (addr_action_t action, int32_t port_id,
+					  struct in6_addr * addr, uint8_t prefixlen,
+					  void *args);
 		int (*route4) (struct rtmsg * route, route_action_t action,
 					   struct in_addr * addr, uint8_t len,
 					   struct in_addr * nexthop, void *args);
 		int (*route6) (struct rtmsg * route, route_action_t action,
 					   struct in6_addr * addr, uint8_t len,
 					   struct in6_addr * nexthop, void *args);
-		int (*neighbor4) (neighbor_action_t action, __s32 port_id,
+		int (*neighbor4) (neighbor_action_t action, int32_t port_id,
 						  struct in_addr * addr,
-						  struct ether_addr * lladdr, __u8 flags,
-						  void *args, uint16_t vlanid);
-		int (*neighbor6) (neighbor_action_t action, __s32 port_id,
+						  struct ether_addr * lladdr, uint8_t flags,
+						  uint16_t vlanid, void *args);
+		int (*neighbor6) (neighbor_action_t action, int32_t port_id,
 						  struct in6_addr * addr,
-						  struct ether_addr * lladdr, __u8 flags,
-						  void *args, uint16_t vlanid);
+						  struct ether_addr * lladdr, uint8_t flags,
+						  uint16_t vlanid, void *args);
 	} cb;
 };
 
