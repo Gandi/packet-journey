@@ -1501,7 +1501,7 @@ print_ethaddr(const char *name, const struct ether_addr *eth_addr)
 {
 	char buf[ETHER_ADDR_FMT_SIZE];
 	ether_format_addr(buf, ETHER_ADDR_FMT_SIZE, eth_addr);
-	printf("%s%s", name, buf);
+	printf("%s%s\n", name, buf);
 }
 
 static void setup_lpm(int socketid)
@@ -1827,7 +1827,7 @@ int main(int argc, char **argv)
 
 	int ctrlsock = 0;
 	if (numa_on)
-		ctrlsock = 1;			//FIXME set the correct value
+		ctrlsock = 0;			//FIXME set the correct value
 
 	//XXX ensure that control_main doesn't run on a core binded by dpdk lcores
 	//TODO spawn one thread per socketid

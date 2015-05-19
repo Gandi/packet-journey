@@ -422,6 +422,12 @@ void *control_init(int32_t socket_id)
 		goto err;
 	}
 
+	neighbor6_struct[socket_id] = nei_create(socket_id);
+	if (neighbor6_struct[socket_id] == NULL) {
+		RTE_LOG(ERR, L3FWD_CTRL, "Couldn't initialize neighbor6 struct");
+		goto err;
+	}
+
 	netl_h->cb.addr4 = addr4;
 	netl_h->cb.addr6 = addr6;
 	netl_h->cb.neighbor4 = neighbor4;
