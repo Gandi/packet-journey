@@ -407,7 +407,7 @@ int netl_listen(struct netl_handle *h, void *args)
 			}
 
 			for (hdr = (struct nlmsghdr *) buf;
-					(size_t) status >= sizeof(*hdr);) {
+				 (size_t) status >= sizeof(*hdr);) {
 				len = hdr->nlmsg_len;
 				buflen = len - sizeof(*hdr);
 
@@ -421,7 +421,8 @@ int netl_listen(struct netl_handle *h, void *args)
 					return err;
 
 				status -= NLMSG_ALIGN(len);
-				hdr = (struct nlmsghdr *) ((char *) hdr + NLMSG_ALIGN(len));
+				hdr =
+					(struct nlmsghdr *) ((char *) hdr + NLMSG_ALIGN(len));
 			}
 
 			if (status) {

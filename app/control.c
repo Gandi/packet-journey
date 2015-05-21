@@ -473,7 +473,7 @@ void control_terminate(void *data)
 	struct handle_res *res;
 
 	res = data;
-    netl_free(res->netl_h);
+	netl_free(res->netl_h);
 	rte_free(res);
 }
 

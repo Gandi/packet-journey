@@ -1509,7 +1509,7 @@ print_ethaddr(const char *name, const struct ether_addr *eth_addr)
 {
 	char buf[ETHER_ADDR_FMT_SIZE];
 	ether_format_addr(buf, ETHER_ADDR_FMT_SIZE, eth_addr);
-	printf("%s%s", name, buf);
+	printf("%s%s\n", name, buf);
 }
 
 static void setup_lpm(int socketid)
@@ -1928,7 +1928,8 @@ int main(int argc, char **argv)
 
 	check_all_ports_link_status((uint8_t) nb_ports, enabled_port_mask);
 
-	pthread_create(&control_tid, NULL, (void *) control_main, control_handle[0]);
+	pthread_create(&control_tid, NULL, (void *) control_main,
+				   control_handle[0]);
 	snprintf(thread_name, 16, "control-%d", 0);
 	pthread_setname_np(control_tid, thread_name);
 
@@ -1968,6 +1969,6 @@ int main(int argc, char **argv)
 		rte_eth_dev_stop(portid);
 	}
 	rdpdk_cmdline_terminate(sock, unixsock_path);
-    control_terminate(control_handle[0]);
+	control_terminate(control_handle[0]);
 	return 0;
 }
