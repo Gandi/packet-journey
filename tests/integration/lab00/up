@@ -1,0 +1,10 @@
+#!/bin/sh
+
+link1=$1
+mac1=$2
+
+ip link set $link1 up
+
+ip link set $link1 address $mac1
+
+ip addr add 1.2.3.4/24 dev $link1
