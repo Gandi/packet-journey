@@ -458,6 +458,25 @@ void *control_init(int32_t socket_id)
 	rte_panic("failed to init control_main");
 }
 
+void control_stop(void *data)
+{
+	struct handle_res *res;
+	struct netl_handle *netl_h;
+
+	res = data;
+	netl_h = res->netl_h;
+	netl_close(netl_h);
+}
+
+void control_terminate(void *data)
+{
+	struct handle_res *res;
+
+	res = data;
+    netl_free(res->netl_h);
+	rte_free(res);
+}
+
 void *control_main(void *data)
 {
 	struct handle_res *res;
@@ -468,7 +487,6 @@ void *control_main(void *data)
 	netl_h = res->netl_h;
 	handle.socket_id = res->socket_id;
 
-	rte_free(res);
 
 	RTE_LOG(INFO, L3FWD_CTRL, "init ok\n");
 	netl_listen(netl_h, &handle);

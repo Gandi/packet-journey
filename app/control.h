@@ -3,6 +3,8 @@
 
 void *control_init(int32_t nb_socket);
 void *control_main(void *argv);
+void control_stop(void *argv);
+void control_terminate(void *argv);
 
 int control_callback_setup(const char *cb);
 extern struct nei_entry kni_neighbor[RTE_MAX_ETHPORTS];

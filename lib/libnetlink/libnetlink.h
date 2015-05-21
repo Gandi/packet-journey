@@ -64,6 +64,7 @@ struct netl_handle {
 };
 
 int netl_close(struct netl_handle *);
+int netl_terminate(struct netl_handle *);
 
 int netl_listen(struct netl_handle *, void *args);
 struct netl_handle *netl_create(void);

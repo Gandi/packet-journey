@@ -10,6 +10,7 @@ int kni_main_loop(__rte_unused void *arg);
 int kni_parse_config(const char *arg);
 void kni_burst_free_mbufs(struct rte_mbuf **pkts, unsigned num);
 int kni_validate_parameters(uint32_t portmask);
+void kni_stop_loop(void);
 /*
  * Structure of port parameters
  */

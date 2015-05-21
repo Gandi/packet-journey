@@ -44,6 +44,7 @@
 #include <errno.h>
 #include <getopt.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 #include <rte_common.h>
 #include <rte_vect.h>
@@ -77,6 +78,7 @@
 #include <rte_string_fns.h>
 #include <rte_spinlock.h>
 #include <rte_kni.h>
+#include <rte_atomic.h>
 
 #include <libneighbour.h>
 
@@ -91,6 +93,7 @@ lookup6_struct_t *ipv6_l3fwd_lookup_struct[NB_SOCKETS];
 neighbor_struct_t *neighbor4_struct[NB_SOCKETS];
 neighbor_struct_t *neighbor6_struct[NB_SOCKETS];
 
+void *control_handle[NB_SOCKETS];
 #define DO_RFC_1812_CHECKS
 
 #include <rte_lpm.h>
@@ -249,6 +252,7 @@ struct lcore_stats stats[RTE_MAX_LCORE] __rte_cache_aligned;
 static struct lcore_conf lcore_conf[RTE_MAX_LCORE];
 static rte_spinlock_t spinlock_conf[RTE_MAX_ETHPORTS] =
 	{ RTE_SPINLOCK_INITIALIZER };
+static rte_atomic32_t main_loop_stop = RTE_ATOMIC32_INIT(0);
 
 /* Send burst of packets on an output interface */
 static inline int
@@ -532,7 +536,7 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	struct ether_hdr *eth_hdr;
 	uint16_t dp;
 	__m128i te, ve;
-	struct ipv4_hdr *ipv4_hdr;
+	struct ipv4_hdr *ipv4_hdr = 0;
 	struct ipv6_hdr *ipv6_hdr;
 	struct nei_entry *neighbor;
 
@@ -966,11 +970,12 @@ static int main_loop(__rte_unused void *dummy)
 	unsigned lcore_id;
 	uint64_t prev_tsc, diff_tsc, cur_tsc;
 	int i, j, nb_rx;
-	uint8_t portid, queueid;
+	uint8_t portid = 0, queueid;
 	struct lcore_conf *qconf;
 	const uint64_t drain_tsc = (rte_get_tsc_hz() + US_PER_S - 1) /
 		US_PER_S * BURST_TX_DRAIN_US;
 	int32_t k;
+	int32_t f_stop;
 	uint16_t dlp;
 	uint16_t *lp;
 	uint16_t dst_port[MAX_PKT_BURST];
@@ -1008,6 +1013,9 @@ static int main_loop(__rte_unused void *dummy)
 	}
 
 	while (1) {
+		f_stop = rte_atomic32_read(&main_loop_stop);
+		if (f_stop)
+			break;
 		stats[lcore_id].nb_iteration_looped++;
 		cur_tsc = rte_rdtsc();
 
@@ -1501,7 +1509,7 @@ print_ethaddr(const char *name, const struct ether_addr *eth_addr)
 {
 	char buf[ETHER_ADDR_FMT_SIZE];
 	ether_format_addr(buf, ETHER_ADDR_FMT_SIZE, eth_addr);
-	printf("%s%s\n", name, buf);
+	printf("%s%s", name, buf);
 }
 
 static void setup_lpm(int socketid)
@@ -1774,6 +1782,23 @@ static int alloc_kni_ports(void)
 	return 0;
 }
 
+static void
+signal_handler(int signum, __rte_unused siginfo_t * si,
+			   __rte_unused void *unused)
+{
+	/* When we receive a RTMIN or SIGINT signal, stop kni processing */
+	if (signum == SIGRTMIN || signum == SIGINT) {
+		printf("SIG is received, and the KNI processing is "
+			   "going to stop\n");
+		kni_stop_loop();
+		rte_atomic32_inc(&main_loop_stop);
+		rdpdk_cmdline_stop();
+		//FIXME make a loop
+		control_stop(control_handle[0]);
+		return;
+	}
+}
+
 int main(int argc, char **argv)
 {
 	struct lcore_conf *qconf;
@@ -1786,6 +1811,14 @@ int main(int argc, char **argv)
 	uint8_t portid, queue, socketid;
 	pthread_t control_tid;
 	char thread_name[16];
+	struct sigaction sa;
+
+	sa.sa_flags = 0;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_sigaction = signal_handler;
+	if (sigaction(SIGINT, &sa, NULL) == -1) {
+		rte_exit(EXIT_FAILURE, "failed to set sigaction");
+	}
 
 	/* Sanitize lcore_conf */
 	for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++) {
@@ -1831,7 +1864,7 @@ int main(int argc, char **argv)
 
 	//XXX ensure that control_main doesn't run on a core binded by dpdk lcores
 	//TODO spawn one thread per socketid
-	void *handle = control_init(ctrlsock);
+	control_handle[0] = control_init(ctrlsock);
 
 	/* Initialize KNI subsystem */
 	init_kni();
@@ -1895,7 +1928,7 @@ int main(int argc, char **argv)
 
 	check_all_ports_link_status((uint8_t) nb_ports, enabled_port_mask);
 
-	pthread_create(&control_tid, NULL, (void *) control_main, handle);
+	pthread_create(&control_tid, NULL, (void *) control_main, control_handle[0]);
 	snprintf(thread_name, 16, "control-%d", 0);
 	pthread_setname_np(control_tid, thread_name);
 
@@ -1926,6 +1959,15 @@ int main(int argc, char **argv)
 		if (rte_eal_wait_lcore(lcore_id) < 0)
 			return -1;
 	}
-	rdpdk_cmdline_stop(sock, unixsock_path);
+	/* start ports */
+	for (portid = 0; portid < nb_ports; portid++) {
+		if ((enabled_port_mask & (1 << portid)) == 0) {
+			continue;
+		}
+		kni_free_kni(portid);
+		rte_eth_dev_stop(portid);
+	}
+	rdpdk_cmdline_terminate(sock, unixsock_path);
+    control_terminate(control_handle[0]);
 	return 0;
 }

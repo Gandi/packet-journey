@@ -38,7 +38,7 @@
 #include "routing.h"
 
 #define CMDLINE_MAX_SOCK 32
-#define CMDLINE_POLL_TIMEOUT 10000
+#define CMDLINE_POLL_TIMEOUT 1000
 
 static pthread_t cmdline_tid;
 static int cmdline_thread_loop;
@@ -339,16 +339,19 @@ static int rdpdk_cmdline_free(void *cmdline)
 	return 0;
 }
 
-int rdpdk_cmdline_stop(int sock, const char *path)
+int rdpdk_cmdline_terminate(int sock, const char *path)
 {
-	cmdline_thread_loop = 0;
-
 	if (pthread_join(cmdline_tid, NULL)) {
 		perror("error during free cmdline pthread_join");
 	}
 	close(sock);
 	unlink(path);
+	return 0;
+}
 
+int rdpdk_cmdline_stop(void)
+{
+	cmdline_thread_loop = 0;
 	return 0;
 }
 

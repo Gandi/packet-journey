@@ -2,10 +2,12 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <linux/if_arp.h>
+#include <poll.h>
 
 #include "rdpdk_common.h"
 
 #include "libnetlink.h"
+#define NETL_POLL_TIMEOUT 1000
 
 struct ether_addr invalid_mac = { {0x00, 0x00, 0x00, 0x00, 0x00} };
 
@@ -339,9 +341,13 @@ netl_handler(struct netl_handle *h,
 
 int netl_close(struct netl_handle *h)
 {
+	h->closing = 1;
+	return 0;
+}
 
+int netl_terminate(struct netl_handle *h)
+{
 	if (h->fd > 0) {
-		h->closing = 1;
 		close(h->fd);
 	}
 	return 0;
@@ -361,6 +367,7 @@ int netl_listen(struct netl_handle *h, void *args)
 		.msg_iovlen = 1,
 	};
 	char buf[8192];
+	struct pollfd fds[1];
 
 	if (h == NULL)
 		return -1;
@@ -372,48 +379,56 @@ int netl_listen(struct netl_handle *h, void *args)
 		if (err != 0)
 			return err;
 	}
+	fds[0].events = POLLIN;
+	fds[0].fd = h->fd;
 
 	while (h->closing != 1) {
-		iov.iov_len = sizeof(buf);
-		status = recvmsg(h->fd, &msg, 0);
-		if (status < 0) {
-			// TODO: EINT / EAGAIN / ENOBUF should continue
-			return -1;
+		int res = poll(fds, 1, NETL_POLL_TIMEOUT);
+		if (res < 0 && errno != EINTR) {
+			perror("error during cmdline_run poll");
+			return 0;
 		}
-
-		if (status == 0) {
-			// EOF
-			return -1;
-		}
-
-		if (msg.msg_namelen != sizeof(nladdr)) {
-			// Invalid length
-			return -1;
-		}
-
-		for (hdr = (struct nlmsghdr *) buf;
-			 (size_t) status >= sizeof(*hdr);) {
-			len = hdr->nlmsg_len;
-			buflen = len - sizeof(*hdr);
-
-			if (buflen < 0 || buflen > status) {
-				// truncated
+		if (fds[0].revents & POLLIN) {
+			iov.iov_len = sizeof(buf);
+			status = recvmsg(h->fd, &msg, 0);
+			if (status < 0) {
+				// TODO: EINT / EAGAIN / ENOBUF should continue
 				return -1;
 			}
 
-			err = netl_handler(h, &nladdr, hdr, args);
-			if (err < 0)
-				return err;
+			if (status == 0) {
+				// EOF
+				return -1;
+			}
 
-			status -= NLMSG_ALIGN(len);
-			hdr = (struct nlmsghdr *) ((char *) hdr + NLMSG_ALIGN(len));
+			if (msg.msg_namelen != sizeof(nladdr)) {
+				// Invalid length
+				return -1;
+			}
+
+			for (hdr = (struct nlmsghdr *) buf;
+					(size_t) status >= sizeof(*hdr);) {
+				len = hdr->nlmsg_len;
+				buflen = len - sizeof(*hdr);
+
+				if (buflen < 0 || buflen > status) {
+					// truncated
+					return -1;
+				}
+
+				err = netl_handler(h, &nladdr, hdr, args);
+				if (err < 0)
+					return err;
+
+				status -= NLMSG_ALIGN(len);
+				hdr = (struct nlmsghdr *) ((char *) hdr + NLMSG_ALIGN(len));
+			}
+
+			if (status) {
+				// content not read
+				return -1;
+			}
 		}
-
-		if (status) {
-			// content not read
-			return -1;
-		}
-
 	}
 
 	return 1;
