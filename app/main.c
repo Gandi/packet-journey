@@ -864,29 +864,8 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 					&dst_port[3], pkt[3]->ol_flags);
 }
 
-/*
- * We group consecutive packets with the same destination port into one burst.
- * To avoid extra latency this is done together with some other packet
- * processing, but after we made a final decision about packet's destination.
- * To do this we maintain:
- * pnum - array of number of consecutive packets with the same dest port for
- * each packet in the input burst.
- * lp - pointer to the last updated element in the pnum.
- * dlp - dest port value lp corresponds to.
- */
-
 #define	GRPSZ	(1 << FWDSTEP)
 #define	GRPMSK	(GRPSZ - 1)
-
-#define GROUP_PORT_STEP(dlp, dcp, lp, pn, idx)	do { \
-	if (likely((dlp) == (dcp)[(idx)])) {         \
-		(lp)[0]++;                           \
-	} else {                                     \
-		(dlp) = (dcp)[idx];                  \
-		(lp) = (pn) + (idx);                 \
-		(lp)[0] = 1;                         \
-	}                                            \
-} while (0)
 
 /*
  * Group consecutive packets with the same destination port in bursts of 4.
@@ -1150,13 +1129,31 @@ static int main_loop(__rte_unused void *dummy)
 			/* Process up to last 3 packets one by one. */
 			switch (nb_rx % FWDSTEP) {
 			case 3:
-				GROUP_PORT_STEP(dlp, dst_port, lp, pnum, j);
+				if (likely((dlp) == dst_port[j])) {
+					lp[0]++;
+				} else {
+					dlp = dst_port[j];
+					lp = &pnum[j];
+					lp[0] = 1;
+				}
 				j++;
 			case 2:
-				GROUP_PORT_STEP(dlp, dst_port, lp, pnum, j);
+				if (likely((dlp) == dst_port[j])) {
+					lp[0]++;
+				} else {
+					dlp = dst_port[j];
+					lp = &pnum[j];
+					lp[0] = 1;
+				}
 				j++;
 			case 1:
-				GROUP_PORT_STEP(dlp, dst_port, lp, pnum, j);
+				if (likely((dlp) == dst_port[j])) {
+					lp[0]++;
+				} else {
+					dlp = dst_port[j];
+					lp = &pnum[j];
+					lp[0] = 1;
+				}
 				j++;
 			}
 
