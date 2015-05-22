@@ -78,23 +78,6 @@
 #include "common.h"
 #include "kni.h"
 
-
-/* Max size of a single packet */
-#define MAX_PACKET_SZ           2048
-
-/* Number of bytes needed for each mbuf */
-#define MBUF_SZ \
-	(MAX_PACKET_SZ + sizeof(struct rte_mbuf) + RTE_PKTMBUF_HEADROOM)
-
-/* Number of mbufs in mempool that is created */
-#define NB_MBUF                 (8192 * 16)
-
-/* How many packets to attempt to read from NIC in one go */
-#define PKT_BURST_SZ            32
-
-/* How many objects (mbufs) to keep in per-lcore mempool cache */
-#define MEMPOOL_CACHE_SZ        PKT_BURST_SZ
-
 /* Total octets in ethernet header */
 #define KNI_ENET_HEADER_SIZE    14
 
@@ -150,7 +133,7 @@ static void kni_egress(struct kni_port_params *p, uint32_t lcore_id)
 	uint8_t i, port_id;
 	unsigned nb_tx, num;
 	uint32_t nb_kni;
-	struct rte_mbuf *pkts_burst[PKT_BURST_SZ];
+	struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
 
 	if (p == NULL)
 		return;
@@ -159,8 +142,8 @@ static void kni_egress(struct kni_port_params *p, uint32_t lcore_id)
 	port_id = p->port_id;
 	for (i = 0; i < nb_kni; i++) {
 		/* Burst rx from kni */
-		num = rte_kni_rx_burst(p->kni[i], pkts_burst, PKT_BURST_SZ);
-		if (unlikely(num > PKT_BURST_SZ)) {
+		num = rte_kni_rx_burst(p->kni[i], pkts_burst, MAX_PKT_BURST);
+		if (unlikely(num > MAX_PKT_BURST)) {
 			RTE_LOG(ERR, KNI, "Error receiving from KNI\n");
 			return;
 		}
@@ -367,6 +350,7 @@ void init_kni(void)
 	RTE_LOG(INFO, KNI, "number of kni %d\n", num_of_kni_ports);
 	/* Invoke rte KNI init to preallocate the ports */
 	rte_kni_init(num_of_kni_ports);
+	RTE_LOG(INFO, KNI, "finished init_kni\n");
 }
 
 /* Callback for request of changing MTU */
@@ -435,6 +419,7 @@ static int kni_config_network_interface(uint8_t port_id, uint8_t if_up)
 	if (ret < 0)
 		RTE_LOG(ERR, KNI, "Failed to start port %d\n", port_id);
 
+	RTE_LOG(INFO, KNI, "finished kni_config_network_interface\n");
 	return ret;
 }
 
@@ -481,7 +466,9 @@ int kni_alloc(uint8_t port_id, struct rte_mempool *pktmbuf_pool)
 			ops.change_mtu = kni_change_mtu;
 			ops.config_network_if = kni_config_network_interface;
 
+			RTE_LOG(INFO, KNI, "kni_alloc begin\n");
 			kni = rte_kni_alloc(pktmbuf_pool, &conf, &ops);
+			RTE_LOG(INFO, KNI, "kni_alloc end\n");
 		} else
 			kni = rte_kni_alloc(pktmbuf_pool, &conf, NULL);
 

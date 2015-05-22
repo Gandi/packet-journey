@@ -377,8 +377,8 @@ static int addr4(__rte_unused addr_action_t action, int32_t port_id,
 
 	if_indextoname(port_id, ibuf);
 	sscanf(ibuf, "vEth%d_%d", &port_id, &kni_num);
-	printf("SALUT port=%s %s/%d\n", ibuf,
-		   inet_ntop(AF_INET, addr, buf, 255), prefixlen);
+	printf("SALUT port=%s %s/%d with port_id %d\n", ibuf,
+		   inet_ntop(AF_INET, addr, buf, 255), prefixlen, port_id);
 
 	control_add_ipv4_local_entry(addr, addr, 32, port_id, socket_id);
 
@@ -397,8 +397,8 @@ static int addr6(__rte_unused addr_action_t action, int32_t port_id,
 
 	if_indextoname(port_id, ibuf);
 	sscanf(ibuf, "vEth%d_%d", &port_id, &kni_num);
-	printf("SALUT port=%s %s/%d\n", ibuf,
-		   inet_ntop(AF_INET6, addr, buf, 255), prefixlen);
+	printf("SALUT port=%s %s/%d with port_id %d\n", ibuf,
+		   inet_ntop(AF_INET6, addr, buf, 255), prefixlen, port_id);
 
 	control_add_ipv6_local_entry(addr, addr, 32, port_id, socket_id);
 
@@ -513,6 +513,7 @@ int control_add_ipv4_local_entry(struct in_addr *nexthop,
 			return -1;
 		}
 	}
+	neighbor4_set_port(neighbor4_struct[socket_id], nexthop_id, port_id);
 	s = rte_lpm_add(ipv4_l3fwd_lookup_struct[socket_id],
 					rte_be_to_cpu_32(saddr->s_addr), depth, nexthop_id);
 	if (s < 0) {
@@ -520,7 +521,6 @@ int control_add_ipv4_local_entry(struct in_addr *nexthop,
 				"failed to add a route in lpm during route adding...\n");
 		return -1;
 	}
-	neighbor4_set_port(neighbor4_struct[socket_id], nexthop_id, port_id);
 	neighbor4_refcount_incr(neighbor4_struct[socket_id], nexthop_id);
 	return nexthop_id;
 }
@@ -543,6 +543,7 @@ int control_add_ipv6_local_entry(struct in6_addr *nexthop,
 			return -1;
 		}
 	}
+	neighbor6_set_port(neighbor6_struct[socket_id], nexthop_id, port_id);
 	s = rte_lpm6_add(ipv6_l3fwd_lookup_struct[socket_id],
 					 saddr->s6_addr, depth, nexthop_id);
 	if (s < 0) {
@@ -550,7 +551,6 @@ int control_add_ipv6_local_entry(struct in6_addr *nexthop,
 				"failed to add a route in lpm during route adding...\n");
 		return -1;
 	}
-	neighbor6_set_port(neighbor6_struct[socket_id], nexthop_id, port_id);
 	neighbor6_refcount_incr(neighbor6_struct[socket_id], nexthop_id);
 	return nexthop_id;
 }

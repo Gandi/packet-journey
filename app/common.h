@@ -2,11 +2,13 @@
 #define __RDPDK_APP_COMMON_H
 
 
-#define NB_SOCKETS 8
+#define NB_SOCKETS 4
 #define RTE_LOGTYPE_L3FWD RTE_LOGTYPE_USER1
 #define RTE_LOGTYPE_L3FWD_CTRL RTE_LOGTYPE_USER1
 #define RTE_LOGTYPE_CMDLINE RTE_LOGTYPE_USER1
 #define FWDSTEP	4
+#define MAX_PKT_BURST     32
+#define MAX_PACKET_SZ     2048
 
 #ifdef RDPDK_DEBUG
 #define L3FWD_DEBUG_TRACE(fmt, args...) do {                        \

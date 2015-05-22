@@ -79,6 +79,8 @@
 #include <rte_spinlock.h>
 #include <rte_kni.h>
 #include <rte_atomic.h>
+#include <rte_lpm.h>
+#include <rte_lpm6.h>
 
 #include <libneighbour.h>
 
@@ -94,10 +96,7 @@ neighbor_struct_t *neighbor4_struct[NB_SOCKETS];
 neighbor_struct_t *neighbor6_struct[NB_SOCKETS];
 
 void *control_handle[NB_SOCKETS];
-#define DO_RFC_1812_CHECKS
 
-#include <rte_lpm.h>
-#include <rte_lpm6.h>
 
 #ifndef IPv6_BYTES
 #define IPv6_BYTES_FMT "%02x%02x:%02x%02x:%02x%02x:%02x%02x:"\
@@ -115,7 +114,7 @@ void *control_handle[NB_SOCKETS];
 
 #define MEMPOOL_CACHE_SIZE 256
 
-#define MBUF_SIZE (2048 + sizeof(struct rte_mbuf) + RTE_PKTMBUF_HEADROOM)
+#define MBUF_SIZE (MAX_PACKET_SZ + sizeof(struct rte_mbuf) + RTE_PKTMBUF_HEADROOM)
 
 /*
  * This expression is used to calculate the number of mbufs needed depending on user input, taking
@@ -130,7 +129,6 @@ void *control_handle[NB_SOCKETS];
 				nb_lcores*MEMPOOL_CACHE_SIZE),												\
 				(unsigned)8192)
 
-#define MAX_PKT_BURST     32
 #define BURST_TX_DRAIN_US 100	/* TX drain every ~100us */
 
 /*
@@ -278,30 +276,6 @@ send_burst(struct lcore_conf *qconf, uint16_t n, uint8_t port)
 	return 0;
 }
 
-/* Enqueue a single packet, and send burst if queue is filled */
-static inline int send_single_packet(struct rte_mbuf *m, uint8_t port)
-{
-	uint32_t lcore_id;
-	uint16_t len;
-	struct lcore_conf *qconf;
-
-	lcore_id = rte_lcore_id();
-
-	qconf = &lcore_conf[lcore_id];
-	len = qconf->tx_mbufs[port].len;
-	qconf->tx_mbufs[port].m_table[len] = m;
-	len++;
-
-	/* enough pkts to be sent */
-	if (unlikely(len == MAX_PKT_BURST)) {
-		send_burst(qconf, MAX_PKT_BURST, port);
-		len = 0;
-	}
-
-	qconf->tx_mbufs[port].len = len;
-	return 0;
-}
-
 static inline __attribute__ ((always_inline))
 void
 send_packetsx4(struct lcore_conf *qconf, uint8_t port,
@@ -383,47 +357,6 @@ send_packetsx4(struct lcore_conf *qconf, uint8_t port,
 	qconf->tx_mbufs[port].len = len;
 }
 
-#ifdef DO_RFC_1812_CHECKS
-static inline int
-is_valid_ipv4_pkt(struct ipv4_hdr *pkt, uint32_t link_len)
-{
-	/* From http://www.rfc-editor.org/rfc/rfc1812.txt section 5.2.2 */
-	/*
-	 * 1. The packet length reported by the Link Layer must be large
-	 * enough to hold the minimum length legal IP datagram (20 bytes).
-	 */
-	if (link_len < sizeof(struct ipv4_hdr))
-		return -1;
-
-	/* 2. The IP checksum must be correct. */
-	/* this is checked in H/W */
-
-	/*
-	 * 3. The IP version number must be 4. If the version number is not 4
-	 * then the packet may be another version of IP, such as IPng or
-	 * ST-II.
-	 */
-	if (((pkt->version_ihl) >> 4) != 4)
-		return -3;
-	/*
-	 * 4. The IP header length field must be large enough to hold the
-	 * minimum length legal IP datagram (20 bytes = 5 words).
-	 */
-	if ((pkt->version_ihl & 0xf) < 5)
-		return -4;
-
-	/*
-	 * 5. The IP total length field must be large enough to hold the IP
-	 * datagram header, whose length is specified in the IP header length
-	 * field.
-	 */
-	if (rte_cpu_to_be_16(pkt->total_length) < sizeof(struct ipv4_hdr))
-		return -5;
-
-	return 0;
-}
-#endif
-
 static inline uint8_t
 get_ipv4_dst_port(void *ipv4_hdr, uint8_t portid,
 				  lookup_struct_t * ipv4_l3fwd_lookup_struct)
@@ -448,8 +381,6 @@ get_ipv6_dst_port(void *ipv6_hdr, uint8_t portid,
 									   &next_hop) ==
 					   0) ? next_hop : portid);
 }
-
-#ifdef DO_RFC_1812_CHECKS
 
 #define	IPV4_MIN_VER_IHL	0x45
 #define	IPV4_MAX_VER_IHL	0x4f
@@ -489,11 +420,6 @@ rfc1812_process(struct ipv4_hdr *ipv4_hdr, uint16_t * dp, uint32_t flags)
 		}
 	}
 }
-
-#else
-#define	rfc1812_process(mb, dp)	do { } while (0)
-#endif							/* DO_RFC_1812_CHECKS */
-
 
 static inline __attribute__ ((always_inline)) uint16_t
 get_dst_port(const struct lcore_conf *qconf, struct rte_mbuf *pkt,
@@ -556,7 +482,7 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 #ifdef RDPDK_QEMU
 	} else if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv6)) {
 #else
-	} else if (pkt->ol_flags & PKT_RX_IPV4_HDR) {
+	} else if (pkt->ol_flags & PKT_RX_IPV6_HDR) {
 #endif
 		ipv6_hdr = (struct ipv6_hdr *) (eth_hdr + 1);
 
@@ -684,6 +610,8 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 	uint32_t nb_kni, k;
 	struct rte_mbuf *knimbuf[FWDSTEP];
 	struct kni_port_params *p;
+	uint8_t process;
+	struct ether_hdr *eth_hdr;
 
 	p = kni_port_params_array[portid];
 	nb_kni = p->nb_kni;
@@ -696,11 +624,41 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			i = 0;				// reinit i here after the first duck device iteration
 
 	case 0:
-			if (unlikely
-				(!qconf->neighbor4_struct->entries.t4[dst_port[j]].
-				 neighbor.valid
-				 || qconf->neighbor4_struct->entries.
-				 t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI)) {
+#ifdef RDPDK_QEMU
+			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
+			if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
+#else
+			if (pkt[j]->ol_flags & PKT_RX_IPV4_HDR) {
+#endif
+				process =
+					!qconf->neighbor4_struct->entries.t4[dst_port[j]].
+					neighbor.valid
+					|| qconf->neighbor4_struct->entries.
+					t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI;
+
+				L3FWD_DEBUG_TRACE("0: j %d process %d dst_port %d ipv4\n",
+								  j, process, dst_port[j]);
+#ifdef RDPDK_QEMU
+			} else if (eth_hdr->ether_type ==
+					   rte_be_to_cpu_16(ETHER_TYPE_IPv6)) {
+#else
+			} else if (pkt[j]->ol_flags & PKT_RX_IPV6_HDR) {
+#endif
+				process =
+					!qconf->neighbor6_struct->entries.t6[dst_port[j]].
+					neighbor.valid
+					|| qconf->neighbor6_struct->entries.
+					t6[dst_port[j]].neighbor.action == NEI_ACTION_KNI;
+				L3FWD_DEBUG_TRACE("0: j %d process %d ipv6\n", j, process);
+			} else {
+				process = 1;
+				eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
+				L3FWD_DEBUG_TRACE
+					("0: j %d process %d olflags%lu eth_type %x\n", j,
+					 process, pkt[j]->ol_flags, eth_hdr->ether_type);
+			}
+
+			if (unlikely(process)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -712,16 +670,45 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 				}
 
 				L3FWD_DEBUG_TRACE
-					("0: j %d nb_rx %d i %d nb_kni %d lcore_id %d\n", j,
-					 nb_rx, i, nb_kni, lcore_id);
+					("0: j %d nb_rx %d i %d dst_port %d lcore_id %d\n", j,
+					 nb_rx, i, dst_port[j], lcore_id);
 			} else
 				j++;
 	case 3:
-			if (unlikely
-				(!qconf->neighbor4_struct->entries.t4[dst_port[j]].
-				 neighbor.valid
-				 || qconf->neighbor4_struct->entries.
-				 t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI)) {
+#ifdef RDPDK_QEMU
+			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
+			if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
+#else
+			if (pkt[j]->ol_flags & PKT_RX_IPV4_HDR) {
+#endif
+				process =
+					!qconf->neighbor4_struct->entries.t4[dst_port[j]].
+					neighbor.valid
+					|| qconf->neighbor4_struct->entries.
+					t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI;
+				L3FWD_DEBUG_TRACE("3: j %d process %d dst_port %d ipv4\n",
+								  j, process, dst_port[j]);
+#ifdef RDPDK_QEMU
+			} else if (eth_hdr->ether_type ==
+					   rte_be_to_cpu_16(ETHER_TYPE_IPv6)) {
+#else
+			} else if (pkt[j]->ol_flags & PKT_RX_IPV6_HDR) {
+#endif
+				process =
+					!qconf->neighbor6_struct->entries.t6[dst_port[j]].
+					neighbor.valid
+					|| qconf->neighbor6_struct->entries.
+					t6[dst_port[j]].neighbor.action == NEI_ACTION_KNI;
+				L3FWD_DEBUG_TRACE("3: j %d process %d ipv6\n", j, process);
+			} else {
+				process = 1;
+				eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
+				L3FWD_DEBUG_TRACE
+					("3: j %d process %d olflags%lu eth_type %x\n", j,
+					 process, pkt[j]->ol_flags, eth_hdr->ether_type);
+			}
+
+			if (unlikely(process)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -732,16 +719,45 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					flag[j] = flag[nb_rx];
 				}
 				L3FWD_DEBUG_TRACE
-					("3: j %d nb_rx %d i %d nb_kni %d lcore_id %d\n", j,
-					 nb_rx, i, nb_kni, lcore_id);
+					("3: j %d nb_rx %d i %d dst_port %d lcore_id %d\n", j,
+					 nb_rx, i, dst_port[j], lcore_id);
 			} else
 				j++;
 	case 2:
-			if (unlikely
-				(!qconf->neighbor4_struct->entries.t4[dst_port[j]].
-				 neighbor.valid
-				 || qconf->neighbor4_struct->entries.
-				 t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI)) {
+#ifdef RDPDK_QEMU
+			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
+			if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
+#else
+			if (pkt[j]->ol_flags & PKT_RX_IPV4_HDR) {
+#endif
+				process =
+					!qconf->neighbor4_struct->entries.t4[dst_port[j]].
+					neighbor.valid
+					|| qconf->neighbor4_struct->entries.
+					t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI;
+				L3FWD_DEBUG_TRACE("2: j %d process %d dst_port %d ipv4\n",
+								  j, process, dst_port[j]);
+#ifdef RDPDK_QEMU
+			} else if (eth_hdr->ether_type ==
+					   rte_be_to_cpu_16(ETHER_TYPE_IPv6)) {
+#else
+			} else if (pkt[j]->ol_flags & PKT_RX_IPV6_HDR) {
+#endif
+				process =
+					!qconf->neighbor6_struct->entries.t6[dst_port[j]].
+					neighbor.valid
+					|| qconf->neighbor6_struct->entries.
+					t6[dst_port[j]].neighbor.action == NEI_ACTION_KNI;
+				L3FWD_DEBUG_TRACE("2: j %d process %d ipv6\n", j, process);
+			} else {
+				process = 1;
+				eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
+				L3FWD_DEBUG_TRACE
+					("2: j %d process %d olflags%lu eth_type %x\n", j,
+					 process, pkt[j]->ol_flags, eth_hdr->ether_type);
+			}
+
+			if (unlikely(process)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -752,16 +768,45 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					flag[j] = flag[nb_rx];
 				}
 				L3FWD_DEBUG_TRACE
-					("2: j %d nb_rx %d i %d nb_kni %d lcore_id %d\n", j,
-					 nb_rx, i, nb_kni, lcore_id);
+					("2: j %d nb_rx %d i %d dst_port %d lcore_id %d\n", j,
+					 nb_rx, i, dst_port[j], lcore_id);
 			} else
 				j++;
 	case 1:
-			if (unlikely
-				(!qconf->neighbor4_struct->entries.t4[dst_port[j]].
-				 neighbor.valid
-				 || qconf->neighbor4_struct->entries.
-				 t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI)) {
+#ifdef RDPDK_QEMU
+			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
+			if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
+#else
+			if (pkt[j]->ol_flags & PKT_RX_IPV4_HDR) {
+#endif
+				process =
+					!qconf->neighbor4_struct->entries.t4[dst_port[j]].
+					neighbor.valid
+					|| qconf->neighbor4_struct->entries.
+					t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI;
+				L3FWD_DEBUG_TRACE("1: j %d process %d dst_port %d ipv4\n",
+								  j, process, dst_port[j]);
+#ifdef RDPDK_QEMU
+			} else if (eth_hdr->ether_type ==
+					   rte_be_to_cpu_16(ETHER_TYPE_IPv6)) {
+#else
+			} else if (pkt[j]->ol_flags & PKT_RX_IPV6_HDR) {
+#endif
+				process =
+					!qconf->neighbor6_struct->entries.t6[dst_port[j]].
+					neighbor.valid
+					|| qconf->neighbor6_struct->entries.
+					t6[dst_port[j]].neighbor.action == NEI_ACTION_KNI;
+				L3FWD_DEBUG_TRACE("1: j %d process %d ipv6\n", j, process);
+			} else {
+				process = 1;
+				eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
+				L3FWD_DEBUG_TRACE
+					("1: j %d process %d olflags%lu eth_type %x\n", j,
+					 process, pkt[j]->ol_flags, eth_hdr->ether_type);
+			}
+
+			if (unlikely(process)) {
 				//no dest neighbor addr available, send it through the kni
 				knimbuf[i++] = pkt[j];
 				if (j != --nb_rx) {
@@ -772,8 +817,8 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					flag[j] = flag[nb_rx];
 				}
 				L3FWD_DEBUG_TRACE
-					("1: j %d nb_rx %d i %d nb_kni %d lcore_id %d\n", j,
-					 nb_rx, i, nb_kni, lcore_id);
+					("1: j %d nb_rx %d i %d dst_port %d lcore_id %d\n", j,
+					 nb_rx, i, dst_port[j], lcore_id);
 			} else
 				j++;
 			if (i == 0)
@@ -1540,7 +1585,7 @@ static int init_mem(unsigned nb_mbuf)
 	struct lcore_conf *qconf;
 	int socketid;
 	unsigned lcore_id;
-	uint8_t nb_sys_ports, port;
+	uint8_t port;
 	char s[64];
 
 	memset(&kni_neighbor, 0, sizeof(kni_neighbor));
@@ -1581,35 +1626,26 @@ static int init_mem(unsigned nb_mbuf)
 
 			setup_lpm(socketid);
 		}
+		if (knimbuf_pool[socketid] == NULL) {
+			snprintf(s, sizeof(s), "knimbuf_pool_%d", socketid);
+			knimbuf_pool[socketid] =
+				rte_mempool_create(s, nb_mbuf, MBUF_SIZE,
+								   MEMPOOL_CACHE_SIZE,
+								   sizeof(struct rte_pktmbuf_pool_private),
+								   rte_pktmbuf_pool_init, NULL,
+								   rte_pktmbuf_init, NULL, socketid, 0);
+			if (knimbuf_pool[socketid] == NULL)
+				rte_exit(EXIT_FAILURE,
+						 "Cannot init kni mbuf pool on socket %d\n",
+						 socketid);
+			else
+				printf("Allocated kni mbuf pool on socket %d\n", socketid);
+		}
 		qconf = &lcore_conf[lcore_id];
 		qconf->ipv4_lookup_struct = ipv4_l3fwd_lookup_struct[socketid];
 		qconf->neighbor4_struct = neighbor4_struct[socketid];
 		qconf->ipv6_lookup_struct = ipv6_l3fwd_lookup_struct[socketid];
 		qconf->neighbor6_struct = neighbor6_struct[socketid];
-	}
-
-	/* Get number of ports found in scan */
-	nb_sys_ports = rte_eth_dev_count();
-	if (nb_sys_ports == 0)
-		rte_exit(EXIT_FAILURE, "No supported Ethernet device found\n");
-
-	for (port = 0; port < nb_sys_ports; port++) {
-
-		if (knimbuf_pool[port] == NULL) {
-			snprintf(s, sizeof(s), "knimbuf_pool_%d", port);
-			knimbuf_pool[port] =
-				rte_mempool_create(s, nb_mbuf, MBUF_SIZE,
-								   MEMPOOL_CACHE_SIZE,
-								   sizeof(struct rte_pktmbuf_pool_private),
-								   rte_pktmbuf_pool_init, NULL,
-								   rte_pktmbuf_init, NULL, 0, 0);
-			if (knimbuf_pool[port] == NULL)
-				rte_exit(EXIT_FAILURE,
-						 "Cannot init kni mbuf pool on port %d\n", port);
-			else
-				printf("Allocated kni mbuf pool on port %d\n", port);
-		}
-
 	}
 	return 0;
 }
@@ -1749,30 +1785,29 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 static int alloc_kni_ports(void)
 {
 	uint8_t nb_sys_ports, port;
-	unsigned i;
 	/* Get number of ports found in scan */
 	nb_sys_ports = rte_eth_dev_count();
 	if (nb_sys_ports == 0)
 		rte_exit(EXIT_FAILURE, "No supported Ethernet device found\n");
 
 	/* Check if the configured port ID is valid */
-	for (i = 0; i < RTE_MAX_ETHPORTS; i++)
-		if (kni_port_params_array[i] && i >= nb_sys_ports)
+	for (port = 0; port < RTE_MAX_ETHPORTS; port++)
+		if (kni_port_params_array[port] && port >= nb_sys_ports)
 			rte_exit(EXIT_FAILURE, "Configured invalid "
-					 "port ID %u\n", i);
+					 "port ID %u\n", port);
 
 	/* Initialise each port */
 	for (port = 0; port < nb_sys_ports; port++) {
 		/* Skip ports that are not enabled */
 		if (!(enabled_port_mask & (1 << port)))
 			continue;
+		if (!kni_port_params_array[port])
+			continue;
 
-		if (port >= RTE_MAX_ETHPORTS)
-			rte_exit(EXIT_FAILURE, "Can not use more than "
-					 "%d ports for kni\n", RTE_MAX_ETHPORTS);
-
+		int lcore_id = kni_port_params_array[port]->lcore_k[0];
+		int socketid = (uint8_t) rte_lcore_to_socket_id(lcore_id);
 		//XXX we use another mbuf_pool here, its for incoming packets
-		if (kni_alloc(port, knimbuf_pool[port])) {
+		if (kni_alloc(port, knimbuf_pool[socketid])) {
 			rte_exit(EXIT_FAILURE, "failed to allocate kni");
 		}
 	}
@@ -1954,14 +1989,17 @@ int main(int argc, char **argv)
 	pthread_setname_np(pthread_self(), thread_name);
 	pthread_join(control_tid, NULL);
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+		printf("waiting %d\n", lcore_id);
 		if (rte_eal_wait_lcore(lcore_id) < 0)
 			return -1;
 	}
+	printf("rte_eal_wait_lcore finished\n");
 	/* start ports */
 	for (portid = 0; portid < nb_ports; portid++) {
 		if ((enabled_port_mask & (1 << portid)) == 0) {
 			continue;
 		}
+		printf("freeing kniportid %d\n", portid);
 		kni_free_kni(portid);
 		rte_eth_dev_stop(portid);
 	}
