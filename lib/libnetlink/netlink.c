@@ -11,24 +11,24 @@
 
 struct ether_addr invalid_mac = { {0x00, 0x00, 0x00, 0x00, 0x00} };
 
-static inline __u32 rta_getattr_u32(const struct rtattr *rta)
+static inline __u32 rta_getattr_u32(struct rtattr *rta)
 {
 	return *(__u32 *) RTA_DATA(rta);
 }
 
-static inline __u16 rta_getattr_u16(const struct rtattr *rta)
+static inline __u16 rta_getattr_u16(struct rtattr *rta)
 {
 	return *(__u16 *) RTA_DATA(rta);
 }
 
-static inline __u8 rta_getattr_u8(const struct rtattr *rta)
+static inline __u8 rta_getattr_u8(struct rtattr *rta)
 {
 	return *(__u8 *) RTA_DATA(rta);
 }
 
-static inline const char *rta_getattr_str(const struct rtattr *rta)
+static inline char *rta_getattr_str(struct rtattr *rta)
 {
-	return (const char *) RTA_DATA(rta);
+	return (char *) RTA_DATA(rta);
 }
 
 static inline int rtm_get_table(struct rtmsg *r, struct rtattr **tb)

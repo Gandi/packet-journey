@@ -241,7 +241,6 @@ int kni_parse_config(const char *arg)
 			}
 		}
 
-		i = 0;
 		port_id = (uint8_t) int_fld[FLD_PORT];
 		if (port_id >= RTE_MAX_ETHPORTS) {
 			printf("Port ID %d could not exceed the maximum %d\n",

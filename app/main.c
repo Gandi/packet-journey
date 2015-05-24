@@ -1195,7 +1195,6 @@ static int main_loop(__rte_unused void *dummy)
 				if (likely((dlp) == dst_port[j])) {
 					lp[0]++;
 				} else {
-					dlp = dst_port[j];
 					lp = &pnum[j];
 					lp[0] = 1;
 				}
