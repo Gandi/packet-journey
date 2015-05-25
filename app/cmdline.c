@@ -63,7 +63,7 @@ static void cmd_obj_lpm_lkp_parsed(void *parsed_result,
 		i = rte_lpm_lookup(ipv4_l3fwd_lookup_struct[0],
 						   rte_be_to_cpu_32(res->ip.addr.ipv4.s_addr),
 						   &next_hop);
-		if (i == -ENOENT) {
+		if (i < 0) {
 			cmdline_printf(cl, "not found\n");
 		} else {
 			struct in_addr *addr =
@@ -75,7 +75,7 @@ static void cmd_obj_lpm_lkp_parsed(void *parsed_result,
 	} else if (res->ip.family == AF_INET6) {
 		i = rte_lpm6_lookup(ipv6_l3fwd_lookup_struct[0],
 							res->ip.addr.ipv6.s6_addr, &next_hop);
-		if (i == -ENOENT) {
+		if (i < 0) {
 			cmdline_printf(cl, "not found\n");
 		} else {
 			struct in6_addr *addr =

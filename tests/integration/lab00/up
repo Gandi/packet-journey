@@ -8,3 +8,4 @@ ip link set $link1 up
 ip link set $link1 address $mac1
 
 ip addr add 1.2.3.4/24 dev $link1
+ip route add 1.2.4.0/24 via 1.2.3.5

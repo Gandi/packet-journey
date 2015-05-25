@@ -258,7 +258,8 @@ neighbor4(neighbor_action_t action,
 				return -1;
 			}
 		}
-		//printf("%s\n", ibuf);
+		RTE_LOG(DEBUG, L3FWD_CTRL, "add neighbor4 with port_id %d\n",
+				port_id);
 		neighbor4_set_lladdr_port(neighbor4_struct[socket_id], nexthop_id,
 								  lladdr, port_id);
 		neighbor4_set_state(neighbor4_struct[socket_id], nexthop_id,
@@ -345,6 +346,8 @@ neighbor6(neighbor_action_t action,
 				return -1;
 			}
 		}
+		RTE_LOG(DEBUG, L3FWD_CTRL, "add neighbor4 with port_id %d\n",
+				port_id);
 		neighbor6_set_lladdr_port(neighbor6_struct[socket_id], nexthop_id,
 								  lladdr, port_id);
 		neighbor6_set_state(neighbor6_struct[socket_id], nexthop_id,

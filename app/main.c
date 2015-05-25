@@ -610,7 +610,9 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 	struct rte_mbuf *knimbuf[FWDSTEP];
 	struct kni_port_params *p;
 	uint8_t process;
+#ifdef RDPDK_QEMU
 	struct ether_hdr *eth_hdr;
+#endif
 
 	p = kni_port_params_array[portid];
 	nb_kni = p->nb_kni;
@@ -651,10 +653,12 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 				L3FWD_DEBUG_TRACE("0: j %d process %d ipv6\n", j, process);
 			} else {
 				process = 1;
-				eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
 				L3FWD_DEBUG_TRACE
 					("0: j %d process %d olflags%lu eth_type %x\n", j,
-					 process, pkt[j]->ol_flags, eth_hdr->ether_type);
+					 process, pkt[j]->ol_flags, rte_pktmbuf_mtod(pkt[j],
+																 struct
+																 ether_hdr
+																 *)->ether_type);
 			}
 
 			if (unlikely(process)) {
@@ -699,10 +703,12 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 				L3FWD_DEBUG_TRACE("3: j %d process %d ipv6\n", j, process);
 			} else {
 				process = 1;
-				eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
 				L3FWD_DEBUG_TRACE
 					("3: j %d process %d olflags%lu eth_type %x\n", j,
-					 process, pkt[j]->ol_flags, eth_hdr->ether_type);
+					 process, pkt[j]->ol_flags, rte_pktmbuf_mtod(pkt[j],
+																 struct
+																 ether_hdr
+																 *)->ether_type);
 			}
 
 			if (unlikely(process)) {
@@ -746,10 +752,12 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 				L3FWD_DEBUG_TRACE("2: j %d process %d ipv6\n", j, process);
 			} else {
 				process = 1;
-				eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
 				L3FWD_DEBUG_TRACE
 					("2: j %d process %d olflags%lu eth_type %x\n", j,
-					 process, pkt[j]->ol_flags, eth_hdr->ether_type);
+					 process, pkt[j]->ol_flags, rte_pktmbuf_mtod(pkt[j],
+																 struct
+																 ether_hdr
+																 *)->ether_type);
 			}
 
 			if (unlikely(process)) {
@@ -793,10 +801,12 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 				L3FWD_DEBUG_TRACE("1: j %d process %d ipv6\n", j, process);
 			} else {
 				process = 1;
-				eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
 				L3FWD_DEBUG_TRACE
 					("1: j %d process %d olflags%lu eth_type %x\n", j,
-					 process, pkt[j]->ol_flags, eth_hdr->ether_type);
+					 process, pkt[j]->ol_flags, rte_pktmbuf_mtod(pkt[j],
+																 struct
+																 ether_hdr
+																 *)->ether_type);
 			}
 
 			if (unlikely(process)) {
@@ -817,7 +827,6 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			for (k = 0; k < nb_kni; k++) {
 				num = rte_kni_tx_burst(p->kni[k], knimbuf, i);
 				stats[lcore_id].nb_kni_tx += nb_rx;
-				rte_kni_handle_request(p->kni[k]);
 				if (unlikely(num < i)) {
 					/* Free mbufs not tx to kni interface */
 					if (num > 0)
@@ -845,34 +854,53 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	__m128i te[FWDSTEP];
 	__m128i ve[FWDSTEP];
 	__m128i *p[FWDSTEP];
+	struct nei_entry *entries[FWDSTEP];
 
 	p[0] = (rte_pktmbuf_mtod(pkt[0], __m128i *));
 	p[1] = (rte_pktmbuf_mtod(pkt[1], __m128i *));
 	p[2] = (rte_pktmbuf_mtod(pkt[2], __m128i *));
 	p[3] = (rte_pktmbuf_mtod(pkt[3], __m128i *));
 
-	ve[0] =
-		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-					   entries.t4[dst_port[0]].neighbor.nexthop_hwaddr);
-	ve[1] =
-		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-					   entries.t4[dst_port[1]].neighbor.nexthop_hwaddr);
-	ve[2] =
-		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-					   entries.t4[dst_port[2]].neighbor.nexthop_hwaddr);
-	ve[3] =
-		_mm_load_si128((__m128i *) & qconf->neighbor4_struct->
-					   entries.t4[dst_port[3]].neighbor.nexthop_hwaddr);
+
+	//FIXME add RDPDK_QEMU cases
+	if (pkt[0]->ol_flags & PKT_RX_IPV4_HDR)
+		entries[0] =
+			&qconf->neighbor4_struct->entries.t4[dst_port[0]].neighbor;
+	else
+		entries[0] =
+			&qconf->neighbor6_struct->entries.t6[dst_port[0]].neighbor;
+
+	if (pkt[1]->ol_flags & PKT_RX_IPV4_HDR)
+		entries[1] =
+			&qconf->neighbor4_struct->entries.t4[dst_port[1]].neighbor;
+	else
+		entries[1] =
+			&qconf->neighbor6_struct->entries.t6[dst_port[1]].neighbor;
+
+	if (pkt[2]->ol_flags & PKT_RX_IPV4_HDR)
+		entries[2] =
+			&qconf->neighbor4_struct->entries.t4[dst_port[2]].neighbor;
+	else
+		entries[2] =
+			&qconf->neighbor6_struct->entries.t6[dst_port[2]].neighbor;
+
+	if (pkt[3]->ol_flags & PKT_RX_IPV4_HDR)
+		entries[3] =
+			&qconf->neighbor4_struct->entries.t4[dst_port[3]].neighbor;
+	else
+		entries[3] =
+			&qconf->neighbor6_struct->entries.t6[dst_port[3]].neighbor;
+
+	ve[0] = _mm_load_si128((__m128i *) & entries[0]->nexthop_hwaddr);
+	ve[1] = _mm_load_si128((__m128i *) & entries[1]->nexthop_hwaddr);
+	ve[2] = _mm_load_si128((__m128i *) & entries[2]->nexthop_hwaddr);
+	ve[3] = _mm_load_si128((__m128i *) & entries[3]->nexthop_hwaddr);
 
 	/* Pivot dst_port */
-	dst_port[0] =
-		qconf->neighbor4_struct->entries.t4[dst_port[0]].neighbor.port_id;
-	dst_port[1] =
-		qconf->neighbor4_struct->entries.t4[dst_port[1]].neighbor.port_id;
-	dst_port[2] =
-		qconf->neighbor4_struct->entries.t4[dst_port[2]].neighbor.port_id;
-	dst_port[3] =
-		qconf->neighbor4_struct->entries.t4[dst_port[3]].neighbor.port_id;
+	dst_port[0] = entries[0]->port_id;
+	dst_port[1] = entries[1]->port_id;
+	dst_port[2] = entries[2]->port_id;
+	dst_port[3] = entries[3]->port_id;
 
 	te[0] = _mm_load_si128(p[0]);
 	te[1] = _mm_load_si128(p[1]);

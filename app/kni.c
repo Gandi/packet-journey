@@ -149,6 +149,7 @@ static void kni_egress(struct kni_port_params *p, uint32_t lcore_id)
 		}
 		/* Burst tx to eth */
 		nb_tx = rte_eth_tx_burst(port_id, 0, pkts_burst, (uint16_t) num);
+		rte_kni_handle_request(p->kni[i]);
 		stats[lcore_id].nb_kni_tx += nb_tx;
 		if (unlikely(nb_tx < num)) {
 			/* Free mbufs not tx to NIC */
