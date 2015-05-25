@@ -603,8 +603,7 @@ processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
 static inline int
 processx4_step_checkneighbor(struct lcore_conf *qconf,
 							 struct rte_mbuf **pkt, uint16_t * dst_port,
-							 __m128i * dip, uint32_t * flag, int nb_rx,
-							 uint8_t portid, unsigned lcore_id)
+							 int nb_rx, uint8_t portid, unsigned lcore_id)
 {
 	int i, j, num;
 	uint32_t nb_kni, k;
@@ -665,8 +664,6 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					//we have more packets, deplace last one and its info
 					pkt[j] = pkt[nb_rx];
 					dst_port[j] = dst_port[nb_rx];
-					dip[j] = dip[nb_rx];
-					flag[j] = flag[nb_rx];
 				}
 
 				L3FWD_DEBUG_TRACE
@@ -715,8 +712,6 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					//we have more packets, deplace last one and its info
 					pkt[j] = pkt[nb_rx];
 					dst_port[j] = dst_port[nb_rx];
-					dip[j] = dip[nb_rx];
-					flag[j] = flag[nb_rx];
 				}
 				L3FWD_DEBUG_TRACE
 					("3: j %d nb_rx %d i %d dst_port %d lcore_id %d\n", j,
@@ -764,8 +759,6 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					//we have more packets, deplace last one and its info
 					pkt[j] = pkt[nb_rx];
 					dst_port[j] = dst_port[nb_rx];
-					dip[j] = dip[nb_rx];
-					flag[j] = flag[nb_rx];
 				}
 				L3FWD_DEBUG_TRACE
 					("2: j %d nb_rx %d i %d dst_port %d lcore_id %d\n", j,
@@ -813,8 +806,6 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					//we have more packets, deplace last one and its info
 					pkt[j] = pkt[nb_rx];
 					dst_port[j] = dst_port[nb_rx];
-					dip[j] = dip[nb_rx];
-					flag[j] = flag[nb_rx];
 				}
 				L3FWD_DEBUG_TRACE
 					("1: j %d nb_rx %d i %d dst_port %d lcore_id %d\n", j,
@@ -1114,7 +1105,7 @@ static int main_loop(__rte_unused void *dummy)
 			if (likely(nb_rx))
 				nb_rx =
 					processx4_step_checkneighbor(qconf, pkts_burst,
-												 dst_port, dip, flag,
+												 dst_port,
 												 nb_rx, portid, lcore_id);
 
 			/*
