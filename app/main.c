@@ -245,7 +245,7 @@ struct lcore_conf {
 	neighbor_struct_t *neighbor6_struct;
 } __rte_cache_aligned;
 
-struct lcore_stats stats[RTE_MAX_LCORE] __rte_cache_aligned;
+struct lcore_stats stats[RTE_MAX_LCORE];
 
 static struct lcore_conf lcore_conf[RTE_MAX_LCORE];
 static rte_spinlock_t spinlock_conf[RTE_MAX_ETHPORTS] =
@@ -517,7 +517,7 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 			if (res == 1) {
 				stats[lcore_id].nb_kni_tx++;
 			} else {
-				stats[lcore_id].nb_kni_tx++;
+				stats[lcore_id].nb_kni_dropped++;
 				kni_burst_free_mbufs(&pkt, 1);
 			}
 		}
@@ -1097,8 +1097,9 @@ static int main_loop(__rte_unused void *dummy)
 
 			/* Process up to last 3 packets one by one. */
 			j = 0;
-			L3FWD_DEBUG_TRACE("main_loop nb_rx %d before process_packet\n",
-							  nb_rx);
+			L3FWD_DEBUG_TRACE
+				("main_loop nb_rx %d  queue_id %d before process_packet\n",
+				 nb_rx, queueid);
 			switch (nb_rx % FWDSTEP) {
 			case 3:
 				j = process_packet(qconf, pkts_burst[nb_rx - 3],
@@ -1188,6 +1189,7 @@ static int main_loop(__rte_unused void *dummy)
 				/* set dlp and lp to the never used values. */
 				dlp = BAD_PORT - 1;
 				lp = pnum + MAX_PKT_BURST;
+				j = 0;
 			}
 
 			/* Process up to last 3 packets one by one. */
@@ -1886,6 +1888,13 @@ int main(int argc, char **argv)
 	argc -= ret;
 	argv += ret;
 
+	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+		snprintf(thread_name, 16, "lcore-slave-%d", lcore_id);
+		pthread_setname_np(lcore_config[lcore_id].thread_id, thread_name);
+	}
+	snprintf(thread_name, 16, "lcore-master");
+	pthread_setname_np(pthread_self(), thread_name);
+
 	/* parse application arguments (after the EAL ones) */
 	ret = parse_args(argc, argv);
 	if (ret < 0)
@@ -1989,7 +1998,6 @@ int main(int argc, char **argv)
 	/* launch per-lcore init on every lcore */
 	//rte_eal_mp_remote_launch(main_loop, NULL, SKIP_MASTER);
 	rte_eal_remote_launch(main_loop, NULL, 1);
-	rte_eal_remote_launch(main_loop, NULL, 2);
 
 	if ((ret = control_callback_setup(callback_setup))) {
 		perror("control_callback_setup failure with: ");
@@ -1999,12 +2007,7 @@ int main(int argc, char **argv)
 
 	printf("launching kni thread\n");
 	rte_eal_remote_launch(kni_main_loop, NULL, 3);
-	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
-		snprintf(thread_name, 16, "lcore-slave-%d", lcore_id);
-		pthread_setname_np(lcore_config[lcore_id].thread_id, thread_name);
-	}
-	snprintf(thread_name, 16, "lcore-master");
-	pthread_setname_np(pthread_self(), thread_name);
+
 	pthread_join(control_tid, NULL);
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
 		printf("waiting %d\n", lcore_id);
