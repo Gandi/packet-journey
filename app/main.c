@@ -456,15 +456,13 @@ get_dst_port(const struct lcore_conf *qconf, struct rte_mbuf *pkt,
 }
 
 static inline int
-process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
-			   uint16_t * dst_port, uint8_t portid, unsigned lcore_id)
+process_step2(struct lcore_conf *qconf, struct rte_mbuf *pkt,
+			  uint16_t * dst_port, uint8_t portid)
 {
 	struct ether_hdr *eth_hdr;
 	uint16_t dp;
-	__m128i te, ve;
-	struct ipv4_hdr *ipv4_hdr = 0;
+	struct ipv4_hdr *ipv4_hdr;
 	struct ipv6_hdr *ipv6_hdr;
-	struct nei_entry *neighbor;
 
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
 
@@ -475,10 +473,11 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 #endif
 		ipv4_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
 
-		dp = get_ipv4_dst_port(ipv4_hdr, 0, qconf->ipv4_lookup_struct);
+		dp = get_ipv4_dst_port(ipv4_hdr, portid,
+							   qconf->ipv4_lookup_struct);
 		L3FWD_DEBUG_TRACE("process_packet4 res %d\n", dp);
 
-		neighbor = &qconf->neighbor4_struct->entries.t4[dp].neighbor;
+		dst_port[0] = dp;
 #ifdef RDPDK_QEMU
 	} else if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv6)) {
 #else
@@ -486,45 +485,12 @@ process_packet(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 #endif
 		ipv6_hdr = (struct ipv6_hdr *) (eth_hdr + 1);
 
-		dp = get_ipv6_dst_port(ipv6_hdr, 0, qconf->ipv6_lookup_struct);
-		neighbor = &qconf->neighbor6_struct->entries.t6[dp].neighbor;
+		dp = get_ipv6_dst_port(ipv6_hdr, portid,
+							   qconf->ipv6_lookup_struct);
+		dst_port[0] = dp;
 		L3FWD_DEBUG_TRACE("process_packet6 res %d\n", dp);
-	} else {
-		L3FWD_DEBUG_TRACE("process_packet4 res kni\n");
-		neighbor = &kni_neighbor[portid];
 	}
-
-	dst_port[0] = neighbor->port_id;
-
-	if (likely(neighbor->action == NEI_ACTION_FWD)) {
-		//TODO test it, may need to use eth = rte_pktmbuf_mtod(m, struct ether_hdr *); ether_addr_copy(from, eth->d_addr);
-		te = _mm_load_si128((__m128i *) eth_hdr);
-		ve = _mm_load_si128((__m128i *) & neighbor->nexthop_hwaddr);
-		te = _mm_blend_epi16(te, ve, MASK_ETH);
-		_mm_store_si128((__m128i *) eth_hdr, te);
-		rfc1812_process(ipv4_hdr, dst_port, pkt->ol_flags);
-		return 0;
-		/* XXX: Need to rewrite source mac */
-	} else if (neighbor->action == NEI_ACTION_KNI) {
-		struct kni_port_params *p =
-			kni_port_params_array[neighbor->port_id];
-		uint32_t nb_kni = p->nb_kni;
-		uint32_t k;
-		int res;
-
-		for (k = 0; k < nb_kni; k++) {
-			res = rte_kni_tx_burst(p->kni[k], &pkt, 1);
-			if (res == 1) {
-				stats[lcore_id].nb_kni_tx++;
-			} else {
-				stats[lcore_id].nb_kni_dropped++;
-				kni_burst_free_mbufs(&pkt, 1);
-			}
-		}
-		return 1;
-	} else {
-		return 0;
-	}
+	return 0;
 }
 
 /*
@@ -843,6 +809,31 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 	return nb_rx;
 }
 
+static inline void
+process_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt,
+			  uint16_t * dst_port)
+{
+	__m128i *p;
+	__m128i te;
+	__m128i ve;
+	struct nei_entry *entries;
+
+	p = (rte_pktmbuf_mtod(pkt, __m128i *));
+	if (pkt->ol_flags & PKT_RX_IPV4_HDR)
+		entries = &qconf->neighbor4_struct->entries.t4[*dst_port].neighbor;
+	else
+		entries = &qconf->neighbor6_struct->entries.t6[*dst_port].neighbor;
+
+
+	ve = _mm_load_si128((__m128i *) & entries->nexthop_hwaddr);
+	*dst_port = entries->port_id;
+	te = _mm_load_si128(p);
+	te = _mm_blend_epi16(te, ve, MASK_ETH);
+	_mm_store_si128(p, te);
+	rfc1812_process((struct ipv4_hdr *) ((struct ether_hdr *) p + 1),
+					dst_port, pkt->ol_flags);
+}
+
 /*
  * Update source and destination MAC addresses in the ethernet header.
  * Perform RFC1812 checks and updates for IPV4 packets.
@@ -1102,20 +1093,15 @@ static int main_loop(__rte_unused void *dummy)
 				 nb_rx, queueid);
 			switch (nb_rx % FWDSTEP) {
 			case 3:
-				j = process_packet(qconf, pkts_burst[nb_rx - 3],
-								   dst_port + nb_rx - 3, portid, lcore_id);
+				process_step2(qconf, pkts_burst[nb_rx - 3],
+							  dst_port + nb_rx - 3, portid);
 			case 2:
-				j += process_packet(qconf, pkts_burst[nb_rx - 2],
-									dst_port + nb_rx - 2, portid,
-									lcore_id);
+				process_step2(qconf, pkts_burst[nb_rx - 2],
+							  dst_port + nb_rx - 2, portid);
 			case 1:
-				j += process_packet(qconf, pkts_burst[nb_rx - 1],
-									dst_port + nb_rx - 1, portid,
-									lcore_id);
+				process_step2(qconf, pkts_burst[nb_rx - 1],
+							  dst_port + nb_rx - 1, portid);
 			}
-			nb_rx -= j;
-			L3FWD_DEBUG_TRACE("main_loop nb_rx %d after process_packet\n",
-							  nb_rx);
 
 			k = RTE_ALIGN_FLOOR(nb_rx, FWDSTEP);
 			for (j = 0; j != k; j += FWDSTEP) {
@@ -1195,6 +1181,7 @@ static int main_loop(__rte_unused void *dummy)
 			/* Process up to last 3 packets one by one. */
 			switch (nb_rx % FWDSTEP) {
 			case 3:
+				process_step3(qconf, pkts_burst[j], &dst_port[j]);
 				if (likely((dlp) == dst_port[j])) {
 					lp[0]++;
 				} else {
@@ -1204,6 +1191,7 @@ static int main_loop(__rte_unused void *dummy)
 				}
 				j++;
 			case 2:
+				process_step3(qconf, pkts_burst[j], &dst_port[j]);
 				if (likely((dlp) == dst_port[j])) {
 					lp[0]++;
 				} else {
@@ -1213,6 +1201,7 @@ static int main_loop(__rte_unused void *dummy)
 				}
 				j++;
 			case 1:
+				process_step3(qconf, pkts_burst[j], &dst_port[j]);
 				if (likely((dlp) == dst_port[j])) {
 					lp[0]++;
 				} else {

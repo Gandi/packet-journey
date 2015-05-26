@@ -185,6 +185,8 @@ netl_handler(struct netl_handle *h,
 			action = ADDR_ADD;
 		else if (hdr->nlmsg_type == RTM_DELADDR)
 			action = ADDR_DELETE;
+		else
+			return -1;
 
 
 		parse_rtattr_flags(rta_tb, IFA_MAX, IFA_RTA(ifa), len, 0);
