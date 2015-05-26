@@ -406,7 +406,7 @@ rfc1812_process(struct ipv4_hdr *ipv4_hdr, uint16_t * dp, uint32_t flags)
 {
 	uint8_t ihl;
 
-	if ((flags & PKT_RX_IPV4_HDR) != 0) {
+	if (likely((flags & PKT_RX_IPV4_HDR) != 0)) {
 
 		ihl = ipv4_hdr->version_ihl - IPV4_MIN_VER_IHL;
 
@@ -457,7 +457,7 @@ get_dst_port(const struct lcore_conf *qconf, struct rte_mbuf *pkt,
 
 static inline int
 process_step2(struct lcore_conf *qconf, struct rte_mbuf *pkt,
-			  uint16_t * dst_port, uint8_t portid)
+			  uint16_t * dst_port)
 {
 	struct ether_hdr *eth_hdr;
 	uint16_t dp;
@@ -469,12 +469,11 @@ process_step2(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 #ifdef RDPDK_QEMU
 	if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
 #else
-	if (pkt->ol_flags & PKT_RX_IPV4_HDR) {
+	if (likely(pkt->ol_flags & PKT_RX_IPV4_HDR)) {
 #endif
 		ipv4_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
 
-		dp = get_ipv4_dst_port(ipv4_hdr, portid,
-							   qconf->ipv4_lookup_struct);
+		dp = get_ipv4_dst_port(ipv4_hdr, 0, qconf->ipv4_lookup_struct);
 		L3FWD_DEBUG_TRACE("process_packet4 res %d\n", dp);
 
 		dst_port[0] = dp;
@@ -485,8 +484,7 @@ process_step2(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 #endif
 		ipv6_hdr = (struct ipv6_hdr *) (eth_hdr + 1);
 
-		dp = get_ipv6_dst_port(ipv6_hdr, portid,
-							   qconf->ipv6_lookup_struct);
+		dp = get_ipv6_dst_port(ipv6_hdr, 0, qconf->ipv6_lookup_struct);
 		dst_port[0] = dp;
 		L3FWD_DEBUG_TRACE("process_packet6 res %d\n", dp);
 	}
@@ -541,8 +539,7 @@ processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
 											4, 5, 6, 7, 0, 1, 2, 3);
 	struct nei_entry *neighbor_entry;
 
-	/* Byte swap 4 IPV4 addresses. */
-	/* XXX: Do we know this is V4 only yet? */
+	/* Byte swap 4 IPV4 addresses, if it's not an ipv4 packet, swap anyway. */
 	dip = _mm_shuffle_epi8(dip, bswap_mask);
 
 	/* if all 4 packets are IPV4. */
@@ -595,7 +592,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
 			if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
 #else
-			if (pkt[j]->ol_flags & PKT_RX_IPV4_HDR) {
+			if (likely(pkt[j]->ol_flags & PKT_RX_IPV4_HDR)) {
 #endif
 				process =
 					!qconf->neighbor4_struct->entries.t4[dst_port[j]].
@@ -646,7 +643,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
 			if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
 #else
-			if (pkt[j]->ol_flags & PKT_RX_IPV4_HDR) {
+			if (likely(pkt[j]->ol_flags & PKT_RX_IPV4_HDR)) {
 #endif
 				process =
 					!qconf->neighbor4_struct->entries.t4[dst_port[j]].
@@ -695,7 +692,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
 			if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
 #else
-			if (pkt[j]->ol_flags & PKT_RX_IPV4_HDR) {
+			if (likely(pkt[j]->ol_flags & PKT_RX_IPV4_HDR)) {
 #endif
 				process =
 					!qconf->neighbor4_struct->entries.t4[dst_port[j]].
@@ -744,7 +741,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
 			if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
 #else
-			if (pkt[j]->ol_flags & PKT_RX_IPV4_HDR) {
+			if (likely(pkt[j]->ol_flags & PKT_RX_IPV4_HDR)) {
 #endif
 				process =
 					!qconf->neighbor4_struct->entries.t4[dst_port[j]].
@@ -788,7 +785,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					 nb_rx, i, dst_port[j], lcore_id);
 			} else
 				j++;
-			if (i == 0)
+			if (likely(i == 0))
 				continue;
 			for (k = 0; k < nb_kni; k++) {
 				num = rte_kni_tx_burst(p->kni[k], knimbuf, i);
@@ -819,7 +816,7 @@ process_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	struct nei_entry *entries;
 
 	p = (rte_pktmbuf_mtod(pkt, __m128i *));
-	if (pkt->ol_flags & PKT_RX_IPV4_HDR)
+	if (likely(pkt->ol_flags & PKT_RX_IPV4_HDR))
 		entries = &qconf->neighbor4_struct->entries.t4[*dst_port].neighbor;
 	else
 		entries = &qconf->neighbor6_struct->entries.t6[*dst_port].neighbor;
@@ -854,28 +851,28 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 
 
 	//FIXME add RDPDK_QEMU cases
-	if (pkt[0]->ol_flags & PKT_RX_IPV4_HDR)
+	if (likely(pkt[0]->ol_flags & PKT_RX_IPV4_HDR))
 		entries[0] =
 			&qconf->neighbor4_struct->entries.t4[dst_port[0]].neighbor;
 	else
 		entries[0] =
 			&qconf->neighbor6_struct->entries.t6[dst_port[0]].neighbor;
 
-	if (pkt[1]->ol_flags & PKT_RX_IPV4_HDR)
+	if (likely(pkt[1]->ol_flags & PKT_RX_IPV4_HDR))
 		entries[1] =
 			&qconf->neighbor4_struct->entries.t4[dst_port[1]].neighbor;
 	else
 		entries[1] =
 			&qconf->neighbor6_struct->entries.t6[dst_port[1]].neighbor;
 
-	if (pkt[2]->ol_flags & PKT_RX_IPV4_HDR)
+	if (likely(pkt[2]->ol_flags & PKT_RX_IPV4_HDR))
 		entries[2] =
 			&qconf->neighbor4_struct->entries.t4[dst_port[2]].neighbor;
 	else
 		entries[2] =
 			&qconf->neighbor6_struct->entries.t6[dst_port[2]].neighbor;
 
-	if (pkt[3]->ol_flags & PKT_RX_IPV4_HDR)
+	if (likely(pkt[3]->ol_flags & PKT_RX_IPV4_HDR))
 		entries[3] =
 			&qconf->neighbor4_struct->entries.t4[dst_port[3]].neighbor;
 	else
@@ -1048,7 +1045,7 @@ static int main_loop(__rte_unused void *dummy)
 
 	while (1) {
 		f_stop = rte_atomic32_read(&main_loop_stop);
-		if (f_stop)
+		if (unlikely(f_stop))
 			break;
 		stats[lcore_id].nb_iteration_looped++;
 		cur_tsc = rte_rdtsc();
@@ -1081,7 +1078,7 @@ static int main_loop(__rte_unused void *dummy)
 			queueid = qconf->rx_queue_list[i].queue_id;
 			nb_rx = rte_eth_rx_burst(portid, queueid, pkts_burst,
 									 MAX_PKT_BURST);
-			if (nb_rx == 0)
+			if (unlikely(nb_rx == 0))
 				continue;
 
 			stats[lcore_id].nb_rx += nb_rx;
@@ -1094,13 +1091,13 @@ static int main_loop(__rte_unused void *dummy)
 			switch (nb_rx % FWDSTEP) {
 			case 3:
 				process_step2(qconf, pkts_burst[nb_rx - 3],
-							  dst_port + nb_rx - 3, portid);
+							  dst_port + nb_rx - 3);
 			case 2:
 				process_step2(qconf, pkts_burst[nb_rx - 2],
-							  dst_port + nb_rx - 2, portid);
+							  dst_port + nb_rx - 2);
 			case 1:
 				process_step2(qconf, pkts_burst[nb_rx - 1],
-							  dst_port + nb_rx - 1, portid);
+							  dst_port + nb_rx - 1);
 			}
 
 			k = RTE_ALIGN_FLOOR(nb_rx, FWDSTEP);
@@ -1117,9 +1114,7 @@ static int main_loop(__rte_unused void *dummy)
 			}
 
 			//send through the kni packets which don't have an available neighbor
-			if (likely(nb_rx))
-				nb_rx =
-					processx4_step_checkneighbor(qconf, pkts_burst,
+			nb_rx = processx4_step_checkneighbor(qconf, pkts_burst,
 												 dst_port,
 												 nb_rx, portid, lcore_id);
 
@@ -1128,7 +1123,7 @@ static int main_loop(__rte_unused void *dummy)
 			 * packets with the same destination port.
 			 */
 			k = RTE_ALIGN_FLOOR(nb_rx, FWDSTEP);
-			if (k != 0) {
+			if (unlikely(k != 0)) {
 				__m128i dp1, dp2;
 
 				lp = pnum;
@@ -1205,10 +1200,8 @@ static int main_loop(__rte_unused void *dummy)
 				if (likely((dlp) == dst_port[j])) {
 					lp[0]++;
 				} else {
-					lp = &pnum[j];
-					lp[0] = 1;
+					pnum[j] = 1;
 				}
-				j++;
 			}
 
 			/*
