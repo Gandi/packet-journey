@@ -172,7 +172,7 @@ struct lcore_rx_queue {
 } __rte_cache_aligned;
 
 #define MAX_RX_QUEUE_PER_LCORE 16
-#define MAX_TX_QUEUE_PER_PORT 4
+#define MAX_TX_QUEUE_PER_PORT 16
 #define MAX_RX_QUEUE_PER_PORT 128
 
 #define MAX_LCORE_PARAMS 1024
@@ -206,8 +206,13 @@ static struct rte_eth_conf port_conf = {
 			   .split_hdr_size = 0,
 			   .header_split = 0,
 							 /**< Header Split disabled */
+#ifdef RDPDK_QEMU
 			   .hw_ip_checksum = 0,
 							 /**< IP checksum offload enabled */
+#else
+			   .hw_ip_checksum = 1,
+							 /**< IP checksum offload enabled */
+#endif
 			   .hw_vlan_filter = 0,
 							 /**< VLAN filtering disabled */
 			   .jumbo_frame = 0,
@@ -1037,7 +1042,7 @@ static int main_loop(__rte_unused void *dummy)
 	struct kni_port_params *p;
 	p = kni_port_params_array[portid];
 	int nb_kni = p->nb_kni;
-	while (kni_port_rdy[portid] != nb_kni) {
+	while (kni_port_rdy[portid] < nb_kni) {
 		for (i = 0; i < nb_kni; i++) {
 			rte_kni_handle_request(p->kni[i]);
 		}
@@ -1766,7 +1771,9 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 
 		rte_eth_dev_info_get(portid, dev_info);
 		txconf = &dev_info->default_txconf;
+#ifdef RDPDK_QEMU
 		txconf->txq_flags = ETH_TXQ_FLAGS_NOOFFLOADS;
+#endif
 		if (port_conf.rxmode.jumbo_frame)
 			txconf->txq_flags = 0;
 		printf("coucou port=%d queueid=%d nb_txd=%d core=%d\n", portid,
@@ -1980,6 +1987,7 @@ int main(int argc, char **argv)
 	/* launch per-lcore init on every lcore */
 	//rte_eal_mp_remote_launch(main_loop, NULL, SKIP_MASTER);
 	rte_eal_remote_launch(main_loop, NULL, 1);
+	rte_eal_remote_launch(main_loop, NULL, 2);
 
 	if ((ret = control_callback_setup(callback_setup))) {
 		perror("control_callback_setup failure with: ");
@@ -1988,7 +1996,7 @@ int main(int argc, char **argv)
 	}
 
 	printf("launching kni thread\n");
-	rte_eal_remote_launch(kni_main_loop, NULL, 3);
+	rte_eal_remote_launch(kni_main_loop, NULL, 4);
 
 	pthread_join(control_tid, NULL);
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
