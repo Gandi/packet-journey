@@ -1039,15 +1039,6 @@ static int main_loop(__rte_unused void *dummy)
 				lcore_id, portid, queueid);
 	}
 
-	struct kni_port_params *p;
-	p = kni_port_params_array[portid];
-	int nb_kni = p->nb_kni;
-	while (kni_port_rdy[portid] < nb_kni) {
-		for (i = 0; i < nb_kni; i++) {
-			rte_kni_handle_request(p->kni[i]);
-		}
-	}
-
 	while (1) {
 		f_stop = rte_atomic32_read(&main_loop_stop);
 		if (unlikely(f_stop))
@@ -1985,10 +1976,15 @@ int main(int argc, char **argv)
 	rdpdk_cmdline_launch(sock);
 
 	/* launch per-lcore init on every lcore */
-	//rte_eal_mp_remote_launch(main_loop, NULL, SKIP_MASTER);
-	rte_eal_remote_launch(main_loop, NULL, 1);
-	rte_eal_remote_launch(main_loop, NULL, 2);
-	rte_eal_remote_launch(main_loop, NULL, 3);
+	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+		qconf = &lcore_conf[lcore_id];
+		if (qconf->n_rx_queue != 0) {
+			rte_eal_remote_launch(main_loop, NULL, lcore_id);
+		}
+	}
+
+	printf("launching kni thread\n");
+	rte_eal_remote_launch(kni_main_loop, NULL, 4);
 
 	if ((ret = control_callback_setup(callback_setup))) {
 		perror("control_callback_setup failure with: ");
@@ -1996,8 +1992,6 @@ int main(int argc, char **argv)
 				 "control callback setup returned error: err=%d,", ret);
 	}
 
-	printf("launching kni thread\n");
-	rte_eal_remote_launch(kni_main_loop, NULL, 4);
 
 	pthread_join(control_tid, NULL);
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
