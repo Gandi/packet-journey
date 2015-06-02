@@ -10,6 +10,7 @@ SRCS-y += kni.c
 SRCS-y += cmdline.c
 SRCS-y += acl.c
 SRCS-y += config.c
+SRCS-y += cmdline_helpers.c
 SRCS-y += $(RTE_OUTPUT)/../../lib/libneighbour/$(RTE_TARGET)/lib/libneighbour.a
 SRCS-y += $(RTE_OUTPUT)/../../lib/libnetlink/$(RTE_TARGET)/lib/libnetlink.a
 

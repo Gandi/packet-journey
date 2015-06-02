@@ -137,7 +137,8 @@ static void kni_egress(struct kni_port_params *p, uint32_t lcore_id)
 		/* Burst tx to eth */
 		nb_tx = rte_eth_tx_burst(port_id, 0, pkts_burst, (uint16_t) num);
 		rte_kni_handle_request(p->kni[i]);
-		stats[lcore_id].nb_kni_tx += nb_tx;
+		stats[lcore_id].nb_kni_rx += num;
+		stats[lcore_id].nb_tx += nb_tx;
 		if (unlikely(nb_tx < num)) {
 			/* Free mbufs not tx to NIC */
 			if (nb_tx > 0) {
@@ -216,7 +217,8 @@ static int kni_change_mtu(uint8_t port_id, unsigned new_mtu)
 		return -EINVAL;
 	}
 
-	RTE_LOG(INFO, KNI, "Change MTU of port %d to %u\n", port_id, new_mtu);
+	RTE_LOG(INFO, KNI, "-----------------Change MTU of port %d to %u\n",
+			port_id, new_mtu);
 
 	/* Stop specific port */
 	rte_eth_dev_stop(port_id);
@@ -231,6 +233,7 @@ static int kni_change_mtu(uint8_t port_id, unsigned new_mtu)
 	/* mtu + length of header + length of FCS = max pkt length */
 	conf.rxmode.max_rx_pkt_len = new_mtu + KNI_ENET_HEADER_SIZE +
 		KNI_ENET_FCS_SIZE;
+	//FIXME we must set correct values for nb_rx_queue and nb_tx_queue here instead of 1
 	ret = rte_eth_dev_configure(port_id, 1, 1, &conf);
 	if (ret < 0) {
 		RTE_LOG(ERR, KNI, "Fail to reconfigure port %d\n", port_id);
@@ -318,9 +321,7 @@ int kni_alloc(uint8_t port_id, struct rte_mempool *pktmbuf_pool)
 			ops.change_mtu = kni_change_mtu;
 			ops.config_network_if = kni_config_network_interface;
 
-			RTE_LOG(INFO, KNI, "kni_alloc begin\n");
 			kni = rte_kni_alloc(pktmbuf_pool, &conf, &ops);
-			RTE_LOG(INFO, KNI, "kni_alloc end\n");
 		} else
 			kni = rte_kni_alloc(pktmbuf_pool, &conf, NULL);
 
