@@ -1844,6 +1844,7 @@ int main(int argc, char **argv)
 	pthread_t control_tid;
 	char thread_name[16];
 	struct sigaction sa;
+	cpu_set_t cpuset;
 
 	sa.sa_flags = 0;
 	sigemptyset(&sa.sa_mask);
@@ -1972,6 +1973,17 @@ int main(int argc, char **argv)
 	snprintf(thread_name, 16, "control-%d", 0);
 	pthread_setname_np(control_tid, thread_name);
 
+	CPU_ZERO(&cpuset);
+	CPU_SET(0, &cpuset);
+	ret = pthread_setaffinity_np(control_tid, sizeof(cpu_set_t), &cpuset);
+
+	if (ret != 0) {
+		perror("control pthread_setaffinity_np: ");
+		rte_exit(EXIT_FAILURE,
+				 "control pthread_setaffinity_np returned error: err=%d,",
+				 ret);
+	}
+
 	int sock = rdpdk_cmdline_init(unixsock_path);
 	rdpdk_cmdline_launch(sock);
 
@@ -1991,7 +2003,6 @@ int main(int argc, char **argv)
 		rte_exit(EXIT_FAILURE,
 				 "control callback setup returned error: err=%d,", ret);
 	}
-
 
 	pthread_join(control_tid, NULL);
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
