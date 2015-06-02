@@ -98,6 +98,9 @@ neighbor_struct_t *neighbor6_struct[NB_SOCKETS];
 void *control_handle[NB_SOCKETS];
 
 
+#define ETHER_TYPE_BE_IPv4 0x0080
+#define ETHER_TYPE_BE_IPv6 0xDD86
+
 #ifndef IPv6_BYTES
 #define IPv6_BYTES_FMT "%02x%02x:%02x%02x:%02x%02x:%02x%02x:"\
                        "%02x%02x:%02x%02x:%02x%02x:%02x%02x"
@@ -436,7 +439,7 @@ get_dst_port(const struct lcore_conf *qconf, struct rte_mbuf *pkt,
 
 #ifdef RDPDK_QEMU
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
-	if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
+	if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4) {
 #else
 	if (pkt->ol_flags & PKT_RX_IPV4_HDR) {
 #endif
@@ -444,7 +447,7 @@ get_dst_port(const struct lcore_conf *qconf, struct rte_mbuf *pkt,
 						   &next_hop) != 0)
 			next_hop = 0;
 #ifdef RDPDK_QEMU
-	} else if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv6)) {
+	} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6) {
 #else
 	} else if (pkt->ol_flags & PKT_RX_IPV6_HDR) {
 		eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
@@ -472,7 +475,7 @@ process_step2(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
 
 #ifdef RDPDK_QEMU
-	if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
+	if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4) {
 #else
 	if (likely(pkt->ol_flags & PKT_RX_IPV4_HDR)) {
 #endif
@@ -483,7 +486,7 @@ process_step2(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 
 		dst_port[0] = dp;
 #ifdef RDPDK_QEMU
-	} else if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv6)) {
+	} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6) {
 #else
 	} else if (pkt->ol_flags & PKT_RX_IPV6_HDR) {
 #endif
@@ -595,7 +598,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 	case 0:
 #ifdef RDPDK_QEMU
 			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
-			if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
+			if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4) {
 #else
 			if (likely(pkt[j]->ol_flags & PKT_RX_IPV4_HDR)) {
 #endif
@@ -608,8 +611,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 				L3FWD_DEBUG_TRACE("0: j %d process %d dst_port %d ipv4\n",
 								  j, process, dst_port[j]);
 #ifdef RDPDK_QEMU
-			} else if (eth_hdr->ether_type ==
-					   rte_be_to_cpu_16(ETHER_TYPE_IPv6)) {
+			} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6) {
 #else
 			} else if (pkt[j]->ol_flags & PKT_RX_IPV6_HDR) {
 #endif
@@ -646,7 +648,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 	case 3:
 #ifdef RDPDK_QEMU
 			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
-			if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
+			if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4) {
 #else
 			if (likely(pkt[j]->ol_flags & PKT_RX_IPV4_HDR)) {
 #endif
@@ -658,8 +660,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 				L3FWD_DEBUG_TRACE("3: j %d process %d dst_port %d ipv4\n",
 								  j, process, dst_port[j]);
 #ifdef RDPDK_QEMU
-			} else if (eth_hdr->ether_type ==
-					   rte_be_to_cpu_16(ETHER_TYPE_IPv6)) {
+			} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6) {
 #else
 			} else if (pkt[j]->ol_flags & PKT_RX_IPV6_HDR) {
 #endif
@@ -695,7 +696,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 	case 2:
 #ifdef RDPDK_QEMU
 			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
-			if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
+			if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4) {
 #else
 			if (likely(pkt[j]->ol_flags & PKT_RX_IPV4_HDR)) {
 #endif
@@ -707,8 +708,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 				L3FWD_DEBUG_TRACE("2: j %d process %d dst_port %d ipv4\n",
 								  j, process, dst_port[j]);
 #ifdef RDPDK_QEMU
-			} else if (eth_hdr->ether_type ==
-					   rte_be_to_cpu_16(ETHER_TYPE_IPv6)) {
+			} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6) {
 #else
 			} else if (pkt[j]->ol_flags & PKT_RX_IPV6_HDR) {
 #endif
@@ -744,7 +744,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 	case 1:
 #ifdef RDPDK_QEMU
 			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
-			if (eth_hdr->ether_type == rte_be_to_cpu_16(ETHER_TYPE_IPv4)) {
+			if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4) {
 #else
 			if (likely(pkt[j]->ol_flags & PKT_RX_IPV4_HDR)) {
 #endif
@@ -756,8 +756,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 				L3FWD_DEBUG_TRACE("1: j %d process %d dst_port %d ipv4\n",
 								  j, process, dst_port[j]);
 #ifdef RDPDK_QEMU
-			} else if (eth_hdr->ether_type ==
-					   rte_be_to_cpu_16(ETHER_TYPE_IPv6)) {
+			} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6) {
 #else
 			} else if (pkt[j]->ol_flags & PKT_RX_IPV6_HDR) {
 #endif
