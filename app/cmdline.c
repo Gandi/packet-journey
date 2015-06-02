@@ -17,6 +17,9 @@
 #include <rte_lcore.h>
 #include <rte_lpm.h>
 #include <rte_lpm6.h>
+#include <rte_ether.h>
+#include <rte_ethdev.h>
+#include <rte_string_fns.h>
 
 #include <cmdline_rdline.h>
 #include <cmdline_parse.h>
@@ -42,6 +45,600 @@
 
 static pthread_t cmdline_tid;
 static int cmdline_thread_loop;
+
+typedef uint8_t  portid_t;
+
+#define RSS_HASH_KEY_LENGTH 52
+static void
+port_rss_reta_info(portid_t port_id,
+		   struct rte_eth_rss_reta_entry64 *reta_conf,
+		   uint16_t nb_entries)
+{
+	uint16_t i, idx, shift;
+	int ret;
+
+	ret = rte_eth_dev_rss_reta_query(port_id, reta_conf, nb_entries);
+	if (ret != 0) {
+		printf("Failed to get RSS RETA info, return code = %d\n", ret);
+		return;
+	}
+
+	for (i = 0; i < nb_entries; i++) {
+		idx = i / RTE_RETA_GROUP_SIZE;
+		shift = i % RTE_RETA_GROUP_SIZE;
+		if (!(reta_conf[idx].mask & (1ULL << shift)))
+			continue;
+		printf("RSS RETA configuration: hash index=%u, queue=%u\n",
+					i, reta_conf[idx].reta[shift]);
+	}
+}
+
+/*
+ * Displays the RSS hash functions of a port, and, optionaly, the RSS hash
+ * key of the port.
+ */
+static void
+port_rss_hash_conf_show(portid_t port_id, int show_rss_key)
+{
+	struct rss_type_info {
+		char str[32];
+		uint64_t rss_type;
+	};
+	static const struct rss_type_info rss_type_table[] = {
+		{"ipv4", ETH_RSS_IPV4},
+		{"ipv4-frag", ETH_RSS_FRAG_IPV4},
+		{"ipv4-tcp", ETH_RSS_NONFRAG_IPV4_TCP},
+		{"ipv4-udp", ETH_RSS_NONFRAG_IPV4_UDP},
+		{"ipv4-sctp", ETH_RSS_NONFRAG_IPV4_SCTP},
+		{"ipv4-other", ETH_RSS_NONFRAG_IPV4_OTHER},
+		{"ipv6", ETH_RSS_IPV6},
+		{"ipv6-frag", ETH_RSS_FRAG_IPV6},
+		{"ipv6-tcp", ETH_RSS_NONFRAG_IPV6_TCP},
+		{"ipv6-udp", ETH_RSS_NONFRAG_IPV6_UDP},
+		{"ipv6-sctp", ETH_RSS_NONFRAG_IPV6_SCTP},
+		{"ipv6-other", ETH_RSS_NONFRAG_IPV6_OTHER},
+		{"l2-payload", ETH_RSS_L2_PAYLOAD},
+		{"ipv6-ex", ETH_RSS_IPV6_EX},
+		{"ipv6-tcp-ex", ETH_RSS_IPV6_TCP_EX},
+		{"ipv6-udp-ex", ETH_RSS_IPV6_UDP_EX},
+	};
+
+	struct rte_eth_rss_conf rss_conf;
+	uint8_t rss_key[10 * 8];
+	uint64_t rss_hf;
+	uint8_t i;
+	int diag;
+
+	/* Get RSS hash key if asked to display it */
+	rss_conf.rss_key = (show_rss_key) ? rss_key : NULL;
+	diag = rte_eth_dev_rss_hash_conf_get(port_id, &rss_conf);
+	if (diag != 0) {
+		switch (diag) {
+		case -ENODEV:
+			printf("port index %d invalid\n", port_id);
+			break;
+		case -ENOTSUP:
+			printf("operation not supported by device\n");
+			break;
+		default:
+			printf("operation failed - diag=%d\n", diag);
+			break;
+		}
+		return;
+	}
+	rss_hf = rss_conf.rss_hf;
+	if (rss_hf == 0) {
+		printf("RSS disabled\n");
+		return;
+	}
+	printf("RSS functions:\n ");
+	for (i = 0; i < RTE_DIM(rss_type_table); i++) {
+		if (rss_hf & rss_type_table[i].rss_type)
+			printf("%s ", rss_type_table[i].str);
+	}
+	printf("\n");
+	if (!show_rss_key)
+		return;
+	printf("RSS key:\n");
+	for (i = 0; i < rss_conf.rss_key_len; i++)
+		printf("%02X", rss_key[i]);
+	printf("\n");
+}
+
+static void
+port_rss_hash_key_update(portid_t port_id, uint8_t *hash_key)
+{
+	struct rte_eth_rss_conf rss_conf;
+	int diag;
+
+	rss_conf.rss_key = NULL;
+	diag = rte_eth_dev_rss_hash_conf_get(port_id, &rss_conf);
+	if (diag == 0) {
+		rss_conf.rss_key = hash_key;
+		rss_conf.rss_key_len = RSS_HASH_KEY_LENGTH;
+		diag = rte_eth_dev_rss_hash_update(port_id, &rss_conf);
+	}
+	if (diag == 0)
+		return;
+
+	switch (diag) {
+	case -ENODEV:
+		printf("port index %d invalid\n", port_id);
+		break;
+	case -ENOTSUP:
+		printf("operation not supported by device\n");
+		break;
+	default:
+		printf("operation failed - diag=%d\n", diag);
+		break;
+	}
+}
+
+
+/* *** Show RSS hash configuration *** */
+struct cmd_showport_rss_hash {
+	cmdline_fixed_string_t show;
+	cmdline_fixed_string_t port;
+	uint8_t port_id;
+	cmdline_fixed_string_t rss_hash;
+	cmdline_fixed_string_t key; /* optional argument */
+};
+
+static void cmd_showport_rss_hash_parsed(void *parsed_result,
+				__attribute__((unused)) struct cmdline *cl,
+				void *show_rss_key)
+{
+	struct cmd_showport_rss_hash *res = parsed_result;
+
+	port_rss_hash_conf_show(res->port_id, show_rss_key != NULL);
+}
+
+cmdline_parse_token_string_t cmd_showport_rss_hash_show =
+	TOKEN_STRING_INITIALIZER(struct cmd_showport_rss_hash, show, "show");
+cmdline_parse_token_string_t cmd_showport_rss_hash_port =
+	TOKEN_STRING_INITIALIZER(struct cmd_showport_rss_hash, port, "port");
+cmdline_parse_token_num_t cmd_showport_rss_hash_port_id =
+	TOKEN_NUM_INITIALIZER(struct cmd_showport_rss_hash, port_id, UINT8);
+cmdline_parse_token_string_t cmd_showport_rss_hash_rss_hash =
+	TOKEN_STRING_INITIALIZER(struct cmd_showport_rss_hash, rss_hash,
+				 "rss-hash");
+cmdline_parse_token_string_t cmd_showport_rss_hash_rss_key =
+	TOKEN_STRING_INITIALIZER(struct cmd_showport_rss_hash, key, "key");
+
+cmdline_parse_inst_t cmd_showport_rss_hash = {
+	.f = cmd_showport_rss_hash_parsed,
+	.data = NULL,
+	.help_str = "show port X rss-hash (X = port number)\n",
+	.tokens = {
+		(void *)&cmd_showport_rss_hash_show,
+		(void *)&cmd_showport_rss_hash_port,
+		(void *)&cmd_showport_rss_hash_port_id,
+		(void *)&cmd_showport_rss_hash_rss_hash,
+		NULL,
+	},
+};
+
+cmdline_parse_inst_t cmd_showport_rss_hash_key = {
+	.f = cmd_showport_rss_hash_parsed,
+	.data = (void *)1,
+	.help_str = "show port X rss-hash key (X = port number)\n",
+	.tokens = {
+		(void *)&cmd_showport_rss_hash_show,
+		(void *)&cmd_showport_rss_hash_port,
+		(void *)&cmd_showport_rss_hash_port_id,
+		(void *)&cmd_showport_rss_hash_rss_hash,
+		(void *)&cmd_showport_rss_hash_rss_key,
+		NULL,
+	},
+};
+
+
+
+/* *** configure rss *** */
+struct cmd_config_rss {
+	cmdline_fixed_string_t port;
+	cmdline_fixed_string_t keyword;
+	cmdline_fixed_string_t all;
+	cmdline_fixed_string_t name;
+	cmdline_fixed_string_t value;
+};
+
+static void
+cmd_config_rss_parsed(void *parsed_result,
+			__attribute__((unused)) struct cmdline *cl,
+			__attribute__((unused)) void *data)
+{
+	struct cmd_config_rss *res = parsed_result;
+	struct rte_eth_rss_conf rss_conf;
+	uint8_t i;
+
+	if (!strcmp(res->value, "all"))
+		rss_conf.rss_hf = ETH_RSS_IP | ETH_RSS_TCP |
+				ETH_RSS_UDP | ETH_RSS_SCTP |
+					ETH_RSS_L2_PAYLOAD;
+	else if (!strcmp(res->value, "ip"))
+		rss_conf.rss_hf = ETH_RSS_IP;
+	else if (!strcmp(res->value, "udp"))
+		rss_conf.rss_hf = ETH_RSS_UDP;
+	else if (!strcmp(res->value, "tcp"))
+		rss_conf.rss_hf = ETH_RSS_TCP;
+	else if (!strcmp(res->value, "sctp"))
+		rss_conf.rss_hf = ETH_RSS_SCTP;
+	else if (!strcmp(res->value, "ether"))
+		rss_conf.rss_hf = ETH_RSS_L2_PAYLOAD;
+	else if (!strcmp(res->value, "none"))
+		rss_conf.rss_hf = 0;
+	else {
+		printf("Unknown parameter\n");
+		return;
+	}
+	rss_conf.rss_key = NULL;
+	for (i = 0; i < rte_eth_dev_count(); i++)
+		rte_eth_dev_rss_hash_update(i, &rss_conf);
+}
+
+cmdline_parse_token_string_t cmd_config_rss_port =
+	TOKEN_STRING_INITIALIZER(struct cmd_config_rss, port, "port");
+cmdline_parse_token_string_t cmd_config_rss_keyword =
+	TOKEN_STRING_INITIALIZER(struct cmd_config_rss, keyword, "config");
+cmdline_parse_token_string_t cmd_config_rss_all =
+	TOKEN_STRING_INITIALIZER(struct cmd_config_rss, all, "all");
+cmdline_parse_token_string_t cmd_config_rss_name =
+	TOKEN_STRING_INITIALIZER(struct cmd_config_rss, name, "rss");
+cmdline_parse_token_string_t cmd_config_rss_value =
+	TOKEN_STRING_INITIALIZER(struct cmd_config_rss, value,
+		"all#ip#tcp#udp#sctp#ether#none");
+
+cmdline_parse_inst_t cmd_config_rss = {
+	.f = cmd_config_rss_parsed,
+	.data = NULL,
+	.help_str = "port config all rss all|ip|tcp|udp|sctp|ether|none",
+	.tokens = {
+		(void *)&cmd_config_rss_port,
+		(void *)&cmd_config_rss_keyword,
+		(void *)&cmd_config_rss_all,
+		(void *)&cmd_config_rss_name,
+		(void *)&cmd_config_rss_value,
+		NULL,
+	},
+};
+
+/* *** configure rss hash key *** */
+struct cmd_config_rss_hash_key {
+	cmdline_fixed_string_t port;
+	cmdline_fixed_string_t config;
+	uint8_t port_id;
+	cmdline_fixed_string_t rss_hash_key;
+	cmdline_fixed_string_t key;
+};
+
+static uint8_t
+hexa_digit_to_value(char hexa_digit)
+{
+	if ((hexa_digit >= '0') && (hexa_digit <= '9'))
+		return (uint8_t) (hexa_digit - '0');
+	if ((hexa_digit >= 'a') && (hexa_digit <= 'f'))
+		return (uint8_t) ((hexa_digit - 'a') + 10);
+	if ((hexa_digit >= 'A') && (hexa_digit <= 'F'))
+		return (uint8_t) ((hexa_digit - 'A') + 10);
+	/* Invalid hexa digit */
+	return 0xFF;
+}
+
+static uint8_t
+parse_and_check_key_hexa_digit(char *key, int idx)
+{
+	uint8_t hexa_v;
+
+	hexa_v = hexa_digit_to_value(key[idx]);
+	if (hexa_v == 0xFF)
+		printf("invalid key: character %c at position %d is not a "
+		       "valid hexa digit\n", key[idx], idx);
+	return hexa_v;
+}
+
+static void
+cmd_config_rss_hash_key_parsed(void *parsed_result,
+			       __attribute__((unused)) struct cmdline *cl,
+			       __attribute__((unused)) void *data)
+{
+	struct cmd_config_rss_hash_key *res = parsed_result;
+	uint8_t hash_key[RSS_HASH_KEY_LENGTH];
+	uint8_t xdgt0;
+	uint8_t xdgt1;
+	int i;
+
+	/* Check the length of the RSS hash key */
+	if (strlen(res->key) != (RSS_HASH_KEY_LENGTH * 2)) {
+		printf("key length: %d invalid - key must be a string of %d"
+		       "hexa-decimal numbers\n", (int) strlen(res->key),
+		       RSS_HASH_KEY_LENGTH * 2);
+		return;
+	}
+	/* Translate RSS hash key into binary representation */
+	for (i = 0; i < RSS_HASH_KEY_LENGTH; i++) {
+		xdgt0 = parse_and_check_key_hexa_digit(res->key, (i * 2));
+		if (xdgt0 == 0xFF)
+			return;
+		xdgt1 = parse_and_check_key_hexa_digit(res->key, (i * 2) + 1);
+		if (xdgt1 == 0xFF)
+			return;
+		hash_key[i] = (uint8_t) ((xdgt0 * 16) + xdgt1);
+	}
+	port_rss_hash_key_update(res->port_id, hash_key);
+}
+
+cmdline_parse_token_string_t cmd_config_rss_hash_key_port =
+	TOKEN_STRING_INITIALIZER(struct cmd_config_rss_hash_key, port, "port");
+cmdline_parse_token_string_t cmd_config_rss_hash_key_config =
+	TOKEN_STRING_INITIALIZER(struct cmd_config_rss_hash_key, config,
+				 "config");
+cmdline_parse_token_num_t cmd_config_rss_hash_key_port_id =
+	TOKEN_NUM_INITIALIZER(struct cmd_config_rss_hash_key, port_id, UINT8);
+cmdline_parse_token_string_t cmd_config_rss_hash_key_rss_hash_key =
+	TOKEN_STRING_INITIALIZER(struct cmd_config_rss_hash_key,
+				 rss_hash_key, "rss-hash-key");
+cmdline_parse_token_string_t cmd_config_rss_hash_key_value =
+	TOKEN_STRING_INITIALIZER(struct cmd_config_rss_hash_key, key, NULL);
+
+cmdline_parse_inst_t cmd_config_rss_hash_key = {
+	.f = cmd_config_rss_hash_key_parsed,
+	.data = NULL,
+	.help_str = "port config X rss-hash-key 104 hexa digits",
+	.tokens = {
+		(void *)&cmd_config_rss_hash_key_port,
+		(void *)&cmd_config_rss_hash_key_config,
+		(void *)&cmd_config_rss_hash_key_port_id,
+		(void *)&cmd_config_rss_hash_key_rss_hash_key,
+		(void *)&cmd_config_rss_hash_key_value,
+		NULL,
+	},
+};
+
+/* *** Configure RSS RETA *** */
+struct cmd_config_rss_reta {
+	cmdline_fixed_string_t port;
+	cmdline_fixed_string_t keyword;
+	uint8_t port_id;
+	cmdline_fixed_string_t name;
+	cmdline_fixed_string_t list_name;
+	cmdline_fixed_string_t list_of_items;
+};
+
+static int
+parse_reta_config(const char *str,
+		  struct rte_eth_rss_reta_entry64 *reta_conf,
+		  uint16_t nb_entries)
+{
+	int i;
+	unsigned size;
+	uint16_t hash_index, idx, shift;
+	uint8_t nb_queue;
+	char s[256];
+	const char *p, *p0 = str;
+	char *end;
+	enum fieldnames {
+		FLD_HASH_INDEX = 0,
+		FLD_QUEUE,
+		_NUM_FLD
+	};
+	unsigned long int_fld[_NUM_FLD];
+	char *str_fld[_NUM_FLD];
+
+	while ((p = strchr(p0,'(')) != NULL) {
+		++p;
+		if((p0 = strchr(p,')')) == NULL)
+			return -1;
+
+		size = p0 - p;
+		if(size >= sizeof(s))
+			return -1;
+
+		snprintf(s, sizeof(s), "%.*s", size, p);
+		if (rte_strsplit(s, sizeof(s), str_fld, _NUM_FLD, ',') != _NUM_FLD)
+			return -1;
+		for (i = 0; i < _NUM_FLD; i++) {
+			errno = 0;
+			int_fld[i] = strtoul(str_fld[i], &end, 0);
+			if (errno != 0 || end == str_fld[i] ||
+					int_fld[i] > 65535)
+				return -1;
+		}
+
+		hash_index = (uint16_t)int_fld[FLD_HASH_INDEX];
+		nb_queue = (uint8_t)int_fld[FLD_QUEUE];
+
+		if (hash_index >= nb_entries) {
+			printf("Invalid RETA hash index=%d\n", hash_index);
+			return -1;
+		}
+
+		idx = hash_index / RTE_RETA_GROUP_SIZE;
+		shift = hash_index % RTE_RETA_GROUP_SIZE;
+		reta_conf[idx].mask |= (1ULL << shift);
+		reta_conf[idx].reta[shift] = nb_queue;
+	}
+
+	return 0;
+}
+
+static void
+cmd_set_rss_reta_parsed(void *parsed_result,
+			__attribute__((unused)) struct cmdline *cl,
+			__attribute__((unused)) void *data)
+{
+	int ret;
+	struct rte_eth_dev_info dev_info;
+	struct rte_eth_rss_reta_entry64 reta_conf[8];
+	struct cmd_config_rss_reta *res = parsed_result;
+
+	memset(&dev_info, 0, sizeof(dev_info));
+	rte_eth_dev_info_get(res->port_id, &dev_info);
+	if (dev_info.reta_size == 0) {
+		printf("Redirection table size is 0 which is "
+					"invalid for RSS\n");
+		return;
+	} else
+		printf("The reta size of port %d is %u\n",
+			res->port_id, dev_info.reta_size);
+	if (dev_info.reta_size > ETH_RSS_RETA_SIZE_512) {
+		printf("Currently do not support more than %u entries of "
+			"redirection table\n", ETH_RSS_RETA_SIZE_512);
+		return;
+	}
+
+	memset(reta_conf, 0, sizeof(reta_conf));
+	if (!strcmp(res->list_name, "reta")) {
+		if (parse_reta_config(res->list_of_items, reta_conf,
+						dev_info.reta_size)) {
+			printf("Invalid RSS Redirection Table "
+					"config entered\n");
+			return;
+		}
+		ret = rte_eth_dev_rss_reta_update(res->port_id,
+				reta_conf, dev_info.reta_size);
+		if (ret != 0)
+			printf("Bad redirection table parameter, "
+					"return code = %d \n", ret);
+	}
+}
+
+cmdline_parse_token_string_t cmd_config_rss_reta_port =
+	TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, port, "port");
+cmdline_parse_token_string_t cmd_config_rss_reta_keyword =
+	TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, keyword, "config");
+cmdline_parse_token_num_t cmd_config_rss_reta_port_id =
+	TOKEN_NUM_INITIALIZER(struct cmd_config_rss_reta, port_id, UINT8);
+cmdline_parse_token_string_t cmd_config_rss_reta_name =
+	TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, name, "rss");
+cmdline_parse_token_string_t cmd_config_rss_reta_list_name =
+	TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, list_name, "reta");
+cmdline_parse_token_string_t cmd_config_rss_reta_list_of_items =
+        TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, list_of_items,
+                                 NULL);
+cmdline_parse_inst_t cmd_config_rss_reta = {
+	.f = cmd_set_rss_reta_parsed,
+	.data = NULL,
+	.help_str = "port config X rss reta (hash,queue)[,(hash,queue)]",
+	.tokens = {
+		(void *)&cmd_config_rss_reta_port,
+		(void *)&cmd_config_rss_reta_keyword,
+		(void *)&cmd_config_rss_reta_port_id,
+		(void *)&cmd_config_rss_reta_name,
+		(void *)&cmd_config_rss_reta_list_name,
+		(void *)&cmd_config_rss_reta_list_of_items,
+		NULL,
+	},
+};
+
+/* *** SHOW PORT RETA INFO *** */
+struct cmd_showport_reta {
+	cmdline_fixed_string_t show;
+	cmdline_fixed_string_t port;
+	uint8_t port_id;
+	cmdline_fixed_string_t rss;
+	cmdline_fixed_string_t reta;
+	uint16_t size;
+	cmdline_fixed_string_t list_of_items;
+};
+
+static int
+showport_parse_reta_config(struct rte_eth_rss_reta_entry64 *conf,
+			   uint16_t nb_entries,
+			   char *str)
+{
+	uint32_t size;
+	const char *p, *p0 = str;
+	char s[256];
+	char *end;
+	char *str_fld[8];
+	uint16_t i, num = nb_entries / RTE_RETA_GROUP_SIZE;
+	int ret;
+
+	p = strchr(p0, '(');
+	if (p == NULL)
+		return -1;
+	p++;
+	p0 = strchr(p, ')');
+	if (p0 == NULL)
+		return -1;
+	size = p0 - p;
+	if (size >= sizeof(s)) {
+		printf("The string size exceeds the internal buffer size\n");
+		return -1;
+	}
+	snprintf(s, sizeof(s), "%.*s", size, p);
+	ret = rte_strsplit(s, sizeof(s), str_fld, num, ',');
+	if (ret <= 0 || ret != num) {
+		printf("The bits of masks do not match the number of "
+					"reta entries: %u\n", num);
+		return -1;
+	}
+	for (i = 0; i < ret; i++)
+		conf[i].mask = (uint64_t)strtoul(str_fld[i], &end, 0);
+
+	return 0;
+}
+
+static void
+cmd_showport_reta_parsed(void *parsed_result,
+			 __attribute__((unused)) struct cmdline *cl,
+			 __attribute__((unused)) void *data)
+{
+	struct cmd_showport_reta *res = parsed_result;
+	struct rte_eth_rss_reta_entry64 reta_conf[8];
+	struct rte_eth_dev_info dev_info;
+
+	memset(&dev_info, 0, sizeof(dev_info));
+	rte_eth_dev_info_get(res->port_id, &dev_info);
+	if (dev_info.reta_size == 0 || res->size != dev_info.reta_size ||
+				res->size > ETH_RSS_RETA_SIZE_512) {
+		printf("Invalid redirection table size: %u\n", res->size);
+		return;
+	}
+
+	memset(reta_conf, 0, sizeof(reta_conf));
+	if (showport_parse_reta_config(reta_conf, res->size,
+				res->list_of_items) < 0) {
+		printf("Invalid string: %s for reta masks\n",
+					res->list_of_items);
+		return;
+	}
+	port_rss_reta_info(res->port_id, reta_conf, res->size);
+}
+
+cmdline_parse_token_string_t cmd_showport_reta_show =
+	TOKEN_STRING_INITIALIZER(struct  cmd_showport_reta, show, "show");
+cmdline_parse_token_string_t cmd_showport_reta_port =
+	TOKEN_STRING_INITIALIZER(struct  cmd_showport_reta, port, "port");
+cmdline_parse_token_num_t cmd_showport_reta_port_id =
+	TOKEN_NUM_INITIALIZER(struct cmd_showport_reta, port_id, UINT8);
+cmdline_parse_token_string_t cmd_showport_reta_rss =
+	TOKEN_STRING_INITIALIZER(struct cmd_showport_reta, rss, "rss");
+cmdline_parse_token_string_t cmd_showport_reta_reta =
+	TOKEN_STRING_INITIALIZER(struct cmd_showport_reta, reta, "reta");
+cmdline_parse_token_num_t cmd_showport_reta_size =
+	TOKEN_NUM_INITIALIZER(struct cmd_showport_reta, size, UINT16);
+cmdline_parse_token_string_t cmd_showport_reta_list_of_items =
+	TOKEN_STRING_INITIALIZER(struct cmd_showport_reta,
+					list_of_items, NULL);
+
+cmdline_parse_inst_t cmd_showport_reta = {
+	.f = cmd_showport_reta_parsed,
+	.data = NULL,
+	.help_str = "show port X rss reta (size) (mask0,mask1,...)",
+	.tokens = {
+		(void *)&cmd_showport_reta_show,
+		(void *)&cmd_showport_reta_port,
+		(void *)&cmd_showport_reta_port_id,
+		(void *)&cmd_showport_reta_rss,
+		(void *)&cmd_showport_reta_reta,
+		(void *)&cmd_showport_reta_size,
+		(void *)&cmd_showport_reta_list_of_items,
+		NULL,
+	},
+};
+
 
 //----- CMD LPM_LKP
 
@@ -256,6 +853,12 @@ cmdline_parse_ctx_t main_ctx[] = {
 	(cmdline_parse_inst_t *) & cmd_obj_acl_add,
 	(cmdline_parse_inst_t *) & cmd_obj_lpm_lkp,
 	(cmdline_parse_inst_t *) & cmd_stats,
+	(cmdline_parse_inst_t *)&cmd_config_rss,
+	(cmdline_parse_inst_t *)&cmd_config_rss_reta,
+	(cmdline_parse_inst_t *)&cmd_showport_reta,
+	(cmdline_parse_inst_t *)&cmd_showport_rss_hash,
+	(cmdline_parse_inst_t *)&cmd_showport_rss_hash_key,
+	(cmdline_parse_inst_t *)&cmd_config_rss_hash_key,
 	(cmdline_parse_inst_t *) & cmd_help,
 	NULL,
 };
@@ -407,3 +1010,4 @@ int rdpdk_cmdline_launch(int sock)
 	pthread_setname_np(cmdline_tid, thread_name);
 	return cmdline_tid;
 }
+

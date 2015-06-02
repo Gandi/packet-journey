@@ -223,7 +223,7 @@ static struct rte_eth_conf port_conf = {
 	.rx_adv_conf = {
 					.rss_conf = {
 								 .rss_key = NULL,
-								 .rss_hf = ETH_RSS_IP,
+								 .rss_hf = ETH_RSS_PROTO_MASK,
 								 },
 					},
 	.txmode = {
@@ -1988,6 +1988,7 @@ int main(int argc, char **argv)
 	//rte_eal_mp_remote_launch(main_loop, NULL, SKIP_MASTER);
 	rte_eal_remote_launch(main_loop, NULL, 1);
 	rte_eal_remote_launch(main_loop, NULL, 2);
+	rte_eal_remote_launch(main_loop, NULL, 3);
 
 	if ((ret = control_callback_setup(callback_setup))) {
 		perror("control_callback_setup failure with: ");
