@@ -210,7 +210,7 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 static int
 neighbor4(neighbor_action_t action,
 		  __s32 port_id, struct in_addr *addr, struct ether_addr *lladdr,
-		  __u8 flags, __rte_unused __u16 vlanid, void *args)
+		  __u8 flags, __rte_unused __u16 vlan_id, void *args)
 {
 	// if port_id is not handled
 	//   ignore, return immediatly
@@ -244,22 +244,25 @@ neighbor4(neighbor_action_t action,
 	if (addr == NULL)
 		return -1;
 
+	//FIXME must check that state is not NUD_FAILED or NUD_INVALID
 	if (action == NEIGHBOR_ADD) {
 		if (lladdr == NULL)
 			return -1;
 		char ibuf[IFNAMSIZ];
 		unsigned kni_num;
-		RTE_LOG(DEBUG, L3FWD_CTRL, "adding ipv4 neighbor...\n");
+		unsigned kni_vlan;
 
 		if_indextoname(port_id, ibuf);
-		s = sscanf(ibuf, "vEth%d_%d", &port_id, &kni_num);
-
+		s = sscanf(ibuf, "vEth%d_%d.%d", &port_id, &kni_num, &kni_vlan);
 		if (s <= 0) {
 			RTE_LOG(ERR, L3FWD_CTRL,
 					"received a neighbor announce for an unmanaged iface %s\n",
 					ibuf);
 			return -1;
 		}
+		RTE_LOG(DEBUG, L3FWD_CTRL,
+				"adding ipv4 neighbor with port %s vlan_id %d...\n", ibuf,
+				kni_vlan);
 
 		s = neighbor4_lookup_nexthop(neighbor4_struct[socket_id], addr,
 									 &nexthop_id);
@@ -275,7 +278,7 @@ neighbor4(neighbor_action_t action,
 		RTE_LOG(DEBUG, L3FWD_CTRL, "add neighbor4 with port_id %d\n",
 				port_id);
 		neighbor4_set_lladdr_port(neighbor4_struct[socket_id], nexthop_id,
-								  lladdr, port_id);
+								  lladdr, port_id, kni_vlan);
 		neighbor4_set_state(neighbor4_struct[socket_id], nexthop_id,
 							flags);
 	}
@@ -298,7 +301,7 @@ static int
 neighbor6(neighbor_action_t action,
 		  int32_t port_id, struct in6_addr *addr,
 		  struct ether_addr *lladdr, uint8_t flags,
-		  __rte_unused uint16_t vlanid, void *args)
+		  __rte_unused uint16_t vlan_id, void *args)
 {
 	// if port_id is not handled
 	//   ignore, return immediatly
@@ -332,15 +335,16 @@ neighbor6(neighbor_action_t action,
 	if (addr == NULL)
 		return -1;
 
+	//FIXME must check that state is not NUD_FAILED or NUD_INVALID
 	if (action == NEIGHBOR_ADD) {
 		if (lladdr == NULL)
 			return -1;
 		char ibuf[IFNAMSIZ];
 		unsigned kni_num;
-		RTE_LOG(DEBUG, L3FWD_CTRL, "adding ipv6 neighbor...\n");
+		unsigned kni_vlan;
 
 		if_indextoname(port_id, ibuf);
-		s = sscanf(ibuf, "vEth%d_%d", &port_id, &kni_num);
+		s = sscanf(ibuf, "vEth%d_%d.%d", &port_id, &kni_num, &kni_vlan);
 
 		if (s <= 0) {
 			RTE_LOG(ERR, L3FWD_CTRL,
@@ -348,6 +352,9 @@ neighbor6(neighbor_action_t action,
 					ibuf);
 			return -1;
 		}
+		RTE_LOG(DEBUG, L3FWD_CTRL,
+				"adding ipv6 neighbor with port_id %d vlan_id %d...\n",
+				port_id, kni_vlan);
 
 		s = neighbor6_lookup_nexthop(neighbor6_struct[socket_id], addr,
 									 &nexthop_id);
@@ -363,7 +370,7 @@ neighbor6(neighbor_action_t action,
 		RTE_LOG(DEBUG, L3FWD_CTRL, "add neighbor4 with port_id %d\n",
 				port_id);
 		neighbor6_set_lladdr_port(neighbor6_struct[socket_id], nexthop_id,
-								  lladdr, port_id);
+								  lladdr, port_id, kni_vlan);
 		neighbor6_set_state(neighbor6_struct[socket_id], nexthop_id,
 							flags);
 	}
@@ -432,10 +439,12 @@ eth_link(link_action_t action, int ifid,
 	char ebuf[32];
 	unsigned l, i;
 
-	if (action == LINK_ADD)
+	if (action == LINK_ADD) {
 		memcpy(action_buf, "add", 4);
-	else
+
+	} else {
 		memcpy(action_buf, "del", 4);
+	}
 
 	l = 0;
 	for (i = 0; i < sizeof(*lladdr); i++) {
@@ -501,7 +510,7 @@ void *control_init(int32_t socket_id)
 	}
 	neighbor4_refcount_incr(neighbor4_struct[socket_id], nexthop_id);
 	neighbor4_set_lladdr_port(neighbor4_struct[socket_id], nexthop_id,
-							  &invalid_mac, BAD_PORT);
+							  &invalid_mac, BAD_PORT, -1);
 
 	res = rte_malloc("handle-res", sizeof(*res), socket_id);
 	res->socket_id = socket_id;

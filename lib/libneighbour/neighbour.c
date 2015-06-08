@@ -83,7 +83,8 @@ int neighbor6_refcount_decr(struct nei_table *t, uint8_t nexthop_id)
 
 int
 neighbor6_set_lladdr_port(struct nei_table *t, uint8_t nexthop_id,
-						  struct ether_addr *lladdr, int32_t port_id)
+						  struct ether_addr *lladdr, int16_t port_id,
+						  int16_t vlan_id)
 {
 	struct nei_entry6 *entry;
 
@@ -96,6 +97,7 @@ neighbor6_set_lladdr_port(struct nei_table *t, uint8_t nexthop_id,
 
 	memcpy(&entry->neighbor.nexthop_hwaddr, lladdr, sizeof(*lladdr));
 	entry->neighbor.port_id = port_id;
+	entry->neighbor.vlan_id = vlan_id;
 	return 0;
 }
 
@@ -226,7 +228,8 @@ int neighbor4_refcount_decr(struct nei_table *t, uint8_t nexthop_id)
 
 int
 neighbor4_set_lladdr_port(struct nei_table *t, uint8_t nexthop_id,
-						  struct ether_addr *lladdr, int32_t port_id)
+						  struct ether_addr *lladdr, int16_t port_id,
+						  int16_t vlan_id)
 {
 	struct nei_entry4 *entry;
 
@@ -239,6 +242,7 @@ neighbor4_set_lladdr_port(struct nei_table *t, uint8_t nexthop_id,
 
 	memcpy(&entry->neighbor.nexthop_hwaddr, lladdr, sizeof(*lladdr));
 	entry->neighbor.port_id = port_id;
+	entry->neighbor.vlan_id = vlan_id;
 	return 0;
 }
 
@@ -294,7 +298,8 @@ struct nei_table *nei_create(int socketid)
 	struct nei_table *nei_table;
 
 	nei_table =
-		rdpdk_calloc("nei_table", 1, sizeof(struct nei_table), 64, socketid);
+		rdpdk_calloc("nei_table", 1, sizeof(struct nei_table), 64,
+					 socketid);
 
 	return nei_table;
 }
