@@ -89,6 +89,7 @@
 #include "control.h"
 #include "kni.h"
 #include "cmdline.h"
+#include "acl.h"
 
 lookup_struct_t *ipv4_l3fwd_lookup_struct[NB_SOCKETS];
 lookup6_struct_t *ipv6_l3fwd_lookup_struct[NB_SOCKETS];
@@ -1323,7 +1324,10 @@ static void print_usage(const char *prgname)
 		   "  --unixsock: specify the path for the cmdline unixsock (default: /tmp/rdpdk.sock)\n"
 		   "  --no-numa: optional, disable numa awareness\n"
 		   "  --enable-jumbo: enable jumbo frame"
-		   " which max packet len is PKTLEN in decimal (64-9600)\n",
+		   " which max packet len is PKTLEN in decimal (64-9600)\n"
+		   "  --" OPTION_RULE_IPV4 "=FILE \n"
+		   "  --" OPTION_RULE_IPV6 "=FILE \n"
+		   "  --" OPTION_SCALAR ": Use scalar function to do lookup\n",
 		   prgname);
 }
 
@@ -1431,6 +1435,9 @@ static int parse_args(int argc, char **argv)
 		{CMD_LINE_OPT_KNICONFIG, 1, 0, 0},
 		{CMD_LINE_OPT_CALLBACK_SETUP, 1, 0, 0},
 		{CMD_LINE_OPT_UNIXSOCK, 1, 0, 0},
+		{OPTION_RULE_IPV4, 1, 0, 0},
+		{OPTION_RULE_IPV6, 1, 0, 0},
+		{OPTION_SCALAR, 0, 0, 0},
 		{CMD_LINE_OPT_NO_NUMA, 0, 0, 0},
 		{CMD_LINE_OPT_ENABLE_JUMBO, 0, 0, 0},
 		{NULL, 0, 0, 0}
@@ -1496,6 +1503,19 @@ static int parse_args(int argc, char **argv)
 				printf("numa is disabled \n");
 				numa_on = 0;
 			}
+
+			if (!strncmp(lgopts[option_index].name,
+						 OPTION_RULE_IPV4, sizeof(OPTION_RULE_IPV4)))
+				acl_parm_config.rule_ipv4_name = optarg;
+
+			if (!strncmp(lgopts[option_index].name,
+						 OPTION_RULE_IPV6, sizeof(OPTION_RULE_IPV6))) {
+				acl_parm_config.rule_ipv6_name = optarg;
+			}
+
+			if (!strncmp(lgopts[option_index].name,
+						 OPTION_SCALAR, sizeof(OPTION_SCALAR)))
+				acl_parm_config.scalar = 1;
 
 			if (!strncmp
 				(lgopts[option_index].name, CMD_LINE_OPT_ENABLE_JUMBO,
@@ -1896,6 +1916,7 @@ int main(int argc, char **argv)
 
 	nb_lcores = rte_lcore_count();
 
+    acl_init(numa_on);
 
 	int ctrlsock = 0;
 	if (numa_on)
