@@ -44,7 +44,6 @@
 
 /***********************start of ACL part******************************/
 #define MAX_ACL_RULE_NUM	100000
-#define DEFAULT_MAX_CATEGORIES	1
 #define L3FWD_ACL_IPV4_NAME	"l3fwd-acl-ipv4"
 #define L3FWD_ACL_IPV6_NAME	"l3fwd-acl-ipv6"
 #define ACL_LEAD_CHAR		('@')
@@ -59,13 +58,6 @@
 		*c = (unsigned char)(ip >> 8 & 0xff);\
 		*d = (unsigned char)(ip & 0xff);\
 	} while (0)
-#define OFF_ETHHEAD	(sizeof(struct ether_hdr))
-#define OFF_IPV42PROTO (offsetof(struct ipv4_hdr, next_proto_id))
-#define OFF_IPV62PROTO (offsetof(struct ipv6_hdr, proto))
-#define MBUF_IPV4_2PROTO(m)	\
-	(rte_pktmbuf_mtod((m), uint8_t *) + OFF_ETHHEAD + OFF_IPV42PROTO)
-#define MBUF_IPV6_2PROTO(m)	\
-	(rte_pktmbuf_mtod((m), uint8_t *) + OFF_ETHHEAD + OFF_IPV62PROTO)
 
 #define GET_CB_FIELD(in, fd, base, lim, dlm)	do {            \
 	unsigned long val;                                      \
@@ -277,29 +269,17 @@ enum {
 RTE_ACL_RULE_DEF(acl4_rule, RTE_DIM(ipv4_defs));
 RTE_ACL_RULE_DEF(acl6_rule, RTE_DIM(ipv6_defs));
 
-struct acl_search_t {
-	const uint8_t *data_ipv4[MAX_PKT_BURST];
-	struct rte_mbuf *m_ipv4[MAX_PKT_BURST];
-	uint32_t res_ipv4[MAX_PKT_BURST];
-	int num_ipv4;
-
-	const uint8_t *data_ipv6[MAX_PKT_BURST];
-	struct rte_mbuf *m_ipv6[MAX_PKT_BURST];
-	uint32_t res_ipv6[MAX_PKT_BURST];
-	int num_ipv6;
-};
-
 static struct {
-	char mapped[NB_SOCKETS];
-	struct rte_acl_ctx *acx_ipv4[NB_SOCKETS];
-	struct rte_acl_ctx *acx_ipv6[NB_SOCKETS];
 #ifdef L3FWDACL_DEBUG
 	struct acl4_rule *rule_ipv4;
 	struct acl6_rule *rule_ipv6;
 #endif
 } acl_config;
 
-struct acl_config acl_parm_config;
+struct rte_acl_ctx *ipv4_acx[NB_SOCKETS];
+struct rte_acl_ctx *ipv6_acx[NB_SOCKETS];
+
+struct acl_parm acl_parm_config;
 
 const char cb_port_delim[] = ":";
 
@@ -472,31 +452,6 @@ dump_ipv6_rules(struct acl6_rule *rule, int num, int extra)
 }
 
 #if 0
-static inline void
-prepare_acl_parameter(struct rte_mbuf **pkts_in, struct acl_search_t *acl,
-					  int nb_rx)
-{
-	int i;
-
-	acl->num_ipv4 = 0;
-	acl->num_ipv6 = 0;
-
-	/* Prefetch first packets */
-	for (i = 0; i < PREFETCH_OFFSET && i < nb_rx; i++) {
-		rte_prefetch0(rte_pktmbuf_mtod(pkts_in[i], void *));
-	}
-
-	for (i = 0; i < (nb_rx - PREFETCH_OFFSET); i++) {
-		rte_prefetch0(rte_pktmbuf_mtod
-					  (pkts_in[i + PREFETCH_OFFSET], void *));
-		prepare_one_packet(pkts_in, acl, i);
-	}
-
-	/* Process left packets */
-	for (; i < nb_rx; i++)
-		prepare_one_packet(pkts_in, acl, i);
-}
-
 static inline void send_one_packet(struct rte_mbuf *m, uint32_t res)
 {
 	if (likely((res & ACL_DENY_SIGNATURE) == 0 && res != 0)) {
@@ -850,9 +805,8 @@ static int check_acl_config(void)
 	return 0;
 }
 
-static struct rte_acl_ctx *setup_acl(struct rte_acl_rule *acl_base,
-									 unsigned int acl_num, int ipv6,
-									 int socketid)
+struct rte_acl_ctx *setup_acl(struct rte_acl_rule *acl_base,
+							  unsigned int acl_num, int ipv6, int socketid)
 {
 	char name[PATH_MAX];
 	struct rte_acl_param acl_param;
@@ -897,11 +851,9 @@ static struct rte_acl_ctx *setup_acl(struct rte_acl_rule *acl_base,
 	return context;
 }
 
-int acl_init(int numa_on)
+int acl_init(void)
 {
-	unsigned lcore_id;
 	unsigned int i;
-	int socketid;
 	struct rte_acl_rule *acl_base_ipv4, *acl_base_ipv6;
 	unsigned int acl_num_ipv4 = 0, acl_num_ipv6 = 0;
 
@@ -929,35 +881,10 @@ int acl_init(int numa_on)
 
 	memset(&acl_config, 0, sizeof(acl_config));
 
-	/* Check sockets a context should be created on */
-	if (!numa_on)
-		acl_config.mapped[0] = 1;
-	else {
-		for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++) {
-			if (rte_lcore_is_enabled(lcore_id) == 0)
-				continue;
-
-			socketid = rte_lcore_to_socket_id(lcore_id);
-			if (socketid >= NB_SOCKETS) {
-				acl_log("Socket %d of lcore %u is out "
-						"of range %d\n", socketid, lcore_id, NB_SOCKETS);
-				free(acl_base_ipv4);
-				free(acl_base_ipv6);
-				return -1;
-			}
-
-			acl_config.mapped[socketid] = 1;
-		}
-	}
-
 	for (i = 0; i < NB_SOCKETS; i++) {
-		if (acl_config.mapped[i]) {
-			acl_config.acx_ipv4[i] = setup_acl(acl_base_ipv4, acl_num_ipv4,
-											   0, i);
+		ipv4_acx[i] = setup_acl(acl_base_ipv4, acl_num_ipv4, 0, i);
 
-			acl_config.acx_ipv6[i] = setup_acl(acl_base_ipv6, acl_num_ipv6,
-											   1, i);
-		}
+		ipv6_acx[i] = setup_acl(acl_base_ipv6, acl_num_ipv6, 1, i);
 	}
 
 #ifdef L3FWDACL_DEBUG

@@ -81,6 +81,7 @@
 #include <rte_atomic.h>
 #include <rte_lpm.h>
 #include <rte_lpm6.h>
+#include <rte_acl.h>
 
 #include <libneighbour.h>
 
@@ -252,6 +253,9 @@ struct lcore_conf {
 	lookup6_struct_t *ipv6_lookup_struct;
 	neighbor_struct_t *neighbor4_struct;
 	neighbor_struct_t *neighbor6_struct;
+	//FIXME must init it in lcore_conf setup
+	struct rte_acl_ctx *acx_ipv4;
+	struct rte_acl_ctx *acx_ipv6;
 } __rte_cache_aligned;
 
 struct lcore_stats stats[RTE_MAX_LCORE];
@@ -999,6 +1003,58 @@ static inline uint16_t *port_groupx4(uint16_t pn[FWDSTEP + 1],
 	return lp;
 }
 
+static inline void
+prepare_one_packet(struct rte_mbuf **pkts_in, struct acl_search_t *acl,
+				   int index)
+{
+	struct rte_mbuf *pkt = pkts_in[index];
+
+	int type = pkt->ol_flags & (PKT_RX_IPV4_HDR | PKT_RX_IPV6_HDR);
+
+	if (type == PKT_RX_IPV4_HDR) {
+
+		/* Fill acl structure */
+		acl->data_ipv4[acl->num_ipv4] = MBUF_IPV4_2PROTO(pkt);
+		acl->m_ipv4[(acl->num_ipv4)++] = pkt;
+
+
+	} else if (type == PKT_RX_IPV6_HDR) {
+
+		/* Fill acl structure */
+		acl->data_ipv6[acl->num_ipv6] = MBUF_IPV6_2PROTO(pkt);
+		acl->m_ipv6[(acl->num_ipv6)++] = pkt;
+	} else {
+		/* Unknown type, drop the packet */
+		rte_pktmbuf_free(pkt);
+	}
+}
+
+static inline void
+prepare_acl_parameter(struct rte_mbuf **pkts_in, struct acl_search_t *acl,
+					  int nb_rx)
+{
+	int i;
+
+	acl->num_ipv4 = 0;
+	acl->num_ipv6 = 0;
+
+	/* Prefetch first packets */
+	for (i = 0; i < PREFETCH_OFFSET && i < nb_rx; i++) {
+		rte_prefetch0(rte_pktmbuf_mtod(pkts_in[i], void *));
+	}
+
+	for (i = 0; i < (nb_rx - PREFETCH_OFFSET); i++) {
+		rte_prefetch0(rte_pktmbuf_mtod
+					  (pkts_in[i + PREFETCH_OFFSET], void *));
+		prepare_one_packet(pkts_in, acl, i);
+	}
+
+	/* Process left packets */
+	for (; i < nb_rx; i++)
+		prepare_one_packet(pkts_in, acl, i);
+}
+
+
 /* main processing loop */
 static int main_loop(__rte_unused void *dummy)
 {
@@ -1078,6 +1134,35 @@ static int main_loop(__rte_unused void *dummy)
 				continue;
 
 			stats[lcore_id].nb_rx += nb_rx;
+			if (nb_rx > 0) {
+				struct acl_search_t acl_search;
+
+				prepare_acl_parameter(pkts_burst, &acl_search, nb_rx);
+
+				if (acl_search.num_ipv4) {
+					rte_acl_classify(qconf->acx_ipv4,
+									 acl_search.data_ipv4,
+									 acl_search.res_ipv4,
+									 acl_search.num_ipv4,
+									 DEFAULT_MAX_CATEGORIES);
+
+					//send_packets(acl_search.m_ipv4,
+					//  acl_search.res_ipv4,
+					//  acl_search.num_ipv4);
+				}
+
+				if (acl_search.num_ipv6) {
+					rte_acl_classify(qconf->acx_ipv6,
+									 acl_search.data_ipv6,
+									 acl_search.res_ipv6,
+									 acl_search.num_ipv6,
+									 DEFAULT_MAX_CATEGORIES);
+
+					//send_packets(acl_search.m_ipv6,
+					//  acl_search.res_ipv6,
+					//  acl_search.num_ipv6);
+				}
+			}
 
 			/* Process up to last 3 packets one by one. */
 			j = 0;
@@ -1663,6 +1748,8 @@ static int init_mem(unsigned nb_mbuf)
 		qconf->neighbor4_struct = neighbor4_struct[socketid];
 		qconf->ipv6_lookup_struct = ipv6_l3fwd_lookup_struct[socketid];
 		qconf->neighbor6_struct = neighbor6_struct[socketid];
+		qconf->acx_ipv4 = ipv4_acx[socketid];
+		qconf->acx_ipv6 = ipv6_acx[socketid];
 	}
 	return 0;
 }
@@ -1916,7 +2003,9 @@ int main(int argc, char **argv)
 
 	nb_lcores = rte_lcore_count();
 
-    acl_init(numa_on);
+	/* Add ACL rules and route entries, build trie */
+	if (acl_init() < 0)
+		rte_exit(EXIT_FAILURE, "app_acl_init failed\n");
 
 	int ctrlsock = 0;
 	if (numa_on)
