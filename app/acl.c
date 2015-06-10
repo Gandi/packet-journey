@@ -47,7 +47,6 @@
 #define L3FWD_ACL_IPV4_NAME	"l3fwd-acl-ipv4"
 #define L3FWD_ACL_IPV6_NAME	"l3fwd-acl-ipv6"
 #define ACL_LEAD_CHAR		('@')
-#define ROUTE_LEAD_CHAR		('R')
 #define COMMENT_LEAD_CHAR	('#')
 #define RTE_LOGTYPE_L3FWD_ACL	RTE_LOGTYPE_USER3
 #define acl_log(format, ...)	RTE_LOG(ERR, L3FWD_ACL, format, ##__VA_ARGS__)
@@ -450,27 +449,6 @@ dump_ipv6_rules(struct acl6_rule *rule, int num, int extra)
 	}
 }
 
-#if 0
-static inline void send_one_packet(struct rte_mbuf *m, uint32_t res)
-{
-	if (likely((res & ACL_DENY_SIGNATURE) == 0 && res != 0)) {
-		/* forward packets */
-		send_single_packet(m, (uint8_t) (res - FWD_PORT_SHIFT));
-	} else {
-		/* in the ACL list, drop it */
-#ifdef L3FWDACL_DEBUG
-		if ((res & ACL_DENY_SIGNATURE) != 0) {
-			if (m->ol_flags & PKT_RX_IPV4_HDR)
-				dump_acl4_rule(m, res);
-			else
-				dump_acl6_rule(m, res);
-		}
-#endif
-		rte_pktmbuf_free(m);
-	}
-}
-#endif
-
 /*
  * Parses IPV6 address, exepcts the following format:
  * XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX (where X - is a hexedecimal digit).
@@ -528,13 +506,12 @@ static int parse_ipv6_net(const char *in, struct rte_acl_field field[4])
 	return 0;
 }
 
-static int
-parse_cb_ipv6_rule(char *str, struct rte_acl_rule *v, int has_userdata)
+static int parse_cb_ipv6_rule(char *str, struct rte_acl_rule *v)
 {
 	int i, rc;
 	char *s, *sp, *in[CB_FLD_NUM];
 	static const char *dlm = " \t\n";
-	int dim = has_userdata ? CB_FLD_NUM : CB_FLD_USERDATA;
+	int dim = CB_FLD_NUM;
 	s = str;
 
 	for (i = 0; i != dim; i++, s = NULL) {
@@ -590,11 +567,6 @@ parse_cb_ipv6_rule(char *str, struct rte_acl_rule *v, int has_userdata)
 	GET_CB_FIELD(in[CB_FLD_PROTO],
 				 v->field[PROTO_FIELD_IPV6].mask_range.u8, 0, UINT8_MAX,
 				 0);
-
-	if (has_userdata)
-		GET_CB_FIELD(in[CB_FLD_USERDATA], v->data.userdata,
-					 0, UINT32_MAX, 0);
-
 	return 0;
 }
 
@@ -624,13 +596,12 @@ parse_ipv4_net(const char *in, uint32_t * addr, uint32_t * mask_len)
 	return 0;
 }
 
-static int
-parse_cb_ipv4vlan_rule(char *str, struct rte_acl_rule *v, int has_userdata)
+static int parse_cb_ipv4vlan_rule(char *str, struct rte_acl_rule *v)
 {
 	int i, rc;
 	char *s, *sp, *in[CB_FLD_NUM];
 	static const char *dlm = " \t\n";
-	int dim = has_userdata ? CB_FLD_NUM : CB_FLD_USERDATA;
+	int dim = CB_FLD_NUM;
 	s = str;
 
 	for (i = 0; i != dim; i++, s = NULL) {
@@ -689,10 +660,6 @@ parse_cb_ipv4vlan_rule(char *str, struct rte_acl_rule *v, int has_userdata)
 				 v->field[PROTO_FIELD_IPV4].mask_range.u8, 0, UINT8_MAX,
 				 0);
 
-	if (has_userdata)
-		GET_CB_FIELD(in[CB_FLD_USERDATA], v->data.userdata, 0,
-					 UINT32_MAX, 0);
-
 	return 0;
 }
 
@@ -700,12 +667,12 @@ static int
 add_rules(const char *rule_path,
 		  struct rte_acl_rule **pacl_base,
 		  unsigned int *pacl_num, uint32_t rule_size,
-		  int (*parser) (char *, struct rte_acl_rule *, int))
+		  int (*parser) (char *, struct rte_acl_rule *))
 {
-	uint8_t *acl_rules, *route_rules;
+	uint8_t *acl_rules;
 	struct rte_acl_rule *next;
-	unsigned int acl_num = 0, route_num = 0, total_num = 0;
-	unsigned int acl_cnt = 0, route_cnt = 0;
+	unsigned int acl_num = 0, total_num = 0;
+	unsigned int acl_cnt = 0;
 	char buff[LINE_MAX];
 	FILE *fh = fopen(rule_path, "rb");
 	unsigned int i = 0;
@@ -715,26 +682,15 @@ add_rules(const char *rule_path,
 				 rule_path);
 
 	while ((fgets(buff, LINE_MAX, fh) != NULL)) {
-		if (buff[0] == ROUTE_LEAD_CHAR)
-			route_num++;
-		else if (buff[0] == ACL_LEAD_CHAR)
+		if (buff[0] == ACL_LEAD_CHAR)
 			acl_num++;
 	}
-
-	if (0 == route_num)
-		rte_exit(EXIT_FAILURE, "Not find any route entries in %s!\n",
-				 rule_path);
 
 	fseek(fh, 0, SEEK_SET);
 
 	acl_rules = calloc(acl_num, rule_size);
 
 	if (NULL == acl_rules)
-		rte_exit(EXIT_FAILURE, "%s: failed to malloc memory\n", __func__);
-
-	route_rules = calloc(route_num, rule_size);
-
-	if (NULL == route_rules)
 		rte_exit(EXIT_FAILURE, "%s: failed to malloc memory\n", __func__);
 
 	i = 0;
@@ -746,13 +702,8 @@ add_rules(const char *rule_path,
 
 		char s = buff[0];
 
-		/* Route entry */
-		if (s == ROUTE_LEAD_CHAR)
-			next = (struct rte_acl_rule *) (route_rules +
-											route_cnt * rule_size);
-
 		/* ACL entry */
-		else if (s == ACL_LEAD_CHAR)
+		if (s == ACL_LEAD_CHAR)
 			next = (struct rte_acl_rule *) (acl_rules +
 											acl_cnt * rule_size);
 
@@ -760,10 +711,9 @@ add_rules(const char *rule_path,
 		else
 			rte_exit(EXIT_FAILURE,
 					 "%s Line %u: should start with leading "
-					 "char %c or %c\n",
-					 rule_path, i, ROUTE_LEAD_CHAR, ACL_LEAD_CHAR);
+					 "char %c\n", rule_path, i, ACL_LEAD_CHAR);
 
-		if (parser(buff + 1, next, s == ROUTE_LEAD_CHAR) != 0)
+		if (parser(buff + 1, next) != 0)
 			rte_exit(EXIT_FAILURE,
 					 "%s Line %u: parse rules error\n", rule_path, i);
 
