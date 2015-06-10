@@ -49,7 +49,6 @@
 #define ACL_LEAD_CHAR		('@')
 #define ROUTE_LEAD_CHAR		('R')
 #define COMMENT_LEAD_CHAR	('#')
-#define ACL_DENY_SIGNATURE	0xf0000000
 #define RTE_LOGTYPE_L3FWD_ACL	RTE_LOGTYPE_USER3
 #define acl_log(format, ...)	RTE_LOG(ERR, L3FWD_ACL, format, ##__VA_ARGS__)
 #define uint32_t_to_char(ip, a, b, c, d) do {\
