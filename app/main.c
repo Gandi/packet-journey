@@ -1023,9 +1023,6 @@ prepare_one_packet(struct rte_mbuf **pkts_in, struct acl_search_t *acl,
 		/* Fill acl structure */
 		acl->data_ipv6[acl->num_ipv6] = MBUF_IPV6_2PROTO(pkt);
 		acl->m_ipv6[(acl->num_ipv6)++] = pkt;
-	} else {
-		/* Unknown type, drop the packet */
-		rte_pktmbuf_free(pkt);
 	}
 }
 
@@ -1033,25 +1030,32 @@ static inline void
 prepare_acl_parameter(struct rte_mbuf **pkts_in, struct acl_search_t *acl,
 					  int nb_rx)
 {
-	int i;
+	int i = 0, j = 0;
 
 	acl->num_ipv4 = 0;
 	acl->num_ipv6 = 0;
 
-	/* Prefetch first packets */
-	for (i = 0; i < PREFETCH_OFFSET && i < nb_rx; i++) {
-		rte_prefetch0(rte_pktmbuf_mtod(pkts_in[i], void *));
-	}
+    switch (nb_rx % PREFETCH_OFFSET) {
+        while (nb_rx != i) {
+            case 0:
+            rte_prefetch0(rte_pktmbuf_mtod(pkts_in[i], void *));
+            i++;
+            j++;
+            case 2:
+            rte_prefetch0(rte_pktmbuf_mtod(pkts_in[i], void *));
+            i++;
+            j++;
+            case 1:
+            rte_prefetch0(rte_pktmbuf_mtod(pkts_in[i], void *));
+            i++;
+            j++;
 
-	for (i = 0; i < (nb_rx - PREFETCH_OFFSET); i++) {
-		rte_prefetch0(rte_pktmbuf_mtod
-					  (pkts_in[i + PREFETCH_OFFSET], void *));
-		prepare_one_packet(pkts_in, acl, i);
-	}
-
-	/* Process left packets */
-	for (; i < nb_rx; i++)
-		prepare_one_packet(pkts_in, acl, i);
+            while (j > 0) {
+                prepare_one_packet(pkts_in, acl, i - j);
+                --j;
+            }
+        }
+    }
 }
 
 
