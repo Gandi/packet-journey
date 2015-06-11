@@ -744,8 +744,9 @@ static int check_acl_config(void)
 	return 0;
 }
 
-struct rte_acl_ctx *setup_acl(struct rte_acl_rule *acl_base,
-							  unsigned int acl_num, int ipv6, int socketid)
+static struct rte_acl_ctx *setup_acl(struct rte_acl_rule *acl_base,
+									 unsigned int acl_num, int ipv6,
+									 int socketid)
 {
 	char name[PATH_MAX];
 	struct rte_acl_param acl_param;
@@ -790,7 +791,7 @@ struct rte_acl_ctx *setup_acl(struct rte_acl_rule *acl_base,
 	return context;
 }
 
-int acl_init(void)
+int acl_init(int is_ipv4)
 {
 	unsigned int i;
 	struct rte_acl_rule *acl_base_ipv4, *acl_base_ipv6;
@@ -801,40 +802,45 @@ int acl_init(void)
 
 	dump_acl_config();
 
-	/* Load  rules from the input file */
-	if (add_rules(acl_parm_config.rule_ipv4_name,
-				  &acl_base_ipv4, &acl_num_ipv4,
-				  sizeof(struct acl4_rule), &parse_cb_ipv4vlan_rule) < 0)
-		rte_exit(EXIT_FAILURE, "Failed to add rules\n");
+	if (is_ipv4) {
+		/* Load  rules from the input file */
+		if (add_rules(acl_parm_config.rule_ipv4_name,
+					  &acl_base_ipv4, &acl_num_ipv4,
+					  sizeof(struct acl4_rule),
+					  &parse_cb_ipv4vlan_rule) < 0)
+			rte_exit(EXIT_FAILURE, "Failed to add rules\n");
 
-	acl_log("IPv4 ACL entries %u:\n", acl_num_ipv4);
-	dump_ipv4_rules((struct acl4_rule *) acl_base_ipv4, acl_num_ipv4, 1);
-
-	if (add_rules(acl_parm_config.rule_ipv6_name,
-				  &acl_base_ipv6, &acl_num_ipv6,
-				  sizeof(struct acl6_rule), &parse_cb_ipv6_rule) < 0)
-		rte_exit(EXIT_FAILURE, "Failed to add rules\n");
-
-	acl_log("IPv6 ACL entries %u:\n", acl_num_ipv6);
-	dump_ipv6_rules((struct acl6_rule *) acl_base_ipv6, acl_num_ipv6, 1);
-
-	memset(&acl_config, 0, sizeof(acl_config));
-
-	for (i = 0; i < NB_SOCKETS; i++) {
-		ipv4_acx[i] = setup_acl(acl_base_ipv4, acl_num_ipv4, 0, i);
-
-		ipv6_acx[i] = setup_acl(acl_base_ipv6, acl_num_ipv6, 1, i);
-	}
-
+		acl_log("IPv4 ACL entries %u:\n", acl_num_ipv4);
+		dump_ipv4_rules((struct acl4_rule *) acl_base_ipv4, acl_num_ipv4,
+						1);
+		for (i = 0; i < NB_SOCKETS; i++) {
+			ipv4_acx[i] = setup_acl(acl_base_ipv4, acl_num_ipv4, 0, i);
+		}
 #ifdef L3FWDACL_DEBUG
-	acl_config.rule_ipv4 = (struct acl4_rule *) acl_base_ipv4;
-	acl_config.rule_ipv6 = (struct acl6_rule *) acl_base_ipv6;
+		acl_config.rule_ipv4 = (struct acl4_rule *) acl_base_ipv4;
+		acl_config.rule_ipv6 = (struct acl6_rule *) acl_base_ipv6;
 #else
-	free(acl_base_ipv4);
-	free(acl_base_ipv6);
+		free(acl_base_ipv4);
+		free(acl_base_ipv6);
 #endif
+	} else {
+		if (add_rules(acl_parm_config.rule_ipv6_name,
+					  &acl_base_ipv6, &acl_num_ipv6,
+					  sizeof(struct acl6_rule), &parse_cb_ipv6_rule) < 0)
+			rte_exit(EXIT_FAILURE, "Failed to add rules\n");
+
+		acl_log("IPv6 ACL entries %u:\n", acl_num_ipv6);
+		dump_ipv6_rules((struct acl6_rule *) acl_base_ipv6, acl_num_ipv6,
+						1);
+		for (i = 0; i < NB_SOCKETS; i++) {
+			ipv6_acx[i] = setup_acl(acl_base_ipv6, acl_num_ipv6, 1, i);
+		}
+#ifdef L3FWDACL_DEBUG
+		acl_config.rule_ipv6 = (struct acl6_rule *) acl_base_ipv6;
+#else
+		free(acl_base_ipv6);
+#endif
+	}
 
 	return 0;
 }
-
-/***********************end of ACL part******************************/

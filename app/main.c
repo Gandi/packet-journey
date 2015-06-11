@@ -2084,8 +2084,10 @@ int main(int argc, char **argv)
 	nb_lcores = rte_lcore_count();
 
 	/* Add ACL rules and route entries, build trie */
-	if (acl_init() < 0)
-		rte_exit(EXIT_FAILURE, "app_acl_init failed\n");
+	if (acl_init(0) < 0)
+		rte_exit(EXIT_FAILURE, "acl_init ipv4 failed\n");
+	if (acl_init(1) < 0)
+		rte_exit(EXIT_FAILURE, "acl_init ipv6 failed\n");
 
 	int ctrlsock = 0;
 	if (numa_on)

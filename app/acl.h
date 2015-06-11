@@ -15,11 +15,8 @@
 #define MBUF_IPV6_2PROTO(m)	\
 	(rte_pktmbuf_mtod((m), uint8_t *) + OFF_ETHHEAD + OFF_IPV62PROTO)
 
-int acl_init(void);
+int acl_init(int is_ipv4);
 
-struct rte_acl_ctx *setup_acl(struct rte_acl_rule *acl_base,
-							  unsigned int acl_num, int ipv6,
-							  int socketid);
 struct acl_search_t {
 	const uint8_t *data_ipv4[MAX_PKT_BURST];
 	struct rte_mbuf *m_ipv4[MAX_PKT_BURST];
