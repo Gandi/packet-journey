@@ -253,7 +253,6 @@ struct lcore_conf {
 	lookup6_struct_t *ipv6_lookup_struct;
 	neighbor_struct_t *neighbor4_struct;
 	neighbor_struct_t *neighbor6_struct;
-	//FIXME must init it in lcore_conf setup
 	struct rte_acl_ctx *acx_ipv4;
 	struct rte_acl_ctx *acx_ipv6;
 } __rte_cache_aligned;
