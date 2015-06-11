@@ -703,7 +703,7 @@ struct cmd_obj_acl_add_result {
 };
 
 static void cmd_obj_acl_add_parsed(void *parsed_result,
-								   __rte_unused struct cmdline *cl,
+								   struct cmdline *cl,
 								   __rte_unused void *data)
 {
 	struct cmd_obj_acl_add_result *res = parsed_result;
@@ -715,7 +715,9 @@ static void cmd_obj_acl_add_parsed(void *parsed_result,
 	} else {
 		acl_parm_config.rule_ipv6_name = res->path;
 	}
-	acl_init(is_ipv4);
+	if (acl_init(is_ipv4)) {
+		cmdline_printf(cl, "ERROR: failed to add acl\n");
+	}
 }
 
 cmdline_parse_token_string_t cmd_obj_action_acl_add =

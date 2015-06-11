@@ -659,17 +659,18 @@ add_rules(const char *rule_path,
 		  unsigned int *pacl_num, uint32_t rule_size,
 		  int (*parser) (char *, struct rte_acl_rule *))
 {
-	uint8_t *acl_rules;
+	char buff[LINE_MAX];
 	struct rte_acl_rule *next;
+	uint8_t *acl_rules = 0;
 	unsigned int acl_num = 0, total_num = 0;
 	unsigned int acl_cnt = 0;
-	char buff[LINE_MAX];
 	FILE *fh = fopen(rule_path, "rb");
 	unsigned int i = 0;
 
-	if (fh == NULL)
-		rte_exit(EXIT_FAILURE, "%s: Open %s failed\n", __func__,
-				 rule_path);
+	if (fh == NULL) {
+		acl_log("%s: Open %s failed\n", __func__, rule_path);
+		return -1;
+	}
 
 	while ((fgets(buff, LINE_MAX, fh) != NULL)) {
 		if (buff[0] == ACL_LEAD_CHAR)
@@ -680,6 +681,7 @@ add_rules(const char *rule_path,
 
 	acl_rules = calloc(acl_num, rule_size);
 
+	//FIXME do we want to keep that rte_exit ?
 	if (NULL == acl_rules)
 		rte_exit(EXIT_FAILURE, "%s: failed to malloc memory\n", __func__);
 
@@ -698,14 +700,16 @@ add_rules(const char *rule_path,
 											acl_cnt * rule_size);
 
 		/* Illegal line */
-		else
-			rte_exit(EXIT_FAILURE,
-					 "%s Line %u: should start with leading "
-					 "char %c\n", rule_path, i, ACL_LEAD_CHAR);
+		else {
+			acl_log("%s Line %u: should start with leading "
+					"char %c\n", rule_path, i, ACL_LEAD_CHAR);
+			goto err;
+		}
 
-		if (parser(buff + 1, next) != 0)
-			rte_exit(EXIT_FAILURE,
-					 "%s Line %u: parse rules error\n", rule_path, i);
+		if (parser(buff + 1, next) != 0) {
+			acl_log("%s Line %u: parse rules error\n", rule_path, i);
+			goto err;
+		}
 
 		next->data.userdata = ACL_DENY_SIGNATURE + acl_cnt;
 		acl_cnt++;
@@ -721,6 +725,10 @@ add_rules(const char *rule_path,
 	*pacl_num = acl_num;
 
 	return 0;
+  err:
+	free(acl_rules);
+	fclose(fh);
+	return -1;
 }
 
 static void dump_acl_config(void)
@@ -763,17 +771,22 @@ static struct rte_acl_ctx *setup_acl(struct rte_acl_rule *acl_base,
 	acl_param.rule_size = RTE_ACL_RULE_SZ(dim);
 	acl_param.max_rule_num = MAX_ACL_RULE_NUM;
 
-	if ((context = rte_acl_create(&acl_param)) == NULL)
-		rte_exit(EXIT_FAILURE, "Failed to create ACL context\n");
+	if ((context = rte_acl_create(&acl_param)) == NULL) {
+		acl_log("Failed to create ACL context\n");
+		goto err;
+	}
 
 	if (acl_parm_config.scalar && rte_acl_set_ctx_classify(context,
 														   RTE_ACL_CLASSIFY_SCALAR)
-		!= 0)
-		rte_exit(EXIT_FAILURE,
-				 "Failed to setup classify method for  ACL context\n");
+		!= 0) {
+		acl_log("Failed to setup classify method for  ACL context\n");
+		goto err;
+	}
 
-	if (rte_acl_add_rules(context, acl_base, acl_num) < 0)
-		rte_exit(EXIT_FAILURE, "add rules failed\n");
+	if (rte_acl_add_rules(context, acl_base, acl_num) < 0) {
+		acl_log("add rules failed\n");
+		goto err;
+	}
 
 	/* Perform builds */
 	memset(&acl_build_param, 0, sizeof(acl_build_param));
@@ -783,12 +796,16 @@ static struct rte_acl_ctx *setup_acl(struct rte_acl_rule *acl_base,
 	memcpy(&acl_build_param.defs, ipv6 ? ipv6_defs : ipv4_defs,
 		   ipv6 ? sizeof(ipv6_defs) : sizeof(ipv4_defs));
 
-	if (rte_acl_build(context, &acl_build_param) != 0)
-		rte_exit(EXIT_FAILURE, "Failed to build ACL trie\n");
+	if (rte_acl_build(context, &acl_build_param) != 0) {
+		acl_log("Failed to build ACL trie\n");
+		goto err;
+	}
 
 	rte_acl_dump(context);
 
 	return context;
+  err:
+	return NULL;
 }
 
 int acl_init(int is_ipv4)
@@ -796,9 +813,12 @@ int acl_init(int is_ipv4)
 	unsigned int i;
 	struct rte_acl_rule *acl_base_ipv4, *acl_base_ipv6;
 	unsigned int acl_num_ipv4 = 0, acl_num_ipv6 = 0;
+	struct rte_acl_ctx *acl_ctx;
 
-	if (check_acl_config() != 0)
-		rte_exit(EXIT_FAILURE, "Failed to get valid ACL options\n");
+	if (check_acl_config() != 0) {
+		acl_log("Failed to get valid ACL options\n");
+		return -1;
+	}
 
 	dump_acl_config();
 
@@ -807,33 +827,49 @@ int acl_init(int is_ipv4)
 		if (add_rules(acl_parm_config.rule_ipv4_name,
 					  &acl_base_ipv4, &acl_num_ipv4,
 					  sizeof(struct acl4_rule),
-					  &parse_cb_ipv4vlan_rule) < 0)
-			rte_exit(EXIT_FAILURE, "Failed to add rules\n");
+					  &parse_cb_ipv4vlan_rule) < 0) {
+			acl_log("Failed to add ipv4 rules\n");
+			return -1;
+		}
 
 		acl_log("IPv4 ACL entries %u:\n", acl_num_ipv4);
 		dump_ipv4_rules((struct acl4_rule *) acl_base_ipv4, acl_num_ipv4,
 						1);
 		for (i = 0; i < NB_SOCKETS; i++) {
-			ipv4_acx[i] = setup_acl(acl_base_ipv4, acl_num_ipv4, 0, i);
+			if ((acl_ctx =
+				 setup_acl(acl_base_ipv4, acl_num_ipv4, 0, i)) != NULL) {
+				ipv4_acx[i] = acl_ctx;
+			} else {
+				acl_log
+					("setup_acl failed for ipv4 with socketid %d, keeping previous rules for that socket\n",
+					 i);
+			}
 		}
 #ifdef L3FWDACL_DEBUG
 		acl_config.rule_ipv4 = (struct acl4_rule *) acl_base_ipv4;
-		acl_config.rule_ipv6 = (struct acl6_rule *) acl_base_ipv6;
 #else
 		free(acl_base_ipv4);
-		free(acl_base_ipv6);
 #endif
 	} else {
 		if (add_rules(acl_parm_config.rule_ipv6_name,
 					  &acl_base_ipv6, &acl_num_ipv6,
-					  sizeof(struct acl6_rule), &parse_cb_ipv6_rule) < 0)
-			rte_exit(EXIT_FAILURE, "Failed to add rules\n");
+					  sizeof(struct acl6_rule), &parse_cb_ipv6_rule) < 0) {
+			acl_log("Failed to add ipv6 rules\n");
+			return -1;
+		}
 
 		acl_log("IPv6 ACL entries %u:\n", acl_num_ipv6);
 		dump_ipv6_rules((struct acl6_rule *) acl_base_ipv6, acl_num_ipv6,
 						1);
 		for (i = 0; i < NB_SOCKETS; i++) {
-			ipv6_acx[i] = setup_acl(acl_base_ipv6, acl_num_ipv6, 1, i);
+			if ((acl_ctx =
+				 setup_acl(acl_base_ipv6, acl_num_ipv6, 1, i)) != NULL) {
+				ipv4_acx[i] = acl_ctx;
+			} else {
+				acl_log
+					("setup_acl failed for ipv6 with socketid %d, keeping previous rules for that socket\n",
+					 i);
+			}
 		}
 #ifdef L3FWDACL_DEBUG
 		acl_config.rule_ipv6 = (struct acl6_rule *) acl_base_ipv6;
