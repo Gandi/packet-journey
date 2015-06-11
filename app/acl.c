@@ -69,16 +69,6 @@
 } while (0)
 
 /*
-  * ACL rules should have higher priorities than route ones to ensure ACL rule
-  * always be found when input packets have multi-matches in the database.
-  * A exception case is performance measure, which can define route rules with
-  * higher priority and route rules will always be returned in each lookup.
-  * Reserve range from ACL_RULE_PRIORITY_MAX + 1 to
-  * RTE_ACL_MAX_PRIORITY for route entries in performance measure
-  */
-#define ACL_RULE_PRIORITY_MAX 0x10000000
-
-/*
   * Forward port info save in ACL lib starts from 1
   * since ACL assume 0 is invalid.
   * So, need add 1 when saving and minus 1 when forwarding packets.
@@ -720,7 +710,7 @@ add_rules(const char *rule_path,
 		next->data.userdata = ACL_DENY_SIGNATURE + acl_cnt;
 		acl_cnt++;
 
-		next->data.priority = RTE_ACL_MAX_PRIORITY - total_num;
+		next->data.priority = total_num;
 		next->data.category_mask = -1;
 		total_num++;
 	}
