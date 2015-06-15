@@ -257,12 +257,12 @@ enum {
 RTE_ACL_RULE_DEF(acl4_rule, RTE_DIM(ipv4_defs));
 RTE_ACL_RULE_DEF(acl6_rule, RTE_DIM(ipv6_defs));
 
-static struct {
 #ifdef L3FWDACL_DEBUG
+static struct {
 	struct acl4_rule *rule_ipv4;
 	struct acl6_rule *rule_ipv6;
-#endif
 } acl_config;
+#endif
 
 struct rte_acl_ctx *ipv4_acx[NB_SOCKETS];
 struct rte_acl_ctx *ipv6_acx[NB_SOCKETS];
