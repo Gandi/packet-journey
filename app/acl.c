@@ -250,7 +250,6 @@ enum {
 	CB_FLD_DST_PORT_DLM,
 	CB_FLD_DST_PORT_HIGH,
 	CB_FLD_PROTO,
-	CB_FLD_USERDATA,
 	CB_FLD_NUM,
 };
 
@@ -440,7 +439,7 @@ dump_ipv6_rules(struct acl6_rule *rule, int num, int extra)
 }
 
 /*
- * Parses IPV6 address, exepcts the following format:
+ * Parses IPV6 address, expects the following format:
  * XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX (where X - is a hexedecimal digit).
  */
 static int
@@ -728,7 +727,7 @@ add_rules(const char *rule_path,
   err:
 	free(acl_rules);
 	fclose(fh);
-	return -1;
+	return -EINVAL;
 }
 
 static void dump_acl_config(void)
