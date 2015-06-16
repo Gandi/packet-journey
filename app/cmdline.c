@@ -39,6 +39,7 @@
 #include "common.h"
 #include "cmdline.h"
 #include "routing.h"
+#include "acl.h"
 
 #define CMDLINE_MAX_SOCK 32
 #define CMDLINE_POLL_TIMEOUT 1000
@@ -685,7 +686,7 @@ TOKEN_IPADDR_INITIALIZER(struct cmd_obj_lpm_lkp_result, ip);
 cmdline_parse_inst_t cmd_obj_lpm_lkp = {
 	.f = cmd_obj_lpm_lkp_parsed,	/* function to call */
 	.data = NULL,				/* 2nd arg of func */
-	.help_str = "Do a lookup in lpm table (ip, version)",
+	.help_str = "Do a lookup in lpm table (ip)",
 	.tokens = {					/* token list, NULL terminated */
 			   (void *) &cmd_obj_action_lpm_lkp,
 			   (void *) &cmd_obj_lpm_ip,
@@ -697,41 +698,44 @@ cmdline_parse_inst_t cmd_obj_lpm_lkp = {
 
 struct cmd_obj_acl_add_result {
 	cmdline_fixed_string_t action;
-	cmdline_ipaddr_t ip;
-	uint8_t depth;
-	uint8_t protonum;
-	uint16_t port;
+	cmdline_fixed_string_t path;
+	cmdline_fixed_string_t proto;
 };
 
-static void cmd_obj_acl_add_parsed(__rte_unused void *parsed_result,
-								   __rte_unused struct cmdline *cl,
+static void cmd_obj_acl_add_parsed(void *parsed_result,
+								   struct cmdline *cl,
 								   __rte_unused void *data)
 {
-//  struct cmd_obj_acl_add_result *res = parsed_result;
+	struct cmd_obj_acl_add_result *res = parsed_result;
+	int is_ipv4;
 
+	is_ipv4 = !strcmp(res->proto, "ipv4");
+	if (is_ipv4) {
+		acl_parm_config.rule_ipv4_name = res->path;
+	} else {
+		acl_parm_config.rule_ipv6_name = res->path;
+	}
+	if (acl_init(is_ipv4)) {
+		cmdline_printf(cl, "ERROR: failed to add acl\n");
+	}
 }
 
 cmdline_parse_token_string_t cmd_obj_action_acl_add =
 TOKEN_STRING_INITIALIZER(struct cmd_obj_acl_add_result, action, "acl_add");
-cmdline_parse_token_ipaddr_t cmd_obj_acl_ip =
-TOKEN_IPADDR_INITIALIZER(struct cmd_obj_acl_add_result, ip);
-cmdline_parse_token_num_t cmd_obj_acl_depth =
-TOKEN_NUM_INITIALIZER(struct cmd_obj_acl_add_result, depth, UINT8);
-cmdline_parse_token_num_t cmd_obj_acl_protonum =
-TOKEN_NUM_INITIALIZER(struct cmd_obj_acl_add_result, protonum, UINT8);
-cmdline_parse_token_num_t cmd_obj_acl_port =
-TOKEN_NUM_INITIALIZER(struct cmd_obj_acl_add_result, port, UINT16);
+cmdline_parse_token_string_t cmd_obj_acl_path =
+TOKEN_STRING_INITIALIZER(struct cmd_obj_acl_add_result, path, "");
+cmdline_parse_token_string_t cmd_obj_acl_proto =
+TOKEN_STRING_INITIALIZER(struct cmd_obj_acl_add_result, proto,
+						 "ipv4#ipv6");
 
 cmdline_parse_inst_t cmd_obj_acl_add = {
 	.f = cmd_obj_acl_add_parsed,	/* function to call */
 	.data = NULL,				/* 2nd arg of func */
-	.help_str = "Add an acl (ip, depth, protonum, port)",
+	.help_str = "Add an acl (aclfile path, ip version)",
 	.tokens = {					/* token list, NULL terminated */
 			   (void *) &cmd_obj_action_acl_add,
-			   (void *) &cmd_obj_acl_ip,
-			   (void *) &cmd_obj_acl_depth,
-			   (void *) &cmd_obj_acl_protonum,
-			   (void *) &cmd_obj_acl_port,
+			   (void *) &cmd_obj_acl_path,
+			   (void *) &cmd_obj_acl_proto,
 			   NULL,
 			   },
 };

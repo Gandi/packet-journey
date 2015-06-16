@@ -81,6 +81,7 @@
 #include <rte_atomic.h>
 #include <rte_lpm.h>
 #include <rte_lpm6.h>
+#include <rte_acl.h>
 
 #include <libneighbour.h>
 
@@ -89,6 +90,7 @@
 #include "control.h"
 #include "kni.h"
 #include "cmdline.h"
+#include "acl.h"
 
 lookup_struct_t *ipv4_l3fwd_lookup_struct[NB_SOCKETS];
 lookup6_struct_t *ipv6_l3fwd_lookup_struct[NB_SOCKETS];
@@ -251,6 +253,8 @@ struct lcore_conf {
 	lookup6_struct_t *ipv6_lookup_struct;
 	neighbor_struct_t *neighbor4_struct;
 	neighbor_struct_t *neighbor6_struct;
+	struct rte_acl_ctx *acx_ipv4;
+	struct rte_acl_ctx *acx_ipv6;
 } __rte_cache_aligned;
 
 struct lcore_stats stats[RTE_MAX_LCORE];
@@ -998,6 +1002,142 @@ static inline uint16_t *port_groupx4(uint16_t pn[FWDSTEP + 1],
 	return lp;
 }
 
+/*
+ * Put one packet in acl_search struct according to the packet ol_flags
+ */
+static inline void
+prepare_one_packet(struct rte_mbuf **pkts_in, struct acl_search_t *acl,
+				   int index)
+{
+	struct rte_mbuf *pkt = pkts_in[index];
+
+	int type = pkt->ol_flags & (PKT_RX_IPV4_HDR | PKT_RX_IPV6_HDR);
+
+	//XXX we cannot filter non IP packet yet
+	if (type == PKT_RX_IPV4_HDR) {
+		/* Fill acl structure */
+		acl->data_ipv4[acl->num_ipv4] = MBUF_IPV4_2PROTO(pkt);
+		acl->m_ipv4[(acl->num_ipv4)++] = pkt;
+	} else if (type == PKT_RX_IPV6_HDR) {
+		/* Fill acl structure */
+		acl->data_ipv6[acl->num_ipv6] = MBUF_IPV6_2PROTO(pkt);
+		acl->m_ipv6[(acl->num_ipv6)++] = pkt;
+	}
+}
+
+/*
+ * Loop through all packets and classify them if acl_search if possible.
+ */
+static inline void
+prepare_acl_parameter(struct rte_mbuf **pkts_in, struct acl_search_t *acl,
+					  int nb_rx)
+{
+	int i = 0, j = 0;
+
+	acl->num_ipv4 = 0;
+	acl->num_ipv6 = 0;
+
+	//we prefetch0 packets 3 per 3
+	switch (nb_rx % PREFETCH_OFFSET) {
+		while (nb_rx != i) {
+	case 0:
+			rte_prefetch0(rte_pktmbuf_mtod(pkts_in[i], void *));
+			i++;
+			j++;
+	case 2:
+			rte_prefetch0(rte_pktmbuf_mtod(pkts_in[i], void *));
+			i++;
+			j++;
+	case 1:
+			rte_prefetch0(rte_pktmbuf_mtod(pkts_in[i], void *));
+			i++;
+			j++;
+
+			while (j > 0) {
+				prepare_one_packet(pkts_in, acl, i - j);
+				--j;
+			}
+		}
+	}
+}
+
+/*
+ * Take both acl from acl_search and filters packets related to those acl.
+ * Put back unfiltered packets in pkt_burst without overwriting non IP packets.
+ */
+static inline int
+filter_packets(struct rte_mbuf **pkts, struct acl_search_t *acl_search,
+			   int nb_rx)
+{
+	uint32_t *res;
+	struct rte_mbuf **acl_pkts;
+	int nb_res;
+	int i;
+	int nb_pkts = 0;			//number of packet in the newly crafted pkts
+
+	nb_res = acl_search->num_ipv4;
+	res = acl_search->res_ipv4;
+	acl_pkts = acl_search->m_ipv4;
+
+	//TODO maybe we want to manually unroll those loops
+	//TODO maye we could replace those loops by an inlined fonction
+
+	//if num_ipv4 is equal to zero we skip it
+	for (i = 0; i < nb_res; ++i) {
+		//if the packet must be filtered, free it and don't add it back in pkts
+		if (unlikely((res[i] & ACL_DENY_SIGNATURE) != 0)) {
+			/* in the ACL list, drop it */
+#ifdef L3FWDACL_DEBUG
+			dump_acl4_rule(acl_pkts[i], res[i]);
+#endif
+			rte_pktmbuf_free(acl_pkts[i]);
+		} else {
+			//add back the unfiltered packet in pkts but don't discard non IP packet
+			while (!
+				   (pkts[nb_pkts]->ol_flags &
+					(PKT_RX_IPV4_HDR | PKT_RX_IPV6_HDR))
+&& nb_pkts < nb_rx) {
+				nb_pkts++;
+			}
+			pkts[nb_pkts++] = acl_pkts[i];
+		}
+	}
+
+	nb_res = acl_search->num_ipv6;
+	res = acl_search->res_ipv6;
+	acl_pkts = acl_search->m_ipv6;
+
+	//if num_ipv6 is equal to zero we skip it
+	for (i = 0; i < nb_res; ++i) {
+		//if the packet must be filtered, free it and don't add it back in pkts
+		if (unlikely((res[i] & ACL_DENY_SIGNATURE) != 0)) {
+			/* in the ACL list, drop it */
+#ifdef L3FWDACL_DEBUG
+			dump_acl6_rule(acl_pkts[i], res[i]);
+#endif
+			rte_pktmbuf_free(acl_pkts[i]);
+		} else {
+			//add back the unfiltered packet in pkts but don't discard non IP packet
+			while (!
+				   (pkts[nb_pkts]->ol_flags &
+					(PKT_RX_IPV4_HDR | PKT_RX_IPV6_HDR))
+&& nb_pkts < nb_rx) {
+				nb_pkts++;
+			}
+			pkts[nb_pkts++] = acl_pkts[i];
+		}
+	}
+
+	//add back non IP packet that are after nb_pkts packets
+	for (i = nb_pkts; i < nb_rx; i++) {
+		if (!(pkts[i]->ol_flags & (PKT_RX_IPV4_HDR | PKT_RX_IPV6_HDR))) {
+			pkts[nb_pkts++] = pkts[i];
+		}
+	}
+
+	return nb_pkts;
+}
+
 /* main processing loop */
 static int main_loop(__rte_unused void *dummy)
 {
@@ -1077,6 +1217,30 @@ static int main_loop(__rte_unused void *dummy)
 				continue;
 
 			stats[lcore_id].nb_rx += nb_rx;
+			{
+				struct acl_search_t acl_search;
+
+				prepare_acl_parameter(pkts_burst, &acl_search, nb_rx);
+
+				if (acl_search.num_ipv4) {
+					rte_acl_classify(qconf->acx_ipv4,
+									 acl_search.data_ipv4,
+									 acl_search.res_ipv4,
+									 acl_search.num_ipv4,
+									 DEFAULT_MAX_CATEGORIES);
+				}
+
+				if (acl_search.num_ipv6) {
+					rte_acl_classify(qconf->acx_ipv6,
+									 acl_search.data_ipv6,
+									 acl_search.res_ipv6,
+									 acl_search.num_ipv6,
+									 DEFAULT_MAX_CATEGORIES);
+				}
+				nb_rx = filter_packets(pkts_burst, &acl_search, nb_rx);
+			}
+			if (unlikely(nb_rx == 0))
+				continue;
 
 			/* Process up to last 3 packets one by one. */
 			j = 0;
@@ -1218,6 +1382,7 @@ static int main_loop(__rte_unused void *dummy)
 					stats[lcore_id].nb_tx += k;
 					send_packetsx4(qconf, pn, pkts_burst + j, k);
 				} else {
+					//FIXME move it in processx4_step_checkneighbor so packets would be dropped more earlier
 					stats[lcore_id].nb_dropped += k;
 					for (m = j; m != j + k; m++)
 						rte_pktmbuf_free(pkts_burst[m]);
@@ -1323,7 +1488,10 @@ static void print_usage(const char *prgname)
 		   "  --unixsock: specify the path for the cmdline unixsock (default: /tmp/rdpdk.sock)\n"
 		   "  --no-numa: optional, disable numa awareness\n"
 		   "  --enable-jumbo: enable jumbo frame"
-		   " which max packet len is PKTLEN in decimal (64-9600)\n",
+		   " which max packet len is PKTLEN in decimal (64-9600)\n"
+		   "  --" OPTION_RULE_IPV4 "=FILE \n"
+		   "  --" OPTION_RULE_IPV6 "=FILE \n"
+		   "  --" OPTION_SCALAR ": Use scalar function to do lookup\n",
 		   prgname);
 }
 
@@ -1431,6 +1599,9 @@ static int parse_args(int argc, char **argv)
 		{CMD_LINE_OPT_KNICONFIG, 1, 0, 0},
 		{CMD_LINE_OPT_CALLBACK_SETUP, 1, 0, 0},
 		{CMD_LINE_OPT_UNIXSOCK, 1, 0, 0},
+		{OPTION_RULE_IPV4, 1, 0, 0},
+		{OPTION_RULE_IPV6, 1, 0, 0},
+		{OPTION_SCALAR, 0, 0, 0},
 		{CMD_LINE_OPT_NO_NUMA, 0, 0, 0},
 		{CMD_LINE_OPT_ENABLE_JUMBO, 0, 0, 0},
 		{NULL, 0, 0, 0}
@@ -1496,6 +1667,19 @@ static int parse_args(int argc, char **argv)
 				printf("numa is disabled \n");
 				numa_on = 0;
 			}
+
+			if (!strncmp(lgopts[option_index].name,
+						 OPTION_RULE_IPV4, sizeof(OPTION_RULE_IPV4)))
+				acl_parm_config.rule_ipv4_name = optarg;
+
+			if (!strncmp(lgopts[option_index].name,
+						 OPTION_RULE_IPV6, sizeof(OPTION_RULE_IPV6))) {
+				acl_parm_config.rule_ipv6_name = optarg;
+			}
+
+			if (!strncmp(lgopts[option_index].name,
+						 OPTION_SCALAR, sizeof(OPTION_SCALAR)))
+				acl_parm_config.scalar = 1;
 
 			if (!strncmp
 				(lgopts[option_index].name, CMD_LINE_OPT_ENABLE_JUMBO,
@@ -1643,6 +1827,8 @@ static int init_mem(unsigned nb_mbuf)
 		qconf->neighbor4_struct = neighbor4_struct[socketid];
 		qconf->ipv6_lookup_struct = ipv6_l3fwd_lookup_struct[socketid];
 		qconf->neighbor6_struct = neighbor6_struct[socketid];
+		qconf->acx_ipv4 = ipv4_acx[socketid];
+		qconf->acx_ipv6 = ipv6_acx[socketid];
 	}
 	return 0;
 }
@@ -1896,6 +2082,11 @@ int main(int argc, char **argv)
 
 	nb_lcores = rte_lcore_count();
 
+	/* Add ACL rules and route entries, build trie */
+	if (acl_init(0) < 0)
+		rte_exit(EXIT_FAILURE, "acl_init ipv4 failed\n");
+	if (acl_init(1) < 0)
+		rte_exit(EXIT_FAILURE, "acl_init ipv6 failed\n");
 
 	int ctrlsock = 0;
 	if (numa_on)
