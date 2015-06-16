@@ -474,6 +474,7 @@ static int parse_ipv6_net(const char *in, struct rte_acl_field field[4])
 	uint32_t i, m, v[4];
 	const uint32_t nbu32 = sizeof(uint32_t) * CHAR_BIT;
 
+	//TODO may be replaced by inet_pton with some refactoring
 	/* get address. */
 	rc = parse_ipv6_addr(in, &mp, v, '/');
 	if (rc != 0)
@@ -573,6 +574,7 @@ parse_ipv4_net(const char *in, uint32_t * addr, uint32_t * mask_len)
 {
 	uint8_t a, b, c, d, m;
 
+	//TODO may be replaced by inet_pton with some refactoring
 	GET_CB_FIELD(in, a, 0, UINT8_MAX, '.');
 	GET_CB_FIELD(in, b, 0, UINT8_MAX, '.');
 	GET_CB_FIELD(in, c, 0, UINT8_MAX, '.');
