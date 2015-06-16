@@ -473,7 +473,7 @@ struct netl_handle *netl_create(void)
 
 
 	netl_handle =
-		rdpdk_calloc("netl_handle", sizeof(struct netl_handle), 0,
+		rdpdk_calloc("netl_handle", 1, sizeof(struct netl_handle), 0,
 					 SOCKET_ID_ANY);
 	if (netl_handle == NULL)
 		return NULL;
