@@ -294,11 +294,7 @@ struct nei_table *nei_create(int socketid)
 	struct nei_table *nei_table;
 
 	nei_table =
-		rdpdk_malloc("nei_table", sizeof(struct nei_table), 64, socketid);
-	if (nei_table == NULL)
-		return NULL;
-
-	memset(nei_table->entries.t6, 0, sizeof(nei_table->entries.t6));
+		rdpdk_calloc("nei_table", sizeof(struct nei_table), 64, socketid);
 
 	return nei_table;
 }
