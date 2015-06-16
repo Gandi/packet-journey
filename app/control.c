@@ -29,6 +29,20 @@ struct handle_res {
 	int32_t socket_id;
 };
 
+static const char *oper_states[] = {
+	"UNKNOWN", "NOTPRESENT", "DOWN", "LOWERLAYERDOWN",
+	"TESTING", "DORMANT", "UP"
+};
+
+static void print_operstate(FILE * f, __u8 state)
+{
+	if (state >= sizeof(oper_states) / sizeof(oper_states[0]))
+		fprintf(f, "state %#x ", state);
+	else
+		fprintf(f, "state %s ", oper_states[state]);
+}
+
+
 int control_add_ipv4_local_entry(struct in_addr *nexthop,
 								 struct in_addr *saddr, uint8_t depth,
 								 uint32_t port_id, int32_t socket_id);
@@ -408,6 +422,41 @@ static int addr6(__rte_unused addr_action_t action, int32_t port_id,
 	return 0;
 }
 
+static int
+eth_link(link_action_t action, int ifid,
+		 struct ether_addr *lladdr, int mtu,
+		 const char *name, oper_state_t state, uint16_t vlanid,
+		 __rte_unused void *args)
+{
+	char action_buf[4];
+	char ebuf[32];
+	unsigned l, i;
+
+	if (action == LINK_ADD)
+		memcpy(action_buf, "add", 4);
+	else
+		memcpy(action_buf, "del", 4);
+
+	l = 0;
+	for (i = 0; i < sizeof(*lladdr); i++) {
+		if (i == 0) {
+			snprintf(ebuf + l, 32, "%02x", lladdr->addr_bytes[i]);
+			l += 2;
+		} else {
+			snprintf(ebuf + l, 32, ":%02x", lladdr->addr_bytes[i]);
+			l += 3;
+		}
+	}
+	ebuf[l] = '\0';
+
+	fprintf(stdout, "%d: link %s %s mtu %d label %s vlan %d ", ifid,
+			action_buf, ebuf, mtu, name, vlanid);
+	print_operstate(stdout, state);
+	fprintf(stdout, "\n");
+	fflush(stdout);
+	return 0;
+}
+
 void *control_init(int32_t socket_id)
 {
 	struct netl_handle *netl_h;
@@ -437,6 +486,7 @@ void *control_init(int32_t socket_id)
 	netl_h->cb.neighbor6 = neighbor6;
 	netl_h->cb.route4 = route4;
 	netl_h->cb.route6 = route6;
+	netl_h->cb.link = eth_link;
 
 	struct ether_addr invalid_mac =
 		{ {0x00, 0x00, 0x00, 0x00, 0x00, 0x00} };
