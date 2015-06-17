@@ -698,8 +698,8 @@ cmdline_parse_inst_t cmd_obj_lpm_lkp = {
 
 struct cmd_obj_acl_add_result {
 	cmdline_fixed_string_t action;
-	cmdline_fixed_string_t path;
 	cmdline_fixed_string_t proto;
+	cmdline_fixed_string_t path;
 };
 
 static void cmd_obj_acl_add_parsed(void *parsed_result,
@@ -722,11 +722,11 @@ static void cmd_obj_acl_add_parsed(void *parsed_result,
 
 cmdline_parse_token_string_t cmd_obj_action_acl_add =
 TOKEN_STRING_INITIALIZER(struct cmd_obj_acl_add_result, action, "acl_add");
-cmdline_parse_token_string_t cmd_obj_acl_path =
-TOKEN_STRING_INITIALIZER(struct cmd_obj_acl_add_result, path, "");
 cmdline_parse_token_string_t cmd_obj_acl_proto =
 TOKEN_STRING_INITIALIZER(struct cmd_obj_acl_add_result, proto,
 						 "ipv4#ipv6");
+cmdline_parse_token_string_t cmd_obj_acl_path =
+TOKEN_STRING_INITIALIZER(struct cmd_obj_acl_add_result, path, NULL);
 
 cmdline_parse_inst_t cmd_obj_acl_add = {
 	.f = cmd_obj_acl_add_parsed,	/* function to call */
@@ -734,8 +734,8 @@ cmdline_parse_inst_t cmd_obj_acl_add = {
 	.help_str = "Add an acl (aclfile path, ip version)",
 	.tokens = {					/* token list, NULL terminated */
 			   (void *) &cmd_obj_action_acl_add,
-			   (void *) &cmd_obj_acl_path,
 			   (void *) &cmd_obj_acl_proto,
+			   (void *) &cmd_obj_acl_path,
 			   NULL,
 			   },
 };
