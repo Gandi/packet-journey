@@ -1222,7 +1222,7 @@ static int main_loop(__rte_unused void *dummy)
 
 				prepare_acl_parameter(pkts_burst, &acl_search, nb_rx);
 
-				if (acl_search.num_ipv4) {
+				if (likely(qconf->acx_ipv4 && acl_search.num_ipv4)) {
 					rte_acl_classify(qconf->acx_ipv4,
 									 acl_search.data_ipv4,
 									 acl_search.res_ipv4,
@@ -1230,7 +1230,7 @@ static int main_loop(__rte_unused void *dummy)
 									 DEFAULT_MAX_CATEGORIES);
 				}
 
-				if (acl_search.num_ipv6) {
+				if (likely(qconf->acx_ipv6 && acl_search.num_ipv6)) {
 					rte_acl_classify(qconf->acx_ipv6,
 									 acl_search.data_ipv6,
 									 acl_search.res_ipv6,
