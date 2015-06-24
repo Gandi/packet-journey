@@ -169,6 +169,18 @@ int kni_main_loop(__rte_unused void *arg)
 	uint8_t i, nb_ports = rte_eth_dev_count();
 	int32_t f_stop;
 	const unsigned lcore_id = rte_lcore_id();
+
+	for (i = 0; i < nb_ports; i++) {
+		if(kni_port_params_array[i]->lcore_tx == lcore_id) {
+			break;
+		}
+	}
+
+	if(i == nb_ports) {
+		RTE_LOG(INFO, KNI, "lcore %u has nothing to do\n", lcore_id);
+		return 0;
+	}
+
 	RTE_LOG(INFO, KNI, "entering kni main loop on lcore %u\n", lcore_id);
 
 	while (1) {

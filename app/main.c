@@ -2183,10 +2183,15 @@ int main(int argc, char **argv)
 		if (qconf->n_rx_queue != 0) {
 			rte_eal_remote_launch(main_loop, NULL, lcore_id);
 		}
-	}
 
-	printf("launching kni thread\n");
-	rte_eal_remote_launch(kni_main_loop, NULL, 4);
+		for (portid = 0; portid < nb_ports; portid++) {
+			if(kni_port_params_array[portid]->lcore_tx == lcore_id) {
+				printf("launching kni thread on lcore %d\n", lcore_id);
+				rte_eal_remote_launch(kni_main_loop, NULL, lcore_id);
+				break;
+			}
+		}
+	}
 
 	if ((ret = control_callback_setup(callback_setup))) {
 		perror("control_callback_setup failure with: ");
