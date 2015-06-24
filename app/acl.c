@@ -680,6 +680,12 @@ add_rules(const char *rule_path,
 
 	fseek(fh, 0, SEEK_SET);
 
+	if (!acl_num) {
+		fclose(fh);
+		*pacl_num = 0;
+		return 0;
+	}
+
 	acl_rules = calloc(acl_num, rule_size);
 
 	//FIXME do we want to keep that rte_exit ?
@@ -763,6 +769,9 @@ static struct rte_acl_ctx *setup_acl(struct rte_acl_rule *acl_base,
 	struct rte_acl_ctx *context;
 	int dim = ipv6 ? RTE_DIM(ipv6_defs) : RTE_DIM(ipv4_defs);
 
+	if (!acl_num)
+		return NULL;
+
 	/* Create ACL contexts */
 	snprintf(name, sizeof(name), "%s%d",
 			 ipv6 ? L3FWD_ACL_IPV6_NAME : L3FWD_ACL_IPV4_NAME, socketid);
@@ -806,13 +815,14 @@ static struct rte_acl_ctx *setup_acl(struct rte_acl_rule *acl_base,
 
 	return context;
   err:
+	rte_acl_free(context);
 	return NULL;
 }
 
 int acl_init(int is_ipv4)
 {
 	unsigned int i;
-	struct rte_acl_rule *acl_base_ipv4, *acl_base_ipv6;
+	struct rte_acl_rule *acl_base_ipv4 = NULL, *acl_base_ipv6 = NULL;
 	unsigned int acl_num_ipv4 = 0, acl_num_ipv6 = 0;
 	struct rte_acl_ctx *acl_ctx;
 
