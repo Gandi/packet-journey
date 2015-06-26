@@ -812,7 +812,86 @@ cmdline_parse_inst_t cmd_stats = {
 			   },
 };
 
+//----- CMD NEIGH
 
+struct cmd_neigh_result {
+	cmdline_fixed_string_t neigh;
+	cmdline_fixed_string_t proto;
+};
+
+static void cmd_neigh_parsed( __attribute__ ((unused))
+							 void *parsed_result,
+							 struct cmdline *cl, __attribute__ ((unused))
+							 void *data)
+{
+	struct cmd_obj_acl_add_result *res = parsed_result;
+	int is_ipv4;
+	int i;
+	struct nei_table *t;
+	char buf_eth[ETHER_ADDR_FMT_SIZE];
+	char buf_ip[INET6_ADDRSTRLEN];
+
+	is_ipv4 = !strcmp(res->proto, "ipv4");
+	if (is_ipv4) {
+		struct nei_entry4 *entry;
+		t = neighbor4_struct[0];
+
+		for (i = 0; i < NEI_NUM_ENTRIES; i++) {
+			entry = &(t->entries.t4[i]);
+			if (entry->neighbor.in_use) {
+				ether_format_addr(buf_eth, sizeof(buf_eth),
+								  &entry->neighbor.nexthop_hwaddr);
+				cmdline_printf(cl,
+							   "hw addr(%s) addr(%s) action %d state %d vlan %d port %d\n",
+							   buf_eth, inet_ntop(AF_INET, &entry->addr,
+												  buf_ip,
+												  INET6_ADDRSTRLEN),
+							   entry->neighbor.action,
+							   entry->neighbor.state,
+							   entry->neighbor.vlan_id,
+							   entry->neighbor.port_id);
+			}
+		}
+	} else {
+		struct nei_entry6 *entry;
+		t = neighbor6_struct[0];
+
+		for (i = 0; i < NEI_NUM_ENTRIES; i++) {
+			entry = &(t->entries.t6[i]);
+			if (entry->neighbor.in_use) {
+				ether_format_addr(buf_eth, sizeof(buf_eth),
+								  &entry->neighbor.nexthop_hwaddr);
+				cmdline_printf(cl,
+							   "hw addr(%s) addr(%s) action %d state %d vlan %d port %d\n",
+							   buf_eth, inet_ntop(AF_INET6, &entry->addr,
+												  buf_ip,
+												  INET6_ADDRSTRLEN),
+							   entry->neighbor.action,
+							   entry->neighbor.state,
+							   entry->neighbor.vlan_id,
+							   entry->neighbor.port_id);
+			}
+		}
+
+	}
+}
+
+cmdline_parse_token_string_t cmd_neigh_neigh =
+TOKEN_STRING_INITIALIZER(struct cmd_neigh_result, neigh, "neigh");
+cmdline_parse_token_string_t cmd_neigh_proto =
+TOKEN_STRING_INITIALIZER(struct cmd_neigh_result, proto,
+						 "ipv4");
+
+cmdline_parse_inst_t cmd_neigh = {
+	.f = cmd_neigh_parsed,		/* function to call */
+	.data = NULL,				/* 2nd arg of func */
+	.help_str = "neigh ipv4#ipv6",
+	.tokens = {					/* token list, NULL terminated */
+			   (void *) &cmd_neigh_neigh,
+			   (void *) &cmd_neigh_proto,
+			   NULL,
+			   },
+};
 
 //----- CMD HELP
 
@@ -827,6 +906,9 @@ static void cmd_help_parsed( __attribute__ ((unused))
 {
 	cmdline_printf(cl,
 				   "commands:\n"
+				   "- acl_add ipv4|ipv6 file_path\n"
+				   "- stats\n"
+				   "- neigh ipv4|ipv6\n"
 				   "- acl_add IP CIDR PROTONUM PORT\n"
 				   "- lpm_lkp IP[/DEPTH]\n" "- stats\n" "- help\n\n");
 }
@@ -850,6 +932,7 @@ cmdline_parse_ctx_t main_ctx[] = {
 	(cmdline_parse_inst_t *) & cmd_obj_acl_add,
 	(cmdline_parse_inst_t *) & cmd_obj_lpm_lkp,
 	(cmdline_parse_inst_t *) & cmd_stats,
+	(cmdline_parse_inst_t *) & cmd_neigh,
 	(cmdline_parse_inst_t *) & cmd_config_rss,
 	(cmdline_parse_inst_t *) & cmd_config_rss_reta,
 	(cmdline_parse_inst_t *) & cmd_showport_reta,

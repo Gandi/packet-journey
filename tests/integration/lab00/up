@@ -4,8 +4,9 @@ link1=$1
 mac1=$2
 
 ip link set $link1 up
+ip link add link vEth0_0 name vEth0_0.2000 type vlan id 2000
+ip link set vEth0_0.2000 address $mac1
+ip link set vEth0_0.2000 up
 
-ip link set $link1 address $mac1
-
-ip addr add 1.2.3.5/24 dev $link1
+ip addr add 1.2.3.5/24 dev vEth0_0.2000
 ip route add 1.2.4.0/24 via 1.2.3.4

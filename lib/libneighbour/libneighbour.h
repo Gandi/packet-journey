@@ -10,9 +10,7 @@ struct nei_entry {
 	uint8_t in_use;
 	uint8_t valid;
 
-#define NEI_STATE_REACHABLE 0x01
-#define NEI_STATE_STALE     0x02
-#define NEI_STATE_DELAY     0x03
+//same as NUD_* defines from linux/neighbour.h, like NUD_DELAY
 	uint8_t state;
 
 #define NEI_ACTION_FWD      0x01
@@ -20,7 +18,8 @@ struct nei_entry {
 #define NEI_ACTION_KNI      0x03
 	uint8_t action;
 
-	int32_t port_id;
+	int16_t vlan_id;
+	int16_t port_id;
 
 	int32_t refcnt;
 };								//18bytes
@@ -54,7 +53,8 @@ int neighbor4_add_nexthop(struct nei_table *, struct in_addr *nexthop,
 int neighbor4_refcount_incr(struct nei_table *, uint8_t);
 int neighbor4_refcount_decr(struct nei_table *, uint8_t);
 int neighbor4_set_lladdr_port(struct nei_table *, uint8_t,
-							  struct ether_addr *lladdr, int32_t port_id);
+							  struct ether_addr *lladdr, int16_t port_id,
+							  int16_t vlan_id);
 int neighbor4_set_state(struct nei_table *, uint8_t, uint8_t flags);
 int neighbor4_set_port(struct nei_table *t, uint8_t nexthop_id,
 					   int32_t port_id);
@@ -67,7 +67,8 @@ int neighbor6_add_nexthop(struct nei_table *, struct in6_addr *nexthop,
 int neighbor6_refcount_incr(struct nei_table *, uint8_t);
 int neighbor6_refcount_decr(struct nei_table *, uint8_t);
 int neighbor6_set_lladdr_port(struct nei_table *, uint8_t,
-							  struct ether_addr *lladdr, int32_t port_id);
+							  struct ether_addr *lladdr, int16_t port_id,
+							  int16_t vlan_id);
 int neighbor6_set_state(struct nei_table *, uint8_t, uint8_t flags);
 int neighbor6_set_port(struct nei_table *t, uint8_t nexthop_id,
 					   int32_t port_id);
