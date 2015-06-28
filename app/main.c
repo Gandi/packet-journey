@@ -2025,6 +2025,8 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 		txconf = &dev_info->default_txconf;
 #ifdef RDPDK_QEMU
 		txconf->txq_flags = ETH_TXQ_FLAGS_NOOFFLOADS;
+#else
+		txconf->txq_flags &= ~ETH_TXQ_FLAGS_NOOFFLOADS;
 #endif
 		if (port_conf.rxmode.jumbo_frame)
 			txconf->txq_flags = 0;
