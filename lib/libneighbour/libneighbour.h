@@ -6,6 +6,7 @@
 
 struct nei_entry {
 	struct ether_addr nexthop_hwaddr;	/* 6 bytes */
+	struct ether_addr port_addr;	/* 6 bytes */
 
 	uint8_t in_use;
 	uint8_t valid;
@@ -22,21 +23,21 @@ struct nei_entry {
 	int16_t port_id;
 
 	int32_t refcnt;
-};								//18bytes
+};								//24bytes
 
 //must be 16bytes aligned
 struct nei_entry4 {
 	struct nei_entry neighbor;
 
 	struct in_addr addr;
-	uint8_t pad[8];
+	uint8_t pad[4];
 };
 
 struct nei_entry6 {
 	struct nei_entry neighbor;
 
-	struct in6_addr addr;
-	uint8_t pad[12];
+	struct in6_addr addr; //16bytes
+	uint8_t pad[8];
 };
 
 struct nei_table {
@@ -53,6 +54,7 @@ int neighbor4_add_nexthop(struct nei_table *, struct in_addr *nexthop,
 int neighbor4_refcount_incr(struct nei_table *, uint8_t);
 int neighbor4_refcount_decr(struct nei_table *, uint8_t);
 int neighbor4_set_lladdr_port(struct nei_table *, uint8_t,
+							  struct ether_addr *port_addr,
 							  struct ether_addr *lladdr, int16_t port_id,
 							  int16_t vlan_id);
 int neighbor4_set_state(struct nei_table *, uint8_t, uint8_t flags);
@@ -67,6 +69,7 @@ int neighbor6_add_nexthop(struct nei_table *, struct in6_addr *nexthop,
 int neighbor6_refcount_incr(struct nei_table *, uint8_t);
 int neighbor6_refcount_decr(struct nei_table *, uint8_t);
 int neighbor6_set_lladdr_port(struct nei_table *, uint8_t,
+							  struct ether_addr *port_addr,
 							  struct ether_addr *lladdr, int16_t port_id,
 							  int16_t vlan_id);
 int neighbor6_set_state(struct nei_table *, uint8_t, uint8_t flags);

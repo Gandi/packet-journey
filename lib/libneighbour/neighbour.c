@@ -83,6 +83,7 @@ int neighbor6_refcount_decr(struct nei_table *t, uint8_t nexthop_id)
 
 int
 neighbor6_set_lladdr_port(struct nei_table *t, uint8_t nexthop_id,
+						  struct ether_addr *port_addr,
 						  struct ether_addr *lladdr, int16_t port_id,
 						  int16_t vlan_id)
 {
@@ -95,6 +96,7 @@ neighbor6_set_lladdr_port(struct nei_table *t, uint8_t nexthop_id,
 
 	entry->neighbor.valid = 1;
 
+	memcpy(&entry->neighbor.port_addr, port_addr, sizeof(*port_addr));
 	memcpy(&entry->neighbor.nexthop_hwaddr, lladdr, sizeof(*lladdr));
 	entry->neighbor.port_id = port_id;
 	entry->neighbor.vlan_id = vlan_id;
@@ -228,6 +230,7 @@ int neighbor4_refcount_decr(struct nei_table *t, uint8_t nexthop_id)
 
 int
 neighbor4_set_lladdr_port(struct nei_table *t, uint8_t nexthop_id,
+						  struct ether_addr *port_addr,
 						  struct ether_addr *lladdr, int16_t port_id,
 						  int16_t vlan_id)
 {
@@ -240,6 +243,7 @@ neighbor4_set_lladdr_port(struct nei_table *t, uint8_t nexthop_id,
 
 	entry->neighbor.valid = 1;
 
+	memcpy(&entry->neighbor.port_addr, port_addr, sizeof(*port_addr));
 	memcpy(&entry->neighbor.nexthop_hwaddr, lladdr, sizeof(*lladdr));
 	entry->neighbor.port_id = port_id;
 	entry->neighbor.vlan_id = vlan_id;

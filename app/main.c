@@ -265,6 +265,14 @@ static rte_spinlock_t spinlock_conf[RTE_MAX_ETHPORTS] =
 	{ RTE_SPINLOCK_INITIALIZER };
 static rte_atomic32_t main_loop_stop = RTE_ATOMIC32_INIT(0);
 
+static void
+print_ethaddr(const char *name, const struct ether_addr *eth_addr)
+{
+	char buf[ETHER_ADDR_FMT_SIZE];
+	ether_format_addr(buf, ETHER_ADDR_FMT_SIZE, eth_addr);
+	printf("%s%s\n", name, buf);
+}
+
 /* Send burst of packets on an output interface */
 static inline int
 send_burst(struct lcore_conf *qconf, uint16_t n, uint8_t port)
@@ -634,7 +642,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			} else {
 				process = 1;
 				L3FWD_DEBUG_TRACE
-					("0: j %d process %d olflags%lu eth_type %x\n", j,
+					("0: j %d process %d olflags%lx eth_type %x\n", j,
 					 process, pkt[j]->ol_flags, rte_pktmbuf_mtod(pkt[j],
 																 struct
 																 ether_hdr
@@ -666,7 +674,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 				}
 				pkt[j]->vlan_tci = vlan_tci;
 				pkt[j]->ol_flags |= PKT_TX_VLAN_PKT;
-				L3FWD_DEBUG_TRACE("0: olflags%lu vlan%d\n",
+				L3FWD_DEBUG_TRACE("0: olflags%lx vlan%d\n",
 								  pkt[j]->ol_flags, vlan_tci);
 				j++;
 			}
@@ -700,7 +708,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			} else {
 				process = 1;
 				L3FWD_DEBUG_TRACE
-					("3: j %d process %d olflags%lu eth_type %x\n", j,
+					("3: j %d process %d olflags%lx eth_type %x\n", j,
 					 process, pkt[j]->ol_flags, rte_pktmbuf_mtod(pkt[j],
 																 struct
 																 ether_hdr
@@ -731,7 +739,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 				}
 				pkt[j]->vlan_tci = vlan_tci;
 				pkt[j]->ol_flags |= PKT_TX_VLAN_PKT;
-				L3FWD_DEBUG_TRACE("3: olflags%lu vlan%d\n",
+				L3FWD_DEBUG_TRACE("3: olflags%lx vlan%d\n",
 								  pkt[j]->ol_flags, vlan_tci);
 				j++;
 			}
@@ -765,7 +773,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			} else {
 				process = 1;
 				L3FWD_DEBUG_TRACE
-					("2: j %d process %d olflags%lu eth_type %x\n", j,
+					("2: j %d process %d olflags%lx eth_type %x\n", j,
 					 process, pkt[j]->ol_flags, rte_pktmbuf_mtod(pkt[j],
 																 struct
 																 ether_hdr
@@ -796,7 +804,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 				}
 				pkt[j]->vlan_tci = vlan_tci;
 				pkt[j]->ol_flags |= PKT_TX_VLAN_PKT;
-				L3FWD_DEBUG_TRACE("2: olflags%lu vlan%d\n",
+				L3FWD_DEBUG_TRACE("2: olflags%lx vlan%d\n",
 								  pkt[j]->ol_flags, vlan_tci);
 				j++;
 			}
@@ -830,7 +838,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			} else {
 				process = 1;
 				L3FWD_DEBUG_TRACE
-					("1: j %d process %d olflags%lu eth_type %x\n", j,
+					("1: j %d process %d olflags%lx eth_type %x\n", j,
 					 process, pkt[j]->ol_flags, rte_pktmbuf_mtod(pkt[j],
 																 struct
 																 ether_hdr
@@ -861,7 +869,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 				}
 				pkt[j]->vlan_tci = vlan_tci;
 				pkt[j]->ol_flags |= PKT_TX_VLAN_PKT;
-				L3FWD_DEBUG_TRACE("1: olflags%lu vlan%d\n",
+				L3FWD_DEBUG_TRACE("1: olflags%lx vlan%d\n",
 								  pkt[j]->ol_flags, vlan_tci);
 				j++;
 			}
@@ -894,25 +902,34 @@ static inline void
 process_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 			  uint16_t * dst_port)
 {
-	__m128i *p;
+	struct ether_hdr *eth_hdr;
 	__m128i te;
 	__m128i ve;
 	struct nei_entry *entries;
 
-	p = (rte_pktmbuf_mtod(pkt, __m128i *));
+	eth_hdr = (rte_pktmbuf_mtod(pkt, struct ether_hdr *));
 	if (likely(pkt->ol_flags & PKT_RX_IPV4_HDR))
 		entries = &qconf->neighbor4_struct->entries.t4[*dst_port].neighbor;
 	else
 		entries = &qconf->neighbor6_struct->entries.t6[*dst_port].neighbor;
 
-
+#ifdef RDPDK_DEBUG
+	print_ethaddr("b smac ", &eth_hdr->s_addr);
+	print_ethaddr("b dmac ", &eth_hdr->d_addr);
+	printf("b type %x\n", eth_hdr->ether_type);
+#endif
 	ve = _mm_load_si128((__m128i *) & entries->nexthop_hwaddr);
-	*dst_port = entries->port_id;
-	te = _mm_load_si128(p);
+	te = _mm_load_si128((__m128i *) eth_hdr);
 	te = _mm_blend_epi16(te, ve, MASK_ETH);
-	_mm_store_si128(p, te);
-	rfc1812_process((struct ipv4_hdr *) ((struct ether_hdr *) p + 1),
+	_mm_storeu_si128((__m128i *) & eth_hdr->d_addr, te);
+#ifdef RDPDK_DEBUG
+	print_ethaddr("ff smac ", &eth_hdr->s_addr);
+	print_ethaddr("ff dmac ", &eth_hdr->d_addr);
+	printf("ff type %x \n", eth_hdr->ether_type);
+#endif
+	rfc1812_process((struct ipv4_hdr *) (eth_hdr + 1),
 					dst_port, pkt->ol_flags);
+	*dst_port = entries->port_id;
 }
 
 /*
@@ -1321,8 +1338,7 @@ static int main_loop(__rte_unused void *dummy)
 			/* Process up to last 3 packets one by one. */
 			j = 0;
 			L3FWD_DEBUG_TRACE
-				("main_loop nb_rx %d  queue_id %d before process_packet\n",
-				 nb_rx, queueid);
+				("main_loop nb_rx %d  queue_id %d\n", nb_rx, queueid);
 			switch (nb_rx % FWDSTEP) {
 			case 3:
 				process_step2(qconf, pkts_burst[nb_rx - 3],
@@ -1803,14 +1819,6 @@ static int parse_args(int argc, char **argv)
 	return ret;
 }
 
-static void
-print_ethaddr(const char *name, const struct ether_addr *eth_addr)
-{
-	char buf[ETHER_ADDR_FMT_SIZE];
-	ether_format_addr(buf, ETHER_ADDR_FMT_SIZE, eth_addr);
-	printf("%s%s\n", name, buf);
-}
-
 static void setup_lpm(int socketid)
 {
 	struct rte_lpm6_config config;
@@ -2263,7 +2271,7 @@ int main(int argc, char **argv)
 		}
 
 		for (portid = 0; portid < nb_ports; portid++) {
-			if(kni_port_params_array[portid]->lcore_tx == lcore_id) {
+			if (kni_port_params_array[portid]->lcore_tx == lcore_id) {
 				printf("launching kni thread on lcore %d\n", lcore_id);
 				rte_eal_remote_launch(kni_main_loop, NULL, lcore_id);
 				break;

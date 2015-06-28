@@ -171,12 +171,12 @@ int kni_main_loop(__rte_unused void *arg)
 	const unsigned lcore_id = rte_lcore_id();
 
 	for (i = 0; i < nb_ports; i++) {
-		if(kni_port_params_array[i]->lcore_tx == lcore_id) {
+		if (kni_port_params_array[i]->lcore_tx == lcore_id) {
 			break;
 		}
 	}
 
-	if(i == nb_ports) {
+	if (i == nb_ports) {
 		RTE_LOG(INFO, KNI, "lcore %u has nothing to do\n", lcore_id);
 		return 0;
 	}

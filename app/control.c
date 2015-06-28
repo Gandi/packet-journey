@@ -278,7 +278,8 @@ neighbor4(neighbor_action_t action,
 		RTE_LOG(DEBUG, L3FWD_CTRL, "add neighbor4 with port_id %d\n",
 				port_id);
 		neighbor4_set_lladdr_port(neighbor4_struct[socket_id], nexthop_id,
-								  lladdr, port_id, kni_vlan);
+								  &ports_eth_addr[port_id], lladdr,
+								  port_id, kni_vlan);
 		neighbor4_set_state(neighbor4_struct[socket_id], nexthop_id,
 							flags);
 	}
@@ -370,7 +371,8 @@ neighbor6(neighbor_action_t action,
 		RTE_LOG(DEBUG, L3FWD_CTRL, "add neighbor4 with port_id %d\n",
 				port_id);
 		neighbor6_set_lladdr_port(neighbor6_struct[socket_id], nexthop_id,
-								  lladdr, port_id, kni_vlan);
+								  &ports_eth_addr[port_id], lladdr,
+								  port_id, kni_vlan);
 		neighbor6_set_state(neighbor6_struct[socket_id], nexthop_id,
 							flags);
 	}
@@ -497,6 +499,7 @@ void *control_init(int32_t socket_id)
 	netl_h->cb.route6 = route6;
 	netl_h->cb.link = eth_link;
 
+	//FIXME add BAD_PORT for ipv6 too
 	struct ether_addr invalid_mac =
 		{ {0x00, 0x00, 0x00, 0x00, 0x00, 0x00} };
 	struct in_addr invalid_ip = { INADDR_ANY };
@@ -510,7 +513,7 @@ void *control_init(int32_t socket_id)
 	}
 	neighbor4_refcount_incr(neighbor4_struct[socket_id], nexthop_id);
 	neighbor4_set_lladdr_port(neighbor4_struct[socket_id], nexthop_id,
-							  &invalid_mac, BAD_PORT, -1);
+							  &invalid_mac, &invalid_mac, BAD_PORT, -1);
 
 	res = rte_malloc("handle-res", sizeof(*res), socket_id);
 	res->socket_id = socket_id;
@@ -624,6 +627,7 @@ int control_callback_setup(const char *cb)
 	char ether1[ETHER_ADDR_FMT_SIZE];
 	char ether2[ETHER_ADDR_FMT_SIZE];
 
+	//FIXME make the number of port parametrable
 	ether_format_addr(ether1, ETHER_ADDR_FMT_SIZE, ports_eth_addr);
 	ether_format_addr(ether2, ETHER_ADDR_FMT_SIZE, ports_eth_addr + 1);
 
