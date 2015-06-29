@@ -36,7 +36,7 @@ struct nei_entry4 {
 struct nei_entry6 {
 	struct nei_entry neighbor;
 
-	struct in6_addr addr; //16bytes
+	struct in6_addr addr;		//16bytes
 	uint8_t pad[8];
 };
 
