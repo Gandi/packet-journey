@@ -42,7 +42,6 @@
 #include <sys/queue.h>
 #include <stdarg.h>
 #include <errno.h>
-#include <getopt.h>
 #include <arpa/inet.h>
 #include <signal.h>
 
@@ -91,6 +90,7 @@
 #include "kni.h"
 #include "cmdline.h"
 #include "acl.h"
+#include "config.h"
 
 lookup_struct_t *ipv4_l3fwd_lookup_struct[NB_SOCKETS];
 lookup6_struct_t *ipv6_l3fwd_lookup_struct[NB_SOCKETS];
@@ -112,8 +112,6 @@ void *control_handle[NB_SOCKETS];
 	addr[8],  addr[9], addr[10], addr[11],\
 	addr[12], addr[13],addr[14], addr[15]
 #endif
-
-#define MAX_JUMBO_PKT_LEN  9600
 
 #define IPV6_ADDR_LEN 16
 
@@ -159,13 +157,6 @@ struct ether_addr ports_eth_addr[RTE_MAX_ETHPORTS];
 /* replace first 12B of the ethernet header. */
 #define	MASK_ETH	0x3f
 
-/* mask of enabled ports */
-static uint32_t enabled_port_mask = 0;
-static int promiscuous_on = 0; /**< Ports set in promiscuous mode off by default. */
-static int numa_on = 1;	/**< NUMA is enabled by default. */
-static char *callback_setup = NULL;
-static const char *unixsock_path = "/tmp/rdpdk.sock";
-
 struct mbuf_table {
 	uint16_t len;
 	struct rte_mbuf *m_table[MAX_PKT_BURST];
@@ -179,63 +170,6 @@ struct lcore_rx_queue {
 #define MAX_RX_QUEUE_PER_LCORE 16
 #define MAX_TX_QUEUE_PER_PORT 16
 #define MAX_RX_QUEUE_PER_PORT 128
-
-#define MAX_LCORE_PARAMS 1024
-struct lcore_params {
-	uint8_t port_id;
-	uint8_t queue_id;
-	uint8_t lcore_id;
-} __rte_cache_aligned;
-
-static struct lcore_params lcore_params_array[MAX_LCORE_PARAMS];
-static struct lcore_params lcore_params_array_default[] = {
-	{0, 0, 2},
-	{0, 1, 2},
-	{0, 2, 2},
-	{1, 0, 2},
-	{1, 1, 2},
-	{1, 2, 2},
-	{2, 0, 2},
-	{3, 0, 3},
-	{3, 1, 3},
-};
-
-static struct lcore_params *lcore_params = lcore_params_array_default;
-static uint16_t nb_lcore_params = sizeof(lcore_params_array_default) /
-	sizeof(lcore_params_array_default[0]);
-
-struct rte_eth_conf port_conf = {
-	.rxmode = {
-			   .mq_mode = ETH_MQ_RX_RSS,
-			   .max_rx_pkt_len = ETHER_MAX_LEN,
-			   .split_hdr_size = 0,
-			   .header_split = 0,
-							 /**< Header Split disabled */
-#ifdef RDPDK_QEMU
-			   .hw_ip_checksum = 0,
-							 /**< IP checksum offload enabled */
-#else
-			   .hw_ip_checksum = 1,
-							 /**< IP checksum offload enabled */
-#endif
-			   .hw_vlan_filter = 0,
-			   .hw_vlan_strip = 1,
-							 /**< VLAN filtering disabled */
-			   .jumbo_frame = 0,
-							 /**< Jumbo Frame Support disabled */
-			   .hw_strip_crc = 0,
-							 /**< CRC stripped by hardware */
-			   },
-	.rx_adv_conf = {
-					.rss_conf = {
-								 .rss_key = NULL,
-								 .rss_hf = ETH_RSS_PROTO_MASK,
-								 },
-					},
-	.txmode = {
-			   .mq_mode = ETH_MQ_TX_NONE,
-			   },
-};
 
 static struct rte_mempool *pktmbuf_pool[NB_SOCKETS];
 static struct rte_mempool *knimbuf_pool[RTE_MAX_ETHPORTS];
@@ -1446,259 +1380,6 @@ static int init_lcore_rx_queues(void)
 	return 0;
 }
 
-/* display usage */
-static void print_usage(const char *prgname)
-{
-	printf("%s [EAL options]\n"
-		   "  [--config (port,queue,lcore)[,(port,queue,lcore]]\n"
-		   "  [--kniconfig (port,lcore_rx,lcore_tx,lcore_kthread...)]\n"
-		   "  [--enable-jumbo [--max-pkt-len PKTLEN]]\n"
-		   "  -p PORTMASK: hexadecimal bitmask of ports to configure\n"
-		   "  -P : enable promiscuous mode\n"
-		   "  --config (port,queue,lcore): rx queues configuration\n"
-		   "  --callback-setup: script called when ifaces are set up\n"
-		   "  --unixsock: specify the path for the cmdline unixsock (default: /tmp/rdpdk.sock)\n"
-		   "  --no-numa: optional, disable numa awareness\n"
-		   "  --enable-jumbo: enable jumbo frame"
-		   " which max packet len is PKTLEN in decimal (64-9600)\n"
-		   "  --" OPTION_RULE_IPV4 "=FILE \n"
-		   "  --" OPTION_RULE_IPV6 "=FILE \n"
-		   "  --" OPTION_SCALAR ": Use scalar function to do lookup\n",
-		   prgname);
-}
-
-static int parse_max_pkt_len(const char *pktlen)
-{
-	char *end = NULL;
-	unsigned long len;
-
-	/* parse decimal string */
-	len = strtoul(pktlen, &end, 10);
-	if ((pktlen[0] == '\0') || (end == NULL) || (*end != '\0'))
-		return -1;
-
-	if (len == 0)
-		return -1;
-
-	return len;
-}
-
-static int parse_portmask(const char *portmask)
-{
-	char *end = NULL;
-	unsigned long pm;
-
-	/* parse hexadecimal string */
-	pm = strtoul(portmask, &end, 16);
-	if ((portmask[0] == '\0') || (end == NULL) || (*end != '\0'))
-		return -1;
-
-	if (pm == 0)
-		return -1;
-
-	return pm;
-}
-
-static int parse_config(const char *q_arg)
-{
-	char s[256];
-	const char *p, *p0 = q_arg;
-	char *end;
-	enum fieldnames {
-		FLD_PORT = 0,
-		FLD_QUEUE,
-		FLD_LCORE,
-		_NUM_FLD
-	};
-	unsigned long int_fld[_NUM_FLD];
-	char *str_fld[_NUM_FLD];
-	int i;
-	unsigned size;
-
-	nb_lcore_params = 0;
-
-	while ((p = strchr(p0, '(')) != NULL) {
-		++p;
-		if ((p0 = strchr(p, ')')) == NULL)
-			return -1;
-
-		size = p0 - p;
-		if (size >= sizeof(s))
-			return -1;
-
-		snprintf(s, sizeof(s), "%.*s", size, p);
-		if (rte_strsplit(s, sizeof(s), str_fld, _NUM_FLD, ',') != _NUM_FLD)
-			return -1;
-		for (i = 0; i < _NUM_FLD; i++) {
-			errno = 0;
-			int_fld[i] = strtoul(str_fld[i], &end, 0);
-			if (errno != 0 || end == str_fld[i] || int_fld[i] > 255)
-				return -1;
-		}
-		if (nb_lcore_params >= MAX_LCORE_PARAMS) {
-			printf("exceeded max number of lcore params: %hu\n",
-				   nb_lcore_params);
-			return -1;
-		}
-		lcore_params_array[nb_lcore_params].port_id =
-			(uint8_t) int_fld[FLD_PORT];
-		lcore_params_array[nb_lcore_params].queue_id =
-			(uint8_t) int_fld[FLD_QUEUE];
-		lcore_params_array[nb_lcore_params].lcore_id =
-			(uint8_t) int_fld[FLD_LCORE];
-		++nb_lcore_params;
-	}
-	lcore_params = lcore_params_array;
-	return 0;
-}
-
-#define CMD_LINE_OPT_CONFIG "config"
-#define CMD_LINE_OPT_KNICONFIG "kniconfig"
-#define CMD_LINE_OPT_CALLBACK_SETUP "callback-setup"
-#define CMD_LINE_OPT_NO_NUMA "no-numa"
-#define CMD_LINE_OPT_ENABLE_JUMBO "enable-jumbo"
-#define CMD_LINE_OPT_UNIXSOCK "unixsock"
-
-/* Parse the argument given in the command line of the application */
-static int parse_args(int argc, char **argv)
-{
-	int opt, ret;
-	char **argvopt;
-	int option_index;
-	char *prgname = argv[0];
-	static struct option lgopts[] = {
-		{CMD_LINE_OPT_CONFIG, 1, 0, 0},
-		{CMD_LINE_OPT_KNICONFIG, 1, 0, 0},
-		{CMD_LINE_OPT_CALLBACK_SETUP, 1, 0, 0},
-		{CMD_LINE_OPT_UNIXSOCK, 1, 0, 0},
-		{OPTION_RULE_IPV4, 1, 0, 0},
-		{OPTION_RULE_IPV6, 1, 0, 0},
-		{OPTION_SCALAR, 0, 0, 0},
-		{CMD_LINE_OPT_NO_NUMA, 0, 0, 0},
-		{CMD_LINE_OPT_ENABLE_JUMBO, 0, 0, 0},
-		{NULL, 0, 0, 0}
-	};
-
-	argvopt = argv;
-
-	while ((opt = getopt_long(argc, argvopt, "p:P",
-							  lgopts, &option_index)) != EOF) {
-
-		switch (opt) {
-			/* portmask */
-		case 'p':
-			enabled_port_mask = parse_portmask(optarg);
-			if (enabled_port_mask == 0) {
-				printf("invalid portmask\n");
-				print_usage(prgname);
-				return -1;
-			}
-			break;
-		case 'P':
-			printf("Promiscuous mode selected\n");
-			promiscuous_on = 1;
-			break;
-
-			/* long options */
-		case 0:
-			if (!strncmp(lgopts[option_index].name,
-						 CMD_LINE_OPT_KNICONFIG,
-						 sizeof(CMD_LINE_OPT_KNICONFIG))) {
-				ret = kni_parse_config(optarg);
-				if (ret) {
-					printf("Invalid config\n");
-					print_usage(prgname);
-					return -1;
-				}
-			}
-
-			if (!strncmp(lgopts[option_index].name, CMD_LINE_OPT_CONFIG,
-						 sizeof(CMD_LINE_OPT_CONFIG))) {
-				ret = parse_config(optarg);
-				if (ret) {
-					printf("invalid config\n");
-					print_usage(prgname);
-					return -1;
-				}
-			}
-
-			if (!strncmp
-				(lgopts[option_index].name, CMD_LINE_OPT_UNIXSOCK,
-				 sizeof(CMD_LINE_OPT_UNIXSOCK))) {
-				unixsock_path = optarg;
-			}
-
-			if (!strncmp
-				(lgopts[option_index].name, CMD_LINE_OPT_CALLBACK_SETUP,
-				 sizeof(CMD_LINE_OPT_CALLBACK_SETUP))) {
-				callback_setup = optarg;
-			}
-
-			if (!strncmp(lgopts[option_index].name, CMD_LINE_OPT_NO_NUMA,
-						 sizeof(CMD_LINE_OPT_NO_NUMA))) {
-				printf("numa is disabled \n");
-				numa_on = 0;
-			}
-
-			if (!strncmp(lgopts[option_index].name,
-						 OPTION_RULE_IPV4, sizeof(OPTION_RULE_IPV4)))
-				acl_parm_config.rule_ipv4_name = optarg;
-
-			if (!strncmp(lgopts[option_index].name,
-						 OPTION_RULE_IPV6, sizeof(OPTION_RULE_IPV6))) {
-				acl_parm_config.rule_ipv6_name = optarg;
-			}
-
-			if (!strncmp(lgopts[option_index].name,
-						 OPTION_SCALAR, sizeof(OPTION_SCALAR)))
-				acl_parm_config.scalar = 1;
-
-			if (!strncmp
-				(lgopts[option_index].name, CMD_LINE_OPT_ENABLE_JUMBO,
-				 sizeof(CMD_LINE_OPT_ENABLE_JUMBO))) {
-				struct option lenopts =
-					{ "max-pkt-len", required_argument, 0, 0 };
-
-				printf
-					("jumbo frame is enabled - disabling simple TX path\n");
-				port_conf.rxmode.jumbo_frame = 1;
-
-				/* if no max-pkt-len set, use the default value ETHER_MAX_LEN */
-				if (0 ==
-					getopt_long(argc, argvopt, "", &lenopts,
-								&option_index)) {
-					ret = parse_max_pkt_len(optarg);
-					if ((ret < 64) || (ret > MAX_JUMBO_PKT_LEN)) {
-						printf("invalid packet length\n");
-						print_usage(prgname);
-						return -1;
-					}
-					port_conf.rxmode.max_rx_pkt_len = ret;
-				}
-				printf("set jumbo frame max packet length to %u\n",
-					   (unsigned int) port_conf.rxmode.max_rx_pkt_len);
-			}
-			break;
-
-		default:
-			print_usage(prgname);
-			return -1;
-		}
-	}
-
-	if (optind >= 0)
-		argv[optind - 1] = prgname;
-
-	/* Check that options were parsed ok */
-	if (kni_validate_parameters(enabled_port_mask) < 0) {
-		print_usage(prgname);
-		rte_exit(EXIT_FAILURE, "Invalid parameters\n");
-	}
-	ret = optind - 1;
-	optind = 0;					/* reset getopt lib */
-	return ret;
-}
-
 static void setup_lpm(int socketid)
 {
 	struct rte_lpm6_config config;
@@ -2036,12 +1717,10 @@ int main(int argc, char **argv)
 		qconf->neighbor6_struct = NULL;
 	}
 
-	/* init EAL */
-	ret = rte_eal_init(argc, argv);
+	/* parse application arguments (after the EAL ones) */
+	ret = parse_args(argc, argv);
 	if (ret < 0)
-		rte_exit(EXIT_FAILURE, "Invalid EAL parameters\n");
-	argc -= ret;
-	argv += ret;
+		rte_exit(EXIT_FAILURE, "Invalid L3FWD parameters\n");
 
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
 		snprintf(thread_name, 16, "lcore-slave-%d", lcore_id);
@@ -2049,11 +1728,6 @@ int main(int argc, char **argv)
 	}
 	snprintf(thread_name, 16, "lcore-master");
 	pthread_setname_np(pthread_self(), thread_name);
-
-	/* parse application arguments (after the EAL ones) */
-	ret = parse_args(argc, argv);
-	if (ret < 0)
-		rte_exit(EXIT_FAILURE, "Invalid L3FWD parameters\n");
 
 	if (check_lcore_params() < 0)
 		rte_exit(EXIT_FAILURE, "check_lcore_params failed\n");

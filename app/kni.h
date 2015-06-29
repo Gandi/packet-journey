@@ -7,16 +7,13 @@ void init_kni(void);
 int kni_alloc(uint8_t port_id, struct rte_mempool *pktmbuf_pool);
 int kni_free_kni(uint8_t port_id);
 int kni_main_loop(__rte_unused void *arg);
-int kni_parse_config(const char *arg);
 void kni_burst_free_mbufs(struct rte_mbuf **pkts, unsigned num);
-int kni_validate_parameters(uint32_t portmask);
 void kni_stop_loop(void);
 /*
  * Structure of port parameters
  */
 struct kni_port_params {
 	uint8_t port_id;			/* Port ID */
-	unsigned lcore_rx;			/* lcore ID for RX */
 	unsigned lcore_tx;			/* lcore ID for TX */
 	uint32_t nb_lcore_k;		/* Number of lcores for KNI multi kernel threads */
 	uint32_t nb_kni;			/* Number of KNI devices to be created */
