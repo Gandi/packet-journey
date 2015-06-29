@@ -10,4 +10,5 @@ extern lookup6_struct_t *ipv6_l3fwd_lookup_struct[NB_SOCKETS];
 extern neighbor_struct_t *neighbor4_struct[NB_SOCKETS];
 extern neighbor_struct_t *neighbor6_struct[NB_SOCKETS];
 
+extern struct rte_eth_conf port_conf;
 #endif
