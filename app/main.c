@@ -130,7 +130,7 @@ void *control_handle[NB_SOCKETS];
 #define NB_MBUF RTE_MAX	(																	\
 				(nb_ports*nb_rx_queue*RTE_TEST_RX_DESC_DEFAULT +							\
 				nb_ports*nb_lcores*MAX_PKT_BURST +											\
-				nb_ports*n_tx_queue*RTE_TEST_TX_DESC_DEFAULT +								\
+				nb_ports*nb_tx_queue*RTE_TEST_TX_DESC_DEFAULT +								\
 				nb_lcores*MEMPOOL_CACHE_SIZE),												\
 				(unsigned)8192)
 
@@ -204,7 +204,7 @@ static struct lcore_params *lcore_params = lcore_params_array_default;
 static uint16_t nb_lcore_params = sizeof(lcore_params_array_default) /
 	sizeof(lcore_params_array_default[0]);
 
-static struct rte_eth_conf port_conf = {
+struct rte_eth_conf port_conf = {
 	.rxmode = {
 			   .mq_mode = ETH_MQ_RX_RSS,
 			   .max_rx_pkt_len = ETHER_MAX_LEN,
@@ -1530,17 +1530,28 @@ static int check_port_config(const unsigned nb_ports)
 	return 0;
 }
 
-static uint8_t get_port_n_rx_queues(const uint8_t port)
+static uint8_t get_ports_n_rx_queues(void)
 {
-	int queue = -1;
+	uint8_t nb_queue = 0;
 	uint16_t i;
 
 	for (i = 0; i < nb_lcore_params; ++i) {
-		if (lcore_params[i].port_id == port
-			&& lcore_params[i].queue_id > queue)
-			queue = lcore_params[i].queue_id;
+		if (enabled_port_mask & 1 << lcore_params[i].port_id)
+			nb_queue++;
 	}
-	return (uint8_t) (++queue);
+	return nb_queue;
+}
+
+static uint8_t get_port_n_rx_queues(uint8_t port)
+{
+	int nb_queue = 0;
+	uint16_t i;
+
+	for (i = 0; i < nb_lcore_params; ++i) {
+		if (lcore_params[i].port_id == port)
+			nb_queue++;
+	}
+	return nb_queue;
 }
 
 static int init_lcore_rx_queues(void)
@@ -1845,13 +1856,22 @@ static void setup_lpm(int socketid)
 				 " on socket %d\n", socketid);
 }
 
-static int init_mem(unsigned nb_mbuf)
+static int init_mem(uint8_t nb_ports)
 {
 	struct lcore_conf *qconf;
 	int socketid;
 	unsigned lcore_id;
 	uint8_t port;
 	char s[64];
+	size_t nb_mbuf;
+	uint32_t nb_lcores;
+	uint8_t nb_tx_queue;
+	uint8_t nb_rx_queue;
+
+	nb_lcores = rte_lcore_count();
+	nb_rx_queue = get_ports_n_rx_queues();
+	nb_tx_queue = nb_rx_queue;
+	nb_mbuf = NB_MBUF;
 
 	memset(&kni_neighbor, 0, sizeof(kni_neighbor));
 
@@ -1970,15 +1990,15 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask)
 	}
 }
 
-static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
-					  struct rte_eth_dev_info *dev_info)
+static void init_port(uint8_t portid)
 {
 	struct rte_eth_txconf *txconf;
+	struct rte_eth_dev_info dev_info;
 	struct lcore_conf *qconf;
-	uint32_t n_tx_queue;
+	uint8_t nb_tx_queue, queue;
 	uint8_t nb_rx_queue, socketid;
 	int ret;
-	uint16_t queueid;
+	int16_t queueid;
 	unsigned lcore_id;
 
 	/* skip ports that are not enabled */
@@ -1991,14 +2011,12 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 	printf("Initializing port %d ...\n", portid);
 
 	nb_rx_queue = get_port_n_rx_queues(portid);
-	n_tx_queue = nb_lcores;
-	if (n_tx_queue > MAX_TX_QUEUE_PER_PORT)
-		n_tx_queue = MAX_TX_QUEUE_PER_PORT;
+	nb_tx_queue = nb_rx_queue;
 	printf("Creating queues: nb_rxq=%d nb_txq=%u...\n",
-		   nb_rx_queue, (unsigned) n_tx_queue);
+		   nb_rx_queue, nb_tx_queue);
 
 	ret = rte_eth_dev_configure(portid, nb_rx_queue,
-								(uint16_t) n_tx_queue, &port_conf);
+								nb_tx_queue, &port_conf);
 	if (ret < 0)
 		rte_exit(EXIT_FAILURE,
 				 "Cannot configure device: err=%d, port=%d\n", ret,
@@ -2010,13 +2028,8 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 	rte_eth_macaddr_get(portid, &ports_eth_addr[portid]);
 	print_ethaddr(" Address:", &ports_eth_addr[portid]);
 
-	/* init memory */
-	ret = init_mem(NB_MBUF);
-	if (ret < 0)
-		rte_exit(EXIT_FAILURE, "init_mem failed\n");
-
+	nb_tx_queue = 0;
 	/* init one TX queue per couple (lcore,port) */
-	queueid = 0;
 	for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++) {
 		if (rte_lcore_is_enabled(lcore_id) == 0) {
 			continue;
@@ -2027,39 +2040,63 @@ static void init_port(uint8_t portid, uint8_t nb_lcores, unsigned nb_ports,
 		else
 			socketid = 0;
 
-		printf("txq=%u,%d,%d\n", lcore_id, queueid, socketid);
+		qconf = &lcore_conf[lcore_id];
+		queueid = -1;
 
-		rte_eth_dev_info_get(portid, dev_info);
-		txconf = &dev_info->default_txconf;
+		/* init RX queues */
+		for (queue = 0; queue < qconf->n_rx_queue; ++queue) {
+			if (portid != qconf->rx_queue_list[queue].port_id) {
+				//we skip that queue
+				continue;
+			}
+			queueid = qconf->rx_queue_list[queue].queue_id;
+
+			printf("port=%d rx_queueid=%d nb_rxd=%d core=%d\n", portid,
+				   queueid, nb_rxd, lcore_id);
+			ret = rte_eth_rx_queue_setup(portid, queueid, nb_rxd,
+										 socketid,
+										 NULL, pktmbuf_pool[socketid]);
+			if (ret < 0)
+				rte_exit(EXIT_FAILURE, "rte_eth_rx_queue_setup: err=%d,"
+						 "port=%d\n", ret, portid);
+		}
+		if (queueid == -1) {
+			//no rx_queue set, don't need to setup tx_queue for that clore
+			continue;
+		}
+
+		printf("\nInitializing rx/tx queues on lcore %u for port %u ...\n",
+			   lcore_id, portid);
+
+		rte_eth_dev_info_get(portid, &dev_info);
+		txconf = &dev_info.default_txconf;
+
 #ifdef RDPDK_QEMU
 		txconf->txq_flags = ETH_TXQ_FLAGS_NOOFFLOADS;
 #else
 		txconf->txq_flags &= ~ETH_TXQ_FLAGS_NOOFFLOADS;
 #endif
+
+		//XXX is it correct ?
 		if (port_conf.rxmode.jumbo_frame)
 			txconf->txq_flags = 0;
-		printf("coucou port=%d queueid=%d nb_txd=%d core=%d\n", portid,
-			   queueid, nb_txd, lcore_id);
+
+		printf("port=%d tx_queueid=%d nb_txd=%d core=%d\n", portid,
+			   nb_tx_queue, nb_txd, lcore_id);
 		ret =
-			rte_eth_tx_queue_setup(portid, queueid, nb_txd, socketid,
+			rte_eth_tx_queue_setup(portid, nb_tx_queue, nb_txd, socketid,
 								   txconf);
 		if (ret < 0)
 			rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup: err=%d, "
 					 "port=%d\n", ret, portid);
 
-		qconf = &lcore_conf[lcore_id];
-		qconf->tx_queue_id[portid] = queueid;
-		queueid++;
+		qconf->tx_queue_id[portid] = nb_tx_queue++;
 	}
 }
 
-static int alloc_kni_ports(void)
+static int alloc_kni_ports(uint8_t nb_sys_ports)
 {
-	uint8_t nb_sys_ports, port;
-	/* Get number of ports found in scan */
-	nb_sys_ports = rte_eth_dev_count();
-	if (nb_sys_ports == 0)
-		rte_exit(EXIT_FAILURE, "No supported Ethernet device found\n");
+	uint8_t port;
 
 	/* Check if the configured port ID is valid */
 	for (port = 0; port < RTE_MAX_ETHPORTS; port++)
@@ -2075,9 +2112,9 @@ static int alloc_kni_ports(void)
 		if (!kni_port_params_array[port])
 			continue;
 
-		int lcore_id = kni_port_params_array[port]->lcore_k[0];
-		int socketid = (uint8_t) rte_lcore_to_socket_id(lcore_id);
-		//XXX we use another mbuf_pool here, its for incoming packets
+		uint8_t lcore_id = kni_port_params_array[port]->lcore_k[0];
+		uint8_t socketid = rte_lcore_to_socket_id(lcore_id);
+		//XXX we use another mbuf_pool here, its for kni incoming packets
 		if (kni_alloc(port, knimbuf_pool[socketid])) {
 			rte_exit(EXIT_FAILURE, "failed to allocate kni");
 		}
@@ -2105,13 +2142,10 @@ signal_handler(int signum, __rte_unused siginfo_t * si,
 int main(int argc, char **argv)
 {
 	struct lcore_conf *qconf;
-	struct rte_eth_dev_info dev_info;
 	int ret;
 	unsigned nb_ports;
-	uint16_t queueid;
 	unsigned lcore_id;
-	uint32_t nb_lcores;
-	uint8_t portid, queue, socketid;
+	uint8_t portid;
 	pthread_t control_tid;
 	char thread_name[16];
 	struct sigaction sa;
@@ -2166,8 +2200,6 @@ int main(int argc, char **argv)
 	if (check_port_config(nb_ports) < 0)
 		rte_exit(EXIT_FAILURE, "check_port_config failed\n");
 
-	nb_lcores = rte_lcore_count();
-
 	/* Add ACL rules and route entries, build trie */
 	if (acl_init(0) < 0)
 		rte_exit(EXIT_FAILURE, "acl_init ipv4 failed\n");
@@ -2182,44 +2214,21 @@ int main(int argc, char **argv)
 	//TODO spawn one thread per socketid
 	control_handle[0] = control_init(ctrlsock);
 
+	/* init memory */
+	ret = init_mem(nb_ports);
+	if (ret < 0)
+		rte_exit(EXIT_FAILURE, "init_mem failed\n");
+
+
 	/* Initialize KNI subsystem */
 	init_kni();
 
 	/* initialize all ports */
 	for (portid = 0; portid < nb_ports; portid++) {
-		init_port(portid, nb_lcores, nb_ports, &dev_info);
+		init_port(portid);
 	}
 
-	for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++) {
-		if (rte_lcore_is_enabled(lcore_id) == 0)
-			continue;
-		qconf = &lcore_conf[lcore_id];
-
-		printf("\nInitializing rx queues on lcore %u ...\n", lcore_id);
-
-		if (numa_on)
-			socketid = (uint8_t) rte_lcore_to_socket_id(lcore_id);
-		else
-			socketid = 0;
-
-		/* init RX queues */
-		for (queue = 0; queue < qconf->n_rx_queue; ++queue) {
-			portid = qconf->rx_queue_list[queue].port_id;
-			queueid = qconf->rx_queue_list[queue].queue_id;
-
-			printf("rxq=%d,%d,%d\n", portid, queueid, socketid);
-
-			ret = rte_eth_rx_queue_setup(portid, queueid, nb_rxd,
-										 socketid,
-										 NULL, pktmbuf_pool[socketid]);
-			if (ret < 0)
-				rte_exit(EXIT_FAILURE, "rte_eth_rx_queue_setup: err=%d,"
-						 "port=%d\n", ret, portid);
-		}
-	}
-
-	alloc_kni_ports();
-	printf("\n");
+	alloc_kni_ports(nb_ports);
 
 	/* start ports */
 	for (portid = 0; portid < nb_ports; portid++) {

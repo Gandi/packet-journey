@@ -499,10 +499,10 @@ void *control_init(int32_t socket_id)
 	netl_h->cb.route6 = route6;
 	netl_h->cb.link = eth_link;
 
-	//FIXME add BAD_PORT for ipv6 too
 	struct ether_addr invalid_mac =
 		{ {0x00, 0x00, 0x00, 0x00, 0x00, 0x00} };
 	struct in_addr invalid_ip = { INADDR_ANY };
+	struct in6_addr invalid_ip6 = IN6ADDR_ANY_INIT;
 	uint8_t nexthop_id;
 	if (neighbor4_add_nexthop
 		(neighbor4_struct[socket_id], &invalid_ip, &nexthop_id,
@@ -514,6 +514,17 @@ void *control_init(int32_t socket_id)
 	neighbor4_refcount_incr(neighbor4_struct[socket_id], nexthop_id);
 	neighbor4_set_lladdr_port(neighbor4_struct[socket_id], nexthop_id,
 							  &invalid_mac, &invalid_mac, BAD_PORT, -1);
+	if (neighbor6_add_nexthop
+		(neighbor6_struct[socket_id], &invalid_ip6, &nexthop_id,
+		 NEI_ACTION_DROP) < 0) {
+		RTE_LOG(ERR, L3FWD_CTRL,
+				"Couldn't add drop target in neighbor table");
+		goto err;
+	}
+	neighbor6_refcount_incr(neighbor6_struct[socket_id], nexthop_id);
+	neighbor6_set_lladdr_port(neighbor6_struct[socket_id], nexthop_id,
+							  &invalid_mac, &invalid_mac, BAD_PORT, -1);
+
 
 	res = rte_malloc("handle-res", sizeof(*res), socket_id);
 	res->socket_id = socket_id;

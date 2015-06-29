@@ -76,6 +76,7 @@
 #include <rte_kni.h>
 
 #include "common.h"
+#include "routing.h"
 #include "kni.h"
 
 /* Total octets in ethernet header */
@@ -86,21 +87,6 @@
 
 struct kni_port_params *kni_port_params_array[RTE_MAX_ETHPORTS];
 uint8_t kni_port_rdy[RTE_MAX_ETHPORTS] = { 0 };
-
-
-/* Options for configuring ethernet port */
-static struct rte_eth_conf port_conf = {
-	.rxmode = {
-			   .header_split = 0,	/* Header Split disabled */
-			   .hw_ip_checksum = 0,	/* IP checksum offload disabled */
-			   .hw_vlan_filter = 0,	/* VLAN filtering disabled */
-			   .jumbo_frame = 0,	/* Jumbo Frame Support disabled */
-			   .hw_strip_crc = 0,	/* CRC stripped by hardware */
-			   },
-	.txmode = {
-			   .mq_mode = ETH_MQ_TX_NONE,
-			   },
-};
 
 static int kni_change_mtu(uint8_t port_id, unsigned new_mtu);
 static int kni_config_network_interface(uint8_t port_id, uint8_t if_up);
@@ -272,7 +258,7 @@ int kni_parse_config(const char *arg)
 		kni_port_params_array[port_id]->port_id = port_id;
 		//XXX we don't want to do RX in our case.
 		//kni_port_params_array[port_id]->lcore_rx = (uint8_t) int_fld[FLD_LCORE_RX];
-		kni_port_params_array[port_id]->lcore_rx = 127;
+		kni_port_params_array[port_id]->lcore_rx = RTE_MAX_LCORE - 1;
 
 		kni_port_params_array[port_id]->lcore_tx =
 			(uint8_t) int_fld[FLD_LCORE_TX];
@@ -320,15 +306,6 @@ int kni_validate_parameters(uint32_t portmask)
 			(!(portmask & (1 << i)) && kni_port_params_array[i]))
 			rte_exit(EXIT_FAILURE, "portmask is not consistent "
 					 "to port ids specified in --config\n");
-		//XXX we don't want to check that, the lcore_rx is set to 127
-		/*
-		   if (kni_port_params_array[i] && !rte_lcore_is_enabled((unsigned)
-		   (kni_port_params_array[i]->lcore_rx)))
-		   rte_exit(EXIT_FAILURE,
-		   "lcore id %u for " "port %d receiving not enabled\n",
-		   kni_port_params_array[i]->lcore_rx,
-		   kni_port_params_array[i]->port_id);
-		 */
 		if (kni_port_params_array[i] && !rte_lcore_is_enabled((unsigned)
 															  (kni_port_params_array[i]->lcore_tx)))
 			rte_exit(EXIT_FAILURE,
