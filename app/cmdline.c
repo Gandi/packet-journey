@@ -42,10 +42,18 @@
 #include "acl.h"
 #include "stats.h"
 
+#define CMDLINE_MAX_CLIENTS 8
 #define CMDLINE_MAX_SOCK 32
 #define CMDLINE_POLL_TIMEOUT 1000
 
 static pthread_t cmdline_tid;
+
+struct client_data_t {
+	pthread_t cmdline_tid;
+	int sock;
+};
+
+static struct client_data_t cmdline_clients[CMDLINE_MAX_CLIENTS];
 static int cmdline_thread_loop;
 
 typedef uint8_t portid_t;
@@ -916,6 +924,8 @@ int rdpdk_cmdline_init(const char *path)
 		dprintf("open() failed\n");
 		return -1;
 	}
+
+	memset(&cmdline_clients, 0, sizeof(cmdline_clients));
 	return fd;
 }
 
@@ -924,11 +934,6 @@ static int rdpdk_cmdline_free(void *cmdline)
 	struct cmdline *cl = cmdline;
 	//cmdline_thread_loop = 0;
 
-	//FIXME uncomment when we will do multisession
-	/*if (pthread_join(cmdline_tid, NULL)) {
-	   perror("error during free cmdline pthread_join");
-	   } */
-
 	cmdline_quit(cl);
 	cmdline_free(cl);
 	return 0;
@@ -936,6 +941,24 @@ static int rdpdk_cmdline_free(void *cmdline)
 
 int rdpdk_cmdline_terminate(int sock, const char *path)
 {
+	int i;
+
+	for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
+		if (cmdline_clients[i].cmdline_tid) {
+#define CMDLINE_QUIT_MSG "DPDK closing...\n"
+			write(cmdline_clients[i].sock, CMDLINE_QUIT_MSG,
+				  sizeof(CMDLINE_QUIT_MSG));
+			shutdown(cmdline_clients[i].sock, SHUT_RDWR);
+			close(cmdline_clients[i].sock);
+
+			if (pthread_join(cmdline_clients[i].cmdline_tid, NULL)) {
+				perror("error during free cmdline pthread_join");
+			}
+			cmdline_clients[i].cmdline_tid = 0;
+			cmdline_clients[i].sock = 0;
+		}
+	}
+
 	if (pthread_join(cmdline_tid, NULL)) {
 		perror("error during free cmdline pthread_join");
 	}
@@ -950,13 +973,28 @@ int rdpdk_cmdline_stop(void)
 	return 0;
 }
 
+static void *cmdline_handle_client(void *data)
+{
+	struct cmdline *cl;
+	struct client_data_t *res = (struct client_data_t *) data;
+
+	cl = cmdline_new_unixsock(res->sock);
+	cmdline_interact(cl);
+	rdpdk_cmdline_free(cl);
+	close(res->sock);
+
+	res->sock = 0;
+	res->cmdline_tid = 0;
+
+	return 0;
+}
+
 static void *cmdline_run(void *data)
 {
 	struct pollfd fds[CMDLINE_MAX_SOCK];
 	int sock = (intptr_t) data;
 	int nfds = 1;
-	//int i;
-	struct cmdline *cl;
+	int i, ret;
 
 	fds[0].events = POLLIN;
 	fds[0].fd = sock;
@@ -973,11 +1011,28 @@ static void *cmdline_run(void *data)
 			   fds[nfds].fd = res;
 			   fds[nfds++].events = POLLIN;
 			 */
-			cl = cmdline_new_unixsock(res);
-			//FIXME if we want to handle multiple sessions, launch it in a thread
-			cmdline_interact(cl);
-			rdpdk_cmdline_free(cl);
-			close(res);
+
+			for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
+				if (cmdline_clients[i].cmdline_tid == 0) {
+
+					cmdline_clients[i].sock = res;
+					ret =
+						pthread_create(&cmdline_clients[i].cmdline_tid,
+									   NULL, cmdline_handle_client,
+									   (void *) &cmdline_clients[i]);
+					if (ret != 0) {
+						perror("failed to create client cmdline thread");
+					}
+
+					break;
+				}
+			}
+
+			if (i == CMDLINE_MAX_CLIENTS) {
+#define CMDLINE_MCLI_MSG "Max client reached... \n"
+				write(res, CMDLINE_MCLI_MSG, sizeof(CMDLINE_MCLI_MSG));
+				close(res);
+			}
 		}
 		/*for (i = 1; i < nfds; ++i) {
 		   if (fds[i].revents & (POLLIN | POLLHUP)) {
