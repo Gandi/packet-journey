@@ -88,6 +88,7 @@ struct cmd_showport_result {
 	cmdline_fixed_string_t port;
 	cmdline_fixed_string_t what;
 	uint8_t portnum;
+	cmdline_fixed_string_t option;
 };
 
 static void cmd_showport_parsed(void *parsed_result,
@@ -103,9 +104,9 @@ static void cmd_showport_parsed(void *parsed_result,
 	} else if (!strcmp(res->what, "info"))
 		port_infos_display(cl, res->portnum);
 	else if (!strcmp(res->what, "stats"))
-		nic_stats_display(cl, res->portnum);
+		nic_stats_display(cl, res->portnum, (intptr_t)data);
 	else if (!strcmp(res->what, "xstats"))
-		nic_xstats_display(cl, res->portnum);
+		nic_xstats_display(cl, res->portnum, (intptr_t)data);
 }
 
 cmdline_parse_token_string_t cmd_showport_show =
@@ -118,6 +119,9 @@ TOKEN_STRING_INITIALIZER(struct cmd_showport_result, what,
 						 "info#stats#xstats");
 cmdline_parse_token_num_t cmd_showport_portnum =
 TOKEN_NUM_INITIALIZER(struct cmd_showport_result, portnum, UINT8);
+cmdline_parse_token_string_t cmd_showport_option =
+TOKEN_STRING_INITIALIZER(struct cmd_showport_result, option,
+						 "-j");
 
 cmdline_parse_inst_t cmd_showport = {
 	.f = cmd_showport_parsed,
@@ -128,6 +132,20 @@ cmdline_parse_inst_t cmd_showport = {
 			   (void *) &cmd_showport_port,
 			   (void *) &cmd_showport_what,
 			   (void *) &cmd_showport_portnum,
+			   NULL,
+			   },
+};
+
+cmdline_parse_inst_t cmd_showport_json = {
+	.f = cmd_showport_parsed,
+	.data = (void*)1,
+	.help_str = "show|clear port info|stats|xstats X (X = port number)",
+	.tokens = {
+			   (void *) &cmd_showport_show,
+			   (void *) &cmd_showport_port,
+			   (void *) &cmd_showport_what,
+			   (void *) &cmd_showport_portnum,
+			   (void *) &cmd_showport_option,
 			   NULL,
 			   },
 };
@@ -709,17 +727,20 @@ cmdline_parse_inst_t cmd_obj_acl_add = {
 
 struct cmd_stats_result {
 	cmdline_fixed_string_t stats;
+	cmdline_fixed_string_t option;
 };
 
 static void cmd_stats_parsed(__rte_unused
 							 void *parsed_result,
 							 struct cmdline *cl, __rte_unused void *data)
 {
-	rdpdk_stats_display(cl);
+	rdpdk_stats_display(cl, (intptr_t)data);
 }
 
 cmdline_parse_token_string_t cmd_stats_stats =
 TOKEN_STRING_INITIALIZER(struct cmd_stats_result, stats, "stats");
+cmdline_parse_token_string_t cmd_stats_stats_json =
+TOKEN_STRING_INITIALIZER(struct cmd_stats_result, option, "-j");
 
 cmdline_parse_inst_t cmd_stats = {
 	.f = cmd_stats_parsed,		/* function to call */
@@ -731,8 +752,18 @@ cmdline_parse_inst_t cmd_stats = {
 			   },
 };
 
-//----- CMD NEIGH
+cmdline_parse_inst_t cmd_stats_json = {
+	.f = cmd_stats_parsed,		/* function to call */
+	.data = (void*)1,				/* 2nd arg of func */
+	.help_str = "show stats",
+	.tokens = {					/* token list, NULL terminated */
+			   (void *) &cmd_stats_stats,
+			   (void *) &cmd_stats_stats_json,
+			   NULL,
+			   },
+};
 
+//----- CMD NEIGH
 struct cmd_neigh_result {
 	cmdline_fixed_string_t neigh;
 	cmdline_fixed_string_t proto;
@@ -852,7 +883,9 @@ cmdline_parse_ctx_t main_ctx[] = {
 	(cmdline_parse_inst_t *) & cmd_obj_lpm_lkp,
 	(cmdline_parse_inst_t *) & cmd_stats,
 	(cmdline_parse_inst_t *) & cmd_neigh,
+	(cmdline_parse_inst_t *) & cmd_stats_json,
 	(cmdline_parse_inst_t *) & cmd_showport,
+	(cmdline_parse_inst_t *) & cmd_showport_json,
 	(cmdline_parse_inst_t *) & cmd_config_rss,
 	(cmdline_parse_inst_t *) & cmd_config_rss_reta,
 	(cmdline_parse_inst_t *) & cmd_showport_reta,

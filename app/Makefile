@@ -25,7 +25,6 @@ CFLAGS += -I$(RTE_SDK)/$(RTE_TARGET)/include
 CFLAGS += -I$(RTE_SRCDIR)/../lib/libneighbour/
 CFLAGS += -I$(RTE_SRCDIR)/../lib/libnetlink/
 
-
 LDFLAGS += -lc -lpthread -ldl
 #LDFLAGS += -lneighbour -L$(RTE_OUTPUT)/lib
 
