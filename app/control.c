@@ -553,7 +553,7 @@ void control_terminate(void *data)
 	rte_free(res);
 }
 
-void *control_main(void *data)
+int control_main(void *data)
 {
 	struct handle_res *res;
 	struct netl_handle *netl_h;
@@ -568,7 +568,7 @@ void *control_main(void *data)
 	netl_listen(netl_h, &handle);
 	RTE_LOG(INFO, L3FWD_CTRL, "netl_listen returned...\n");
 
-	return NULL;
+	return 0;
 }
 
 int control_add_ipv4_local_entry(struct in_addr *nexthop,

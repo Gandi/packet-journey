@@ -2,7 +2,7 @@
 #define __RDPDK_APP_CONTROL_H
 
 void *control_init(int32_t nb_socket);
-void *control_main(void *argv);
+int control_main(void *argv);
 void control_stop(void *argv);
 void control_terminate(void *argv);
 
