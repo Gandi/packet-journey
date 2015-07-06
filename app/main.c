@@ -950,30 +950,49 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	p[2] = (rte_pktmbuf_mtod(pkt[2], __m128i *));
 	p[3] = (rte_pktmbuf_mtod(pkt[3], __m128i *));
 
-
-	//FIXME add RDPDK_QEMU cases
+#ifdef RDPDK_QEMU
+	struct ether_hdr *eth_hdr;
+	eth_hdr = rte_pktmbuf_mtod(pkt[0], struct ether_hdr *);
+	if (likely(eth_hdr->ether_type == ETHER_TYPE_BE_IPv4))
+#else
 	if (likely(pkt[0]->ol_flags & PKT_RX_IPV4_HDR))
+#endif
 		entries[0] =
 			&qconf->neighbor4_struct->entries.t4[dst_port[0]].neighbor;
 	else
 		entries[0] =
 			&qconf->neighbor6_struct->entries.t6[dst_port[0]].neighbor;
 
+#ifdef RDPDK_QEMU
+	eth_hdr = rte_pktmbuf_mtod(pkt[1], struct ether_hdr *);
+	if (likely(eth_hdr->ether_type == ETHER_TYPE_BE_IPv4))
+#else
 	if (likely(pkt[1]->ol_flags & PKT_RX_IPV4_HDR))
+#endif
 		entries[1] =
 			&qconf->neighbor4_struct->entries.t4[dst_port[1]].neighbor;
 	else
 		entries[1] =
 			&qconf->neighbor6_struct->entries.t6[dst_port[1]].neighbor;
 
+#ifdef RDPDK_QEMU
+	eth_hdr = rte_pktmbuf_mtod(pkt[2], struct ether_hdr *);
+	if (likely(eth_hdr->ether_type == ETHER_TYPE_BE_IPv4))
+#else
 	if (likely(pkt[2]->ol_flags & PKT_RX_IPV4_HDR))
+#endif
 		entries[2] =
 			&qconf->neighbor4_struct->entries.t4[dst_port[2]].neighbor;
 	else
 		entries[2] =
 			&qconf->neighbor6_struct->entries.t6[dst_port[2]].neighbor;
 
+#ifdef RDPDK_QEMU
+	eth_hdr = rte_pktmbuf_mtod(pkt[3], struct ether_hdr *);
+	if (likely(eth_hdr->ether_type == ETHER_TYPE_BE_IPv4))
+#else
 	if (likely(pkt[3]->ol_flags & PKT_RX_IPV4_HDR))
+#endif
 		entries[3] =
 			&qconf->neighbor4_struct->entries.t4[dst_port[3]].neighbor;
 	else
