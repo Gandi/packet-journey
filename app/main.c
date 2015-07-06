@@ -599,6 +599,121 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 	p = kni_port_params_array[portid];
 	nb_kni = p->nb_kni;
 
+#ifdef RDPDK_QEMU
+	#define PROCESSX4_STEP(step) \
+			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *); \
+			if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4) { \
+				is_ipv4 = 1; \
+				process = \
+					!qconf->neighbor4_struct->entries.t4[dst_port[j]]. \
+					neighbor.valid \
+					|| qconf->neighbor4_struct->entries. \
+					t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI; \
+				L3FWD_DEBUG_TRACE(#step ": j %d process %d dst_port %d ipv4\n", \
+								  j, process, dst_port[j]); \
+			} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6) { \
+				is_ipv4 = 0; \
+				process = \
+					!qconf->neighbor6_struct->entries.t6[dst_port[j]]. \
+					neighbor.valid \
+					|| qconf->neighbor6_struct->entries. \
+					t6[dst_port[j]].neighbor.action == NEI_ACTION_KNI; \
+				L3FWD_DEBUG_TRACE(#step ": j %d process %d ipv6\n", j, process); \
+			} else { \
+				process = 1; \
+				L3FWD_DEBUG_TRACE \
+					(#step ": j %d process %d olflags%lx eth_type %x\n", j, \
+					 process, pkt[j]->ol_flags, rte_pktmbuf_mtod(pkt[j], \
+																 struct \
+																 ether_hdr \
+																 *)->ether_type); \
+			} \
+			if (unlikely(process)) { \
+				/* no dest neighbor addr available, send it through the kni */ \
+				knimbuf[i++] = pkt[j]; \
+				if (j != --nb_rx) { \
+					/* we have more packets, deplace last one and its info */ \
+					pkt[j] = pkt[nb_rx]; \
+					dst_port[j] = dst_port[nb_rx]; \
+				} \
+				L3FWD_DEBUG_TRACE \
+					(#step ": j %d nb_rx %d i %d dst_port %d lcore_id %d\n", j, \
+					 nb_rx, i, dst_port[j], lcore_id); \
+			} else { \
+				/* we have only ipv4 or ipv6 packets here, other protos are sent to the kni */ \
+				if (is_ipv4) { \
+					vlan_tci = \
+						qconf->neighbor4_struct->entries. \
+						t4[dst_port[j]].neighbor.vlan_id; \
+				} else { \
+					vlan_tci = \
+						qconf->neighbor6_struct->entries. \
+						t6[dst_port[j]].neighbor.vlan_id; \
+				} \
+				pkt[j]->vlan_tci = vlan_tci; \
+				pkt[j]->ol_flags |= PKT_TX_VLAN_PKT; \
+				L3FWD_DEBUG_TRACE(#step ": olflags%lx vlan%d\n", \
+								  pkt[j]->ol_flags, vlan_tci); \
+				j++; \
+			}
+#else
+	#define PROCESSX4_STEP(step) \
+			if (likely(pkt[j]->ol_flags & PKT_RX_IPV4_HDR)) { \
+				is_ipv4 = 1; \
+				process = \
+					!qconf->neighbor4_struct->entries.t4[dst_port[j]]. \
+					neighbor.valid \
+					|| qconf->neighbor4_struct->entries. \
+					t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI; \
+				L3FWD_DEBUG_TRACE(#step ": j %d process %d dst_port %d ipv4\n", \
+								  j, process, dst_port[j]); \
+			} else if (pkt[j]->ol_flags & PKT_RX_IPV6_HDR) { \
+				is_ipv4 = 0; \
+				process = \
+					!qconf->neighbor6_struct->entries.t6[dst_port[j]]. \
+					neighbor.valid \
+					|| qconf->neighbor6_struct->entries. \
+					t6[dst_port[j]].neighbor.action == NEI_ACTION_KNI; \
+				L3FWD_DEBUG_TRACE(#step ": j %d process %d ipv6\n", j, process); \
+			} else { \
+				process = 1; \
+				L3FWD_DEBUG_TRACE \
+					(#step ": j %d process %d olflags%lx eth_type %x\n", j, \
+					 process, pkt[j]->ol_flags, rte_pktmbuf_mtod(pkt[j], \
+																 struct \
+																 ether_hdr \
+																 *)->ether_type); \
+			} \
+			if (unlikely(process)) { \
+				/* no dest neighbor addr available, send it through the kni */ \
+				knimbuf[i++] = pkt[j]; \
+				if (j != --nb_rx) { \
+					/* we have more packets, deplace last one and its info */ \
+					pkt[j] = pkt[nb_rx]; \
+					dst_port[j] = dst_port[nb_rx]; \
+				} \
+				L3FWD_DEBUG_TRACE \
+					(#step ": j %d nb_rx %d i %d dst_port %d lcore_id %d\n", j, \
+					 nb_rx, i, dst_port[j], lcore_id); \
+			} else { \
+				/* we have only ipv4 or ipv6 packets here, other protos are sent to the kni */ \
+				if (is_ipv4) { \
+					vlan_tci = \
+						qconf->neighbor4_struct->entries. \
+						t4[dst_port[j]].neighbor.vlan_id; \
+				} else { \
+					vlan_tci = \
+						qconf->neighbor6_struct->entries. \
+						t6[dst_port[j]].neighbor.vlan_id; \
+				} \
+				pkt[j]->vlan_tci = vlan_tci; \
+				pkt[j]->ol_flags |= PKT_TX_VLAN_PKT; \
+				L3FWD_DEBUG_TRACE(#step ": olflags%lx vlan%d\n", \
+								  pkt[j]->ol_flags, vlan_tci); \
+				j++; \
+			}
+#endif
+
 	i = 0;
 	j = 0;
 	// duck device, first iteration use the switch dans go to nb_rx % FWDSTEP case
@@ -607,267 +722,13 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			i = 0;				// reinit i here after the first duck device iteration
 
 	case 0:
-#ifdef RDPDK_QEMU
-			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
-			if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4) {
-#else
-			if (likely(pkt[j]->ol_flags & PKT_RX_IPV4_HDR)) {
-#endif
-				is_ipv4 = 1;
-				process =
-					!qconf->neighbor4_struct->entries.t4[dst_port[j]].
-					neighbor.valid
-					|| qconf->neighbor4_struct->entries.
-					t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI;
-
-				L3FWD_DEBUG_TRACE("0: j %d process %d dst_port %d ipv4\n",
-								  j, process, dst_port[j]);
-#ifdef RDPDK_QEMU
-			} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6) {
-#else
-			} else if (pkt[j]->ol_flags & PKT_RX_IPV6_HDR) {
-#endif
-				is_ipv4 = 0;
-				process =
-					!qconf->neighbor6_struct->entries.t6[dst_port[j]].
-					neighbor.valid
-					|| qconf->neighbor6_struct->entries.
-					t6[dst_port[j]].neighbor.action == NEI_ACTION_KNI;
-				L3FWD_DEBUG_TRACE("0: j %d process %d ipv6\n", j, process);
-			} else {
-				process = 1;
-				L3FWD_DEBUG_TRACE
-					("0: j %d process %d olflags%lx eth_type %x\n", j,
-					 process, pkt[j]->ol_flags, rte_pktmbuf_mtod(pkt[j],
-																 struct
-																 ether_hdr
-																 *)->ether_type);
-			}
-
-			if (unlikely(process)) {
-				//no dest neighbor addr available, send it through the kni
-				knimbuf[i++] = pkt[j];
-				if (j != --nb_rx) {
-					//we have more packets, deplace last one and its info
-					pkt[j] = pkt[nb_rx];
-					dst_port[j] = dst_port[nb_rx];
-				}
-
-				L3FWD_DEBUG_TRACE
-					("0: j %d nb_rx %d i %d dst_port %d lcore_id %d\n", j,
-					 nb_rx, i, dst_port[j], lcore_id);
-			} else {
-				//we have only ipv4 or ipv6 packets here, other protos are sent to the kni
-				if (is_ipv4) {
-					vlan_tci =
-						qconf->neighbor4_struct->entries.
-						t4[dst_port[j]].neighbor.vlan_id;
-				} else {
-					vlan_tci =
-						qconf->neighbor6_struct->entries.
-						t6[dst_port[j]].neighbor.vlan_id;
-				}
-				pkt[j]->vlan_tci = vlan_tci;
-				pkt[j]->ol_flags |= PKT_TX_VLAN_PKT;
-				L3FWD_DEBUG_TRACE("0: olflags%lx vlan%d\n",
-								  pkt[j]->ol_flags, vlan_tci);
-				j++;
-			}
+			PROCESSX4_STEP(0);
 	case 3:
-#ifdef RDPDK_QEMU
-			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
-			if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4) {
-#else
-			if (likely(pkt[j]->ol_flags & PKT_RX_IPV4_HDR)) {
-#endif
-				is_ipv4 = 1;
-				process =
-					!qconf->neighbor4_struct->entries.t4[dst_port[j]].
-					neighbor.valid
-					|| qconf->neighbor4_struct->entries.
-					t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI;
-				L3FWD_DEBUG_TRACE("3: j %d process %d dst_port %d ipv4\n",
-								  j, process, dst_port[j]);
-#ifdef RDPDK_QEMU
-			} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6) {
-#else
-			} else if (pkt[j]->ol_flags & PKT_RX_IPV6_HDR) {
-#endif
-				is_ipv4 = 0;
-				process =
-					!qconf->neighbor6_struct->entries.t6[dst_port[j]].
-					neighbor.valid
-					|| qconf->neighbor6_struct->entries.
-					t6[dst_port[j]].neighbor.action == NEI_ACTION_KNI;
-				L3FWD_DEBUG_TRACE("3: j %d process %d ipv6\n", j, process);
-			} else {
-				process = 1;
-				L3FWD_DEBUG_TRACE
-					("3: j %d process %d olflags%lx eth_type %x\n", j,
-					 process, pkt[j]->ol_flags, rte_pktmbuf_mtod(pkt[j],
-																 struct
-																 ether_hdr
-																 *)->ether_type);
-			}
-
-			if (unlikely(process)) {
-				//no dest neighbor addr available, send it through the kni
-				knimbuf[i++] = pkt[j];
-				if (j != --nb_rx) {
-					//we have more packets, deplace last one and its info
-					pkt[j] = pkt[nb_rx];
-					dst_port[j] = dst_port[nb_rx];
-				}
-				L3FWD_DEBUG_TRACE
-					("3: j %d nb_rx %d i %d dst_port %d lcore_id %d\n", j,
-					 nb_rx, i, dst_port[j], lcore_id);
-			} else {
-				//we have only ipv4 or ipv6 packets here, other protos are sent to the kni
-				if (is_ipv4) {
-					vlan_tci =
-						qconf->neighbor4_struct->entries.
-						t4[dst_port[j]].neighbor.vlan_id;
-				} else {
-					vlan_tci =
-						qconf->neighbor6_struct->entries.
-						t6[dst_port[j]].neighbor.vlan_id;
-				}
-				pkt[j]->vlan_tci = vlan_tci;
-				pkt[j]->ol_flags |= PKT_TX_VLAN_PKT;
-				L3FWD_DEBUG_TRACE("3: olflags%lx vlan%d\n",
-								  pkt[j]->ol_flags, vlan_tci);
-				j++;
-			}
+			PROCESSX4_STEP(3);
 	case 2:
-#ifdef RDPDK_QEMU
-			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
-			if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4) {
-#else
-			if (likely(pkt[j]->ol_flags & PKT_RX_IPV4_HDR)) {
-#endif
-				is_ipv4 = 1;
-				process =
-					!qconf->neighbor4_struct->entries.t4[dst_port[j]].
-					neighbor.valid
-					|| qconf->neighbor4_struct->entries.
-					t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI;
-				L3FWD_DEBUG_TRACE("2: j %d process %d dst_port %d ipv4\n",
-								  j, process, dst_port[j]);
-#ifdef RDPDK_QEMU
-			} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6) {
-#else
-			} else if (pkt[j]->ol_flags & PKT_RX_IPV6_HDR) {
-#endif
-				is_ipv4 = 0;
-				process =
-					!qconf->neighbor6_struct->entries.t6[dst_port[j]].
-					neighbor.valid
-					|| qconf->neighbor6_struct->entries.
-					t6[dst_port[j]].neighbor.action == NEI_ACTION_KNI;
-				L3FWD_DEBUG_TRACE("2: j %d process %d ipv6\n", j, process);
-			} else {
-				process = 1;
-				L3FWD_DEBUG_TRACE
-					("2: j %d process %d olflags%lx eth_type %x\n", j,
-					 process, pkt[j]->ol_flags, rte_pktmbuf_mtod(pkt[j],
-																 struct
-																 ether_hdr
-																 *)->ether_type);
-			}
-
-			if (unlikely(process)) {
-				//no dest neighbor addr available, send it through the kni
-				knimbuf[i++] = pkt[j];
-				if (j != --nb_rx) {
-					//we have more packets, deplace last one and its info
-					pkt[j] = pkt[nb_rx];
-					dst_port[j] = dst_port[nb_rx];
-				}
-				L3FWD_DEBUG_TRACE
-					("2: j %d nb_rx %d i %d dst_port %d lcore_id %d\n", j,
-					 nb_rx, i, dst_port[j], lcore_id);
-			} else {
-				//we have only ipv4 or ipv6 packets here, other protos are sent to the kni
-				if (is_ipv4) {
-					vlan_tci =
-						qconf->neighbor4_struct->entries.
-						t4[dst_port[j]].neighbor.vlan_id;
-				} else {
-					vlan_tci =
-						qconf->neighbor6_struct->entries.
-						t6[dst_port[j]].neighbor.vlan_id;
-				}
-				pkt[j]->vlan_tci = vlan_tci;
-				pkt[j]->ol_flags |= PKT_TX_VLAN_PKT;
-				L3FWD_DEBUG_TRACE("2: olflags%lx vlan%d\n",
-								  pkt[j]->ol_flags, vlan_tci);
-				j++;
-			}
+			PROCESSX4_STEP(2);
 	case 1:
-#ifdef RDPDK_QEMU
-			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *);
-			if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4) {
-#else
-			if (likely(pkt[j]->ol_flags & PKT_RX_IPV4_HDR)) {
-#endif
-				is_ipv4 = 1;
-				process =
-					!qconf->neighbor4_struct->entries.t4[dst_port[j]].
-					neighbor.valid
-					|| qconf->neighbor4_struct->entries.
-					t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI;
-				L3FWD_DEBUG_TRACE("1: j %d process %d dst_port %d ipv4\n",
-								  j, process, dst_port[j]);
-#ifdef RDPDK_QEMU
-			} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6) {
-#else
-			} else if (pkt[j]->ol_flags & PKT_RX_IPV6_HDR) {
-#endif
-				is_ipv4 = 0;
-				process =
-					!qconf->neighbor6_struct->entries.t6[dst_port[j]].
-					neighbor.valid
-					|| qconf->neighbor6_struct->entries.
-					t6[dst_port[j]].neighbor.action == NEI_ACTION_KNI;
-				L3FWD_DEBUG_TRACE("1: j %d process %d ipv6\n", j, process);
-			} else {
-				process = 1;
-				L3FWD_DEBUG_TRACE
-					("1: j %d process %d olflags%lx eth_type %x\n", j,
-					 process, pkt[j]->ol_flags, rte_pktmbuf_mtod(pkt[j],
-																 struct
-																 ether_hdr
-																 *)->ether_type);
-			}
-
-			if (unlikely(process)) {
-				//no dest neighbor addr available, send it through the kni
-				knimbuf[i++] = pkt[j];
-				if (j != --nb_rx) {
-					//we have more packets, deplace last one and its info
-					pkt[j] = pkt[nb_rx];
-					dst_port[j] = dst_port[nb_rx];
-				}
-				L3FWD_DEBUG_TRACE
-					("1: j %d nb_rx %d i %d dst_port %d lcore_id %d\n", j,
-					 nb_rx, i, dst_port[j], lcore_id);
-			} else {
-				//we have only ipv4 or ipv6 packets here, other protos are sent to the kni
-				if (is_ipv4) {
-					vlan_tci =
-						qconf->neighbor4_struct->entries.
-						t4[dst_port[j]].neighbor.vlan_id;
-				} else {
-					vlan_tci =
-						qconf->neighbor6_struct->entries.
-						t6[dst_port[j]].neighbor.vlan_id;
-				}
-				pkt[j]->vlan_tci = vlan_tci;
-				pkt[j]->ol_flags |= PKT_TX_VLAN_PKT;
-				L3FWD_DEBUG_TRACE("1: olflags%lx vlan%d\n",
-								  pkt[j]->ol_flags, vlan_tci);
-				j++;
-			}
+			PROCESSX4_STEP(1);
 
 			if (likely(i == 0))
 				continue;
