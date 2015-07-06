@@ -329,21 +329,20 @@ send_packetsx4(struct lcore_conf *qconf, uint8_t port,
 	n = len + num;
 	n = (n > MAX_PKT_BURST) ? MAX_PKT_BURST - len : num;
 
+#define PUT_PACKET_IN_BUFFER(a, b)	qconf->tx_mbufs[port].m_table[a] = m[b]; \
+									j++;
+
 	j = 0;
 	switch (n % FWDSTEP) {
 		while (j < n) {
 	case 0:
-			qconf->tx_mbufs[port].m_table[len + j] = m[j];
-			j++;
+			PUT_PACKET_IN_BUFFER(len + j, j);
 	case 3:
-			qconf->tx_mbufs[port].m_table[len + j] = m[j];
-			j++;
+			PUT_PACKET_IN_BUFFER(len + j, j);
 	case 2:
-			qconf->tx_mbufs[port].m_table[len + j] = m[j];
-			j++;
+			PUT_PACKET_IN_BUFFER(len + j, j);
 	case 1:
-			qconf->tx_mbufs[port].m_table[len + j] = m[j];
-			j++;
+			PUT_PACKET_IN_BUFFER(len + j, j);
 		}
 	}
 
@@ -360,17 +359,13 @@ send_packetsx4(struct lcore_conf *qconf, uint8_t port,
 		switch (len % FWDSTEP) {
 			while (j < len) {
 		case 0:
-				qconf->tx_mbufs[port].m_table[j] = m[n + j];
-				j++;
+				PUT_PACKET_IN_BUFFER(j, n + j);
 		case 3:
-				qconf->tx_mbufs[port].m_table[j] = m[n + j];
-				j++;
+				PUT_PACKET_IN_BUFFER(j, n + j);
 		case 2:
-				qconf->tx_mbufs[port].m_table[j] = m[n + j];
-				j++;
+				PUT_PACKET_IN_BUFFER(j, n + j);
 		case 1:
-				qconf->tx_mbufs[port].m_table[j] = m[n + j];
-				j++;
+				PUT_PACKET_IN_BUFFER(j, n + j);
 			}
 		}
 	}
@@ -1149,21 +1144,19 @@ prepare_acl_parameter(struct rte_mbuf **pkts_in, struct acl_search_t *acl,
 	acl->num_ipv4 = 0;
 	acl->num_ipv6 = 0;
 
+#define PREFETCH()	rte_prefetch0(rte_pktmbuf_mtod(pkts_in[i], void *)); \
+					i++; \
+					j++;
+
 	//we prefetch0 packets 3 per 3
 	switch (nb_rx % PREFETCH_OFFSET) {
 		while (nb_rx != i) {
 	case 0:
-			rte_prefetch0(rte_pktmbuf_mtod(pkts_in[i], void *));
-			i++;
-			j++;
+			PREFETCH();
 	case 2:
-			rte_prefetch0(rte_pktmbuf_mtod(pkts_in[i], void *));
-			i++;
-			j++;
+			PREFETCH();
 	case 1:
-			rte_prefetch0(rte_pktmbuf_mtod(pkts_in[i], void *));
-			i++;
-			j++;
+			PREFETCH();
 
 			while (j > 0) {
 				prepare_one_packet(pkts_in, acl, i - j);
@@ -1358,16 +1351,17 @@ static int main_loop(__rte_unused void *dummy)
 			j = 0;
 			L3FWD_DEBUG_TRACE
 				("main_loop nb_rx %d  queue_id %d\n", nb_rx, queueid);
+
+#define PROCESS_STEP2(offset)	process_step2(qconf, pkts_burst[nb_rx - offset], \
+								dst_port + nb_rx - offset)
+
 			switch (nb_rx % FWDSTEP) {
 			case 3:
-				process_step2(qconf, pkts_burst[nb_rx - 3],
-							  dst_port + nb_rx - 3);
+				PROCESS_STEP2(3);
 			case 2:
-				process_step2(qconf, pkts_burst[nb_rx - 2],
-							  dst_port + nb_rx - 2);
+				PROCESS_STEP2(2);
 			case 1:
-				process_step2(qconf, pkts_burst[nb_rx - 1],
-							  dst_port + nb_rx - 1);
+				PROCESS_STEP2(1);
 			}
 
 			k = RTE_ALIGN_FLOOR(nb_rx, FWDSTEP);
@@ -1443,35 +1437,30 @@ static int main_loop(__rte_unused void *dummy)
 				j = 0;
 			}
 
+#define PROCESS_STEP3_1()	process_step3(qconf, pkts_burst[j], &dst_port[j]); \
+							if (likely((dlp) == dst_port[j])) { \
+								lp[0]++; \
+							} else { \
+								dlp = dst_port[j]; \
+								lp = &pnum[j];\
+								lp[0] = 1; \
+							} \
+							j++;
+#define PROCESS_STEP3_2()	process_step3(qconf, pkts_burst[j], &dst_port[j]); \
+							if (likely((dlp) == dst_port[j])) { \
+								lp[0]++; \
+							} else { \
+								pnum[j] = 1;\
+							}
+
 			/* Process up to last 3 packets one by one. */
 			switch (nb_rx % FWDSTEP) {
 			case 3:
-				process_step3(qconf, pkts_burst[j], &dst_port[j]);
-				if (likely((dlp) == dst_port[j])) {
-					lp[0]++;
-				} else {
-					dlp = dst_port[j];
-					lp = &pnum[j];
-					lp[0] = 1;
-				}
-				j++;
+				PROCESS_STEP3_1();
 			case 2:
-				process_step3(qconf, pkts_burst[j], &dst_port[j]);
-				if (likely((dlp) == dst_port[j])) {
-					lp[0]++;
-				} else {
-					dlp = dst_port[j];
-					lp = &pnum[j];
-					lp[0] = 1;
-				}
-				j++;
+				PROCESS_STEP3_1();
 			case 1:
-				process_step3(qconf, pkts_burst[j], &dst_port[j]);
-				if (likely((dlp) == dst_port[j])) {
-					lp[0]++;
-				} else {
-					pnum[j] = 1;
-				}
+				PROCESS_STEP3_2();
 			}
 
 			/*
