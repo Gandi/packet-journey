@@ -1077,7 +1077,7 @@ static void *cmdline_run(void *data)
 }
 
 
-int rdpdk_cmdline_launch(int sock)
+pthread_t rdpdk_cmdline_launch(int sock)
 {
 	char thread_name[16];
 	cpu_set_t cpuset;
