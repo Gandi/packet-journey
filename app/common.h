@@ -42,5 +42,6 @@ struct lcore_stats {
 
 extern struct lcore_stats stats[RTE_MAX_LCORE];
 
+typedef uint8_t portid_t;
 
 #endif
