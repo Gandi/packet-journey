@@ -93,7 +93,7 @@ struct cmd_showport_result {
 
 static void cmd_showport_parsed(void *parsed_result,
 								struct cmdline *cl,
-								__rte_unused void *data)
+								void *data)
 {
 	struct cmd_showport_result *res = parsed_result;
 	if (!strcmp(res->show, "clear")) {
