@@ -1572,7 +1572,7 @@ static void init_port(uint8_t portid)
 								nb_tx_queue, &port_conf);
 	if (ret < 0)
 		rte_exit(EXIT_FAILURE,
-				 "Cannot configure device: err=%d, port=%d\n", ret,
+				 "Cannot configure device: err=%d, port=%u\n", ret,
 				 portid);
 
 	/*
@@ -1604,14 +1604,14 @@ static void init_port(uint8_t portid)
 			}
 			queueid = qconf->rx_queue_list[queue].queue_id;
 
-			printf("port=%d rx_queueid=%d nb_rxd=%d core=%d\n", portid,
+			printf("port=%u rx_queueid=%d nb_rxd=%d core=%u\n", portid,
 				   queueid, nb_rxd, lcore_id);
 			ret = rte_eth_rx_queue_setup(portid, queueid, nb_rxd,
 										 socketid,
 										 NULL, pktmbuf_pool[socketid]);
 			if (ret < 0)
 				rte_exit(EXIT_FAILURE, "rte_eth_rx_queue_setup: err=%d,"
-						 "port=%d\n", ret, portid);
+						 "port=%u\n", ret, portid);
 		}
 		if (queueid == -1) {
 			//no rx_queue set, don't need to setup tx_queue for that clore
@@ -1634,14 +1634,14 @@ static void init_port(uint8_t portid)
 		if (port_conf.rxmode.jumbo_frame)
 			txconf->txq_flags = 0;
 
-		printf("port=%d tx_queueid=%d nb_txd=%d core=%d\n", portid,
+		printf("port=%u tx_queueid=%d nb_txd=%d core=%u\n", portid,
 			   nb_tx_queue, nb_txd, lcore_id);
 		ret =
 			rte_eth_tx_queue_setup(portid, nb_tx_queue, nb_txd, socketid,
 								   txconf);
 		if (ret < 0)
 			rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup: err=%d, "
-					 "port=%d\n", ret, portid);
+					 "port=%u\n", ret, portid);
 
 		qconf->tx_queue_id[portid] = nb_tx_queue++;
 	}
@@ -1732,7 +1732,7 @@ int main(int argc, char **argv)
 		rte_exit(EXIT_FAILURE, "Invalid L3FWD parameters\n");
 
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
-		snprintf(thread_name, 16, "lcore-slave-%d", lcore_id);
+		snprintf(thread_name, 16, "lcore-slave-%u", lcore_id);
 		pthread_setname_np(lcore_config[lcore_id].thread_id, thread_name);
 	}
 	snprintf(thread_name, 16, "lcore-master");
@@ -1845,7 +1845,7 @@ int main(int argc, char **argv)
 		for(ctrlsock = 0; ctrlsock < NB_SOCKETS; ctrlsock++) {
 			if(control_handle[ctrlsock].addr) {
 				lcore_id = control_handle[ctrlsock].lcore_id;
-				printf("launching control thread for socketid %d on lcore %d\n", ctrlsock, lcore_id);
+				printf("launching control thread for socketid %d on lcore %u\n", ctrlsock, lcore_id);
 				rte_eal_remote_launch(control_main, control_handle[ctrlsock].addr, lcore_id);
 
 				snprintf(thread_name, 16, "control-%d", ctrlsock);
@@ -1883,7 +1883,7 @@ int main(int argc, char **argv)
 
 		for (portid = 0; portid < nb_ports; portid++) {
 			if (kni_port_params_array[portid]->lcore_tx == lcore_id) {
-				printf("launching kni thread on lcore %d\n", lcore_id);
+				printf("launching kni thread on lcore %u\n", lcore_id);
 				rte_eal_remote_launch(kni_main_loop, NULL, lcore_id);
 				break;
 			}
@@ -1903,7 +1903,7 @@ int main(int argc, char **argv)
 	pthread_join(cmdline_tid, NULL);
 
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
-		printf("waiting %d\n", lcore_id);
+		printf("waiting %u\n", lcore_id);
 		if (rte_eal_wait_lcore(lcore_id) < 0)
 			return -1;
 	}

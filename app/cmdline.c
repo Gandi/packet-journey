@@ -1045,6 +1045,7 @@ static void *cmdline_run(void *data)
 			   fds[nfds++].events = POLLIN;
 			 */
 
+			// FIXME: do polling instead of creating unsafe threads (use cmdline_poll with dpdk 2.1)
 			for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
 				if (cmdline_clients[i].cmdline_tid == 0) {
 

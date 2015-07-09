@@ -253,7 +253,7 @@ neighbor4(neighbor_action_t action,
 		unsigned kni_vlan;
 
 		if_indextoname(port_id, ibuf);
-		s = sscanf(ibuf, "vEth%d_%d.%d", &port_id, &kni_num, &kni_vlan);
+		s = sscanf(ibuf, "vEth%10u_%10u.%10u", &port_id, &kni_num, &kni_vlan);
 		if (s <= 0) {
 			RTE_LOG(ERR, L3FWD_CTRL,
 					"received a neighbor announce for an unmanaged iface %s\n",
@@ -345,7 +345,7 @@ neighbor6(neighbor_action_t action,
 		unsigned kni_vlan;
 
 		if_indextoname(port_id, ibuf);
-		s = sscanf(ibuf, "vEth%d_%d.%d", &port_id, &kni_num, &kni_vlan);
+		s = sscanf(ibuf, "vEth%10u_%10u.%10u", &port_id, &kni_num, &kni_vlan);
 
 		if (s <= 0) {
 			RTE_LOG(ERR, L3FWD_CTRL,
@@ -402,7 +402,7 @@ static int addr4(__rte_unused addr_action_t action, int32_t port_id,
 	int32_t socket_id = handle->socket_id;
 
 	if_indextoname(port_id, ibuf);
-	sscanf(ibuf, "vEth%d_%d", &port_id, &kni_num);
+	sscanf(ibuf, "vEth%10d_%10u", &port_id, &kni_num);
 	printf("SALUT port=%s %s/%d with port_id %d\n", ibuf,
 		   inet_ntop(AF_INET, addr, buf, 255), prefixlen, port_id);
 
@@ -422,7 +422,7 @@ static int addr6(__rte_unused addr_action_t action, int32_t port_id,
 	int32_t socket_id = handle->socket_id;
 
 	if_indextoname(port_id, ibuf);
-	sscanf(ibuf, "vEth%d_%d", &port_id, &kni_num);
+	sscanf(ibuf, "vEth%10d_%10u", &port_id, &kni_num);
 	printf("SALUT port=%s %s/%d with port_id %d\n", ibuf,
 		   inet_ntop(AF_INET6, addr, buf, 255), prefixlen, port_id);
 
