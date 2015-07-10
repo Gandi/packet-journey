@@ -41,6 +41,7 @@
 
 #include "common.h"
 #include "acl.h"
+#include "config.h"
 
 /***********************start of ACL part******************************/
 #define MAX_ACL_RULE_NUM	100000
@@ -741,9 +742,9 @@ add_rules(const char *rule_path,
 static void dump_acl_config(void)
 {
 	printf("ACL option are:\n");
-	printf(OPTION_RULE_IPV4 ": %s\n", acl_parm_config.rule_ipv4_name);
-	printf(OPTION_RULE_IPV6 ": %s\n", acl_parm_config.rule_ipv6_name);
-	printf(OPTION_SCALAR ": %d\n", acl_parm_config.scalar);
+	printf(CMD_LINE_OPT_RULE_IPV4 ": %s\n", acl_parm_config.rule_ipv4_name);
+	printf(CMD_LINE_OPT_RULE_IPV6 ": %s\n", acl_parm_config.rule_ipv6_name);
+	printf(CMD_LINE_OPT_SCALAR ": %d\n", acl_parm_config.scalar);
 }
 
 static int check_acl_config(void)

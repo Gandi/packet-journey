@@ -1,9 +1,6 @@
 #ifndef __RDPDK_ACL_H
 #define __RDPDK_ACL_H
 
-#define OPTION_RULE_IPV4	"rule_ipv4"
-#define OPTION_RULE_IPV6	"rule_ipv6"
-#define OPTION_SCALAR		"scalar"
 #define DEFAULT_MAX_CATEGORIES	1
 #define ACL_DENY_SIGNATURE	0xf0000000
 

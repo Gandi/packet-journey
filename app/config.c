@@ -66,18 +66,17 @@ void print_usage(const char *prgname)
 {
 	printf("%s [EAL options]\n"
 		   "  [--config (port,queue,lcore)[,(port,queue,lcore]]\n"
-		   "  [--kniconfig (port,lcore_tx,lcore_kthread...)]\n"
-		   "  [--enable-jumbo [--max-pkt-len PKTLEN]]\n"
-		   "  -p PORTMASK: hexadecimal bitmask of ports to configure\n"
-		   "  -P : enable promiscuous mode\n"
-		   "  --config (port,queue,lcore): rx queues configuration\n"
+		   "  [--kniconfig (port,lcore_tx,lcore_kthread)]\n"
+		   "  [--enable-jumbo [--max-pkt-len PKTLEN (64-9000)]]\n"
+		   "  [--promiscuous : enable promiscuous mode]\n"
+		   "  [--unixsock PATH: override cmdline unixsock path (default: /tmp/rdpdk.sock)]\n"
+		   "  [--configfile PATH: use a configfile for params]\n"
+		   "  [--no-numa: disable numa awareness]\n"
+		   "  [--scalar: Use scalar function to do lookupn acl tables]\n"
+		   "  --portmask PORTMASK: hexadecimal bitmask of ports to configure\n"
 		   "  --callback-setup: script called when ifaces are set up\n"
-		   "  --unixsock: specify the path for the cmdline unixsock (default: /tmp/rdpdk.sock)\n"
-		   "  --no-numa: optional, disable numa awareness\n"
-		   " which max packet len is PKTLEN in decimal (64-9600)\n"
-		   "  --" OPTION_RULE_IPV4 "=FILE \n"
-		   "  --" OPTION_RULE_IPV6 "=FILE \n"
-		   "  --" OPTION_SCALAR ": Use scalar function to do lookup\n",
+		   "  --rule_ipv4=FILE \n"
+		   "  --rule_ip6=FILE \n",
 		   prgname);
 }
 
@@ -518,13 +517,13 @@ static int install_cfgfile(const char *file_name, char *prgname)
 	}
 
 	entry =
-		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, OPTION_RULE_IPV4);
+		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_RULE_IPV4);
 	if (entry) {
 		acl_parm_config.rule_ipv4_name = entry;
 	}
 
 	entry =
-		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, OPTION_RULE_IPV6);
+		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_RULE_IPV6);
 	if (entry) {
 		acl_parm_config.rule_ipv6_name = entry;
 	}
@@ -532,7 +531,7 @@ static int install_cfgfile(const char *file_name, char *prgname)
 	/*      optional    */
 	entry =
 		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
-							  CFG_FILE_OPT_PROMISC);
+							  CMD_LINE_OPT_PROMISC);
 	if (entry) {
 		if (strtoul(entry, NULL, 0)) {
 			printf("Promiscuous mode selected\n");
@@ -550,7 +549,7 @@ static int install_cfgfile(const char *file_name, char *prgname)
 		}
 	}
 
-	entry = rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, OPTION_SCALAR);
+	entry = rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_SCALAR);
 	if (entry) {
 		if (strtoul(entry, NULL, 0)) {
 			acl_parm_config.scalar = 1;
@@ -603,11 +602,14 @@ int parse_args(int argc, char **argv)
 		{CMD_LINE_OPT_KNICONFIG, 1, 0, 0},
 		{CMD_LINE_OPT_CALLBACK_SETUP, 1, 0, 0},
 		{CMD_LINE_OPT_UNIXSOCK, 1, 0, 0},
-		{OPTION_RULE_IPV4, 1, 0, 0},
-		{OPTION_RULE_IPV6, 1, 0, 0},
-		{OPTION_SCALAR, 0, 0, 0},
+		{CMD_LINE_OPT_RULE_IPV4, 1, 0, 0},
+		{CMD_LINE_OPT_RULE_IPV6, 1, 0, 0},
+		{CMD_LINE_OPT_SCALAR, 0, 0, 0},
+		{CMD_LINE_OPT_PROMISC, 0, 0, 0},
 		{CMD_LINE_OPT_NO_NUMA, 0, 0, 0},
 		{CMD_LINE_OPT_ENABLE_JUMBO, 0, 0, 0},
+		{CMD_LINE_OPT_PORTMASK, 1, 0, 0},
+		{CMD_LINE_OPT_CONFIGFILE, 1, 0, 0},
 		{NULL, 0, 0, 0}
 	};
 
@@ -619,31 +621,17 @@ int parse_args(int argc, char **argv)
 	argv += ret;
 
 	for (opt = 1; opt < argc; opt++) {
-		if (strcmp(argv[opt], "-f") == 0 && argv[opt + 1] != NULL) {
+		if (strcmp(argv[opt], "--configfile") == 0 && argv[opt + 1] != NULL) {
 			return install_cfgfile(argv[opt + 1], prgname);
 		}
 	}
 
 	argvopt = argv;
 
-	while ((opt = getopt_long(argc, argvopt, "p:P",
+	while ((opt = getopt_long(argc, argvopt, "",
 							  lgopts, &option_index)) != EOF) {
 
 		switch (opt) {
-			/* portmask */
-		case 'p':
-			enabled_port_mask = parse_portmask(optarg);
-			if (enabled_port_mask == 0) {
-				printf("invalid portmask\n");
-				print_usage(prgname);
-				return -1;
-			}
-			break;
-		case 'P':
-			printf("Promiscuous mode selected\n");
-			promiscuous_on = 1;
-			break;
-
 			/* long options */
 		case 0:
 			if (!strncmp(lgopts[option_index].name,
@@ -667,6 +655,16 @@ int parse_args(int argc, char **argv)
 				}
 			}
 
+			if (!strncmp(lgopts[option_index].name, CMD_LINE_OPT_PORTMASK,
+						 sizeof(CMD_LINE_OPT_PORTMASK))) {
+                enabled_port_mask = parse_portmask(optarg);
+                if (enabled_port_mask == 0) {
+                    printf("invalid portmask\n");
+                    print_usage(prgname);
+                    return -1;
+                }
+            }
+
 			if (!strncmp
 				(lgopts[option_index].name, CMD_LINE_OPT_UNIXSOCK,
 				 sizeof(CMD_LINE_OPT_UNIXSOCK))) {
@@ -679,6 +677,11 @@ int parse_args(int argc, char **argv)
 				callback_setup = optarg;
 			}
 
+			if (!strncmp(lgopts[option_index].name, CMD_LINE_OPT_PROMISC,
+						 sizeof(CMD_LINE_OPT_NO_NUMA))) {
+				promiscuous_on = 1;
+			}
+
 			if (!strncmp(lgopts[option_index].name, CMD_LINE_OPT_NO_NUMA,
 						 sizeof(CMD_LINE_OPT_NO_NUMA))) {
 				printf("numa is disabled \n");
@@ -686,17 +689,19 @@ int parse_args(int argc, char **argv)
 			}
 
 			if (!strncmp(lgopts[option_index].name,
-						 OPTION_RULE_IPV4, sizeof(OPTION_RULE_IPV4)))
+						 CMD_LINE_OPT_RULE_IPV4, sizeof(CMD_LINE_OPT_RULE_IPV4))) {
 				acl_parm_config.rule_ipv4_name = optarg;
+            }
 
 			if (!strncmp(lgopts[option_index].name,
-						 OPTION_RULE_IPV6, sizeof(OPTION_RULE_IPV6))) {
+						 CMD_LINE_OPT_RULE_IPV6, sizeof(CMD_LINE_OPT_RULE_IPV6))) {
 				acl_parm_config.rule_ipv6_name = optarg;
 			}
 
 			if (!strncmp(lgopts[option_index].name,
-						 OPTION_SCALAR, sizeof(OPTION_SCALAR)))
+						 CMD_LINE_OPT_SCALAR, sizeof(CMD_LINE_OPT_SCALAR))) {
 				acl_parm_config.scalar = 1;
+            }
 
 			if (!strncmp
 				(lgopts[option_index].name, CMD_LINE_OPT_ENABLE_JUMBO,
