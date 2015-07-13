@@ -104,7 +104,7 @@ struct control_params_t {
 struct control_params_t control_handle[NB_SOCKETS];
 
 
-#define ETHER_TYPE_BE_IPv4 0x0080
+#define ETHER_TYPE_BE_IPv4 0x0008
 #define ETHER_TYPE_BE_IPv6 0xDD86
 
 #ifndef IPv6_BYTES
