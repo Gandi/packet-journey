@@ -65,7 +65,7 @@ struct rte_eth_conf port_conf = {
 /* display usage */
 void print_usage(const char *prgname)
 {
-	printf("%s [EAL options]\n"
+	RTE_LOG(ERR, RDPDK1, "%s [EAL options]\n"
 		   "  [--config (port,queue,lcore)[,(port,queue,lcore]]\n"
 		   "  [--kniconfig (port,lcore_tx,lcore_kthread)]\n"
 		   "  [--enable-jumbo [--max-pkt-len PKTLEN (64-9000)]]\n"
@@ -150,32 +150,32 @@ static int kni_parse_config(const char *arg)
 			goto fail;
 		size = p0 - p;
 		if (size >= sizeof(s)) {
-			printf("Invalid config parameters\n");
+			RTE_LOG(ERR, KNI, "Invalid config parameters\n");
 			goto fail;
 		}
 		snprintf(s, sizeof(s), "%.*s", size, p);
 		nb_token = rte_strsplit(s, sizeof(s), str_fld, _NUM_FLD, ',');
 		if (nb_token <= FLD_LCORE_TX) {
-			printf("Invalid config parameters\n");
+			RTE_LOG(ERR, KNI, "Invalid config parameters\n");
 			goto fail;
 		}
 		for (i = 0; i < nb_token; i++) {
 			errno = 0;
 			int_fld[i] = strtoul(str_fld[i], &end, 0);
 			if (errno != 0 || end == str_fld[i]) {
-				printf("Invalid config parameters\n");
+				RTE_LOG(ERR, KNI, "Invalid config parameters\n");
 				goto fail;
 			}
 		}
 
 		port_id = (uint8_t) int_fld[FLD_PORT];
 		if (port_id >= RTE_MAX_ETHPORTS) {
-			printf("Port ID %d could not exceed the maximum %d\n",
+			RTE_LOG(ERR, KNI, "Port ID %d could not exceed the maximum %d\n",
 				   port_id, RTE_MAX_ETHPORTS);
 			goto fail;
 		}
 		if (kni_port_params_array[port_id]) {
-			printf("Port %d has been configured\n", port_id);
+			RTE_LOG(ERR, KNI, "Port %d has been configured\n", port_id);
 			goto fail;
 		}
 		kni_port_params_array[port_id] =
@@ -188,7 +188,7 @@ static int kni_parse_config(const char *arg)
 		kni_port_params_array[port_id]->lcore_tx =
 			(uint8_t) int_fld[FLD_LCORE_TX];
 		if (kni_port_params_array[port_id]->lcore_tx >= RTE_MAX_LCORE) {
-			printf("lcore_tx %u ID could not "
+			RTE_LOG(ERR, KNI, "lcore_tx %u ID could not "
 				   "exceed the maximum %u\n",
 				   kni_port_params_array[port_id]->lcore_tx,
 				   (unsigned) RTE_MAX_LCORE);
@@ -229,25 +229,25 @@ static int kni_parse_config_from_file(uint8_t port_id, char *q_arg)
 	nb_token = rte_strsplit(q_arg, strlen(q_arg), str_fld, _NUM_FLD, ',');
 
 	if (nb_token <= FLD_LCORE) {
-		printf("Invalid config parameters\n");
+		RTE_LOG(ERR, KNI, "Invalid config parameters\n");
 		goto fail;
 	}
 	for (i = 0; i < nb_token; i++) {
 		errno = 0;
 		int_fld[i] = strtoul(str_fld[i], &end, 0);
 		if (errno != 0 || end == str_fld[i]) {
-			printf("Invalid config parameters\n");
+			RTE_LOG(ERR, KNI, "Invalid config parameters\n");
 			goto fail;
 		}
 	}
 
 	if (port_id >= RTE_MAX_ETHPORTS) {
-		printf("Port ID %d could not exceed the maximum %d\n",
+		RTE_LOG(ERR, KNI, "Port ID %d could not exceed the maximum %d\n",
 			   port_id, RTE_MAX_ETHPORTS);
 		goto fail;
 	}
 	if (kni_port_params_array[port_id]) {
-		printf("Port %d has been configured\n", port_id);
+		RTE_LOG(ERR, KNI, "Port %d has been configured\n", port_id);
 		goto fail;
 	}
 	kni_port_params_array[port_id] =
@@ -260,7 +260,7 @@ static int kni_parse_config_from_file(uint8_t port_id, char *q_arg)
 	kni_port_params_array[port_id]->lcore_tx =
 		(uint8_t) int_fld[FLD_LCORE];
 	if (kni_port_params_array[port_id]->lcore_tx >= RTE_MAX_LCORE) {
-		printf("lcore_tx %u ID could not "
+		RTE_LOG(ERR, KNI, "lcore_tx %u ID could not "
 			   "exceed the maximum %u\n",
 			   kni_port_params_array[port_id]->lcore_tx,
 			   (unsigned) RTE_MAX_LCORE);
@@ -287,7 +287,7 @@ static int kni_validate_parameters(uint32_t portmask)
 	uint32_t i;
 
 	if (!portmask) {
-		printf("No port configured in port mask\n");
+		RTE_LOG(ERR, KNI, "No port configured in port mask\n");
 		return -1;
 	}
 
@@ -347,7 +347,7 @@ static int parse_config(const char *q_arg)
 				return -1;
 		}
 		if (nb_lcore_params >= MAX_LCORE_PARAMS) {
-			printf("exceeded max number of lcore params: %hu\n",
+			RTE_LOG(ERR, RDPDK1, "exceeded max number of lcore params: %hu\n",
 				   nb_lcore_params);
 			return -1;
 		}
@@ -396,7 +396,7 @@ static int parse_config_from_file(uint8_t port_id, char *q_arg)
 		}
 
 		if (nb_lcore_params >= MAX_LCORE_PARAMS) {
-			printf("exceeded max number of lcore params: %hu\n",
+			RTE_LOG(ERR, RDPDK1, "exceeded max number of lcore params: %hu\n",
 				   nb_lcore_params);
 			return -1;
 		}
@@ -472,7 +472,7 @@ static int install_cfgfile(const char *file_name, char *prgname)
 		free(ptr);
 
 		if (ret) {
-			printf("invalid config\n");
+			RTE_LOG(ERR, RDPDK1, "invalid config\n");
 			print_usage(prgname);
 			return -1;
 		}
@@ -495,7 +495,7 @@ static int install_cfgfile(const char *file_name, char *prgname)
 		free(ptr);
 
 		if (ret) {
-			printf("Invalid config\n");
+			RTE_LOG(ERR, RDPDK1, "Invalid config\n");
 			print_usage(prgname);
 			return -1;
 		}
@@ -535,7 +535,7 @@ static int install_cfgfile(const char *file_name, char *prgname)
 							  CMD_LINE_OPT_PROMISC);
 	if (entry) {
 		if (strtoul(entry, NULL, 0)) {
-			printf("Promiscuous mode selected\n");
+			RTE_LOG(INFO, RDPDK1, "Promiscuous mode selected\n");
 			promiscuous_on = 1;
 		}
 	}
@@ -545,7 +545,7 @@ static int install_cfgfile(const char *file_name, char *prgname)
 							  CMD_LINE_OPT_NO_NUMA);
 	if (entry) {
 		if (strtoul(entry, NULL, 0)) {
-			printf("numa is disabled \n");
+			RTE_LOG(INFO, RDPDK1, "numa is disabled \n");
 			numa_on = 0;
 		}
 	}
@@ -564,7 +564,7 @@ static int install_cfgfile(const char *file_name, char *prgname)
 	if (entry) {
 
 		if (strtoul(entry, NULL, 0)) {
-			printf("jumbo frame is enabled - disabling simple TX path\n");
+			RTE_LOG(INFO, RDPDK1, "jumbo frame is enabled - disabling simple TX path\n");
 			port_conf.rxmode.jumbo_frame = 1;
 
 			entry =
@@ -573,14 +573,14 @@ static int install_cfgfile(const char *file_name, char *prgname)
 			if (entry) {
 				ret = parse_max_pkt_len(entry);
 				if ((ret < 64) || (ret > MAX_JUMBO_PKT_LEN)) {
-					printf("invalid packet length\n");
+					RTE_LOG(ERR, RDPDK1, "invalid packet length\n");
 					print_usage(prgname);
 					return -1;
 				}
 				port_conf.rxmode.max_rx_pkt_len = ret;
 			}
 
-			printf("set jumbo frame max packet length to %u\n",
+			RTE_LOG(INFO, RDPDK1, "set jumbo frame max packet length to %u\n",
 				   (unsigned int) port_conf.rxmode.max_rx_pkt_len);
 		}
 	}
@@ -644,7 +644,7 @@ int parse_args(int argc, char **argv)
 						 sizeof(CMD_LINE_OPT_KNICONFIG))) {
 				ret = kni_parse_config(optarg);
 				if (ret) {
-					printf("Invalid config\n");
+					RTE_LOG(ERR, RDPDK1, "Invalid config\n");
 					print_usage(prgname);
 					return -1;
 				}
@@ -654,7 +654,7 @@ int parse_args(int argc, char **argv)
 						 sizeof(CMD_LINE_OPT_CONFIG))) {
 				ret = parse_config(optarg);
 				if (ret) {
-					printf("invalid config\n");
+					RTE_LOG(ERR, RDPDK1, "invalid config\n");
 					print_usage(prgname);
 					return -1;
 				}
@@ -664,7 +664,7 @@ int parse_args(int argc, char **argv)
 						 sizeof(CMD_LINE_OPT_PORTMASK))) {
 				enabled_port_mask = parse_portmask(optarg);
 				if (enabled_port_mask == 0) {
-					printf("invalid portmask\n");
+					RTE_LOG(ERR, RDPDK1, "invalid portmask\n");
 					print_usage(prgname);
 					return -1;
 				}
@@ -689,7 +689,7 @@ int parse_args(int argc, char **argv)
 
 			if (!strncmp(lgopts[option_index].name, CMD_LINE_OPT_NO_NUMA,
 						 sizeof(CMD_LINE_OPT_NO_NUMA))) {
-				printf("numa is disabled \n");
+				RTE_LOG(INFO, RDPDK1, "numa is disabled \n");
 				numa_on = 0;
 			}
 
@@ -717,8 +717,8 @@ int parse_args(int argc, char **argv)
 				struct option lenopts =
 					{ CMD_LINE_OPT_MAXPKT_LEN, required_argument, 0, 0 };
 
-				printf
-					("jumbo frame is enabled - disabling simple TX path\n");
+				RTE_LOG(INFO, RDPDK1, 
+					"jumbo frame is enabled - disabling simple TX path\n");
 				port_conf.rxmode.jumbo_frame = 1;
 
 				/* if no max-pkt-len set, use the default value ETHER_MAX_LEN */
@@ -727,13 +727,13 @@ int parse_args(int argc, char **argv)
 								&option_index)) {
 					ret = parse_max_pkt_len(optarg);
 					if ((ret < 64) || (ret > MAX_JUMBO_PKT_LEN)) {
-						printf("invalid packet length\n");
+						RTE_LOG(ERR, RDPDK1, "invalid packet length\n");
 						print_usage(prgname);
 						return -1;
 					}
 					port_conf.rxmode.max_rx_pkt_len = ret;
 				}
-				printf("set jumbo frame max packet length to %u\n",
+				RTE_LOG(INFO, RDPDK1, "set jumbo frame max packet length to %u\n",
 					   (unsigned int) port_conf.rxmode.max_rx_pkt_len);
 			}
 			break;

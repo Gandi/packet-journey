@@ -80,7 +80,7 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 
 
 	if (action == ROUTE_ADD) {
-		RTE_LOG(DEBUG, L3FWD_CTRL, "adding an ipv4 route...\n");
+		RTE_LOG(DEBUG, RDPDK_CTRL1, "adding an ipv4 route...\n");
 		// lookup nexthop
 		s = neighbor4_lookup_nexthop(neighbor4_struct[socket_id], nexthop,
 									 &nexthop_id);
@@ -88,7 +88,7 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 			s = neighbor4_add_nexthop(neighbor4_struct[socket_id], nexthop,
 									  &nexthop_id, NEI_ACTION_FWD);
 			if (s < 0) {
-				RTE_LOG(ERR, L3FWD_CTRL,
+				RTE_LOG(ERR, RDPDK_CTRL1,
 						"failed to add a nexthop during route adding...\n");
 				return -1;
 			}
@@ -96,7 +96,7 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 		s = rte_lpm_add(ipv4_rdpdk_lookup_struct[socket_id],
 						rte_be_to_cpu_32(addr->s_addr), depth, nexthop_id);
 		if (s < 0) {
-			RTE_LOG(ERR, L3FWD_CTRL,
+			RTE_LOG(ERR, RDPDK_CTRL1,
 					"failed to add a route in lpm during route adding...\n");
 			return -1;
 		}
@@ -105,12 +105,12 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 	}
 
 	if (action == ROUTE_DELETE) {
-		RTE_LOG(DEBUG, L3FWD_CTRL, "deleting an ipv4 route...\n");
+		RTE_LOG(DEBUG, RDPDK_CTRL1, "deleting an ipv4 route...\n");
 		// lookup nexthop
 		s = neighbor4_lookup_nexthop(neighbor4_struct[socket_id], nexthop,
 									 &nexthop_id);
 		if (s < 0) {
-			RTE_LOG(ERR, L3FWD_CTRL,
+			RTE_LOG(ERR, RDPDK_CTRL1,
 					"failed to find nexthop during route deletion...\n");
 			return -1;
 		}
@@ -118,13 +118,13 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 		s = rte_lpm_delete(ipv4_rdpdk_lookup_struct[socket_id],
 						   rte_be_to_cpu_32(addr->s_addr), depth);
 		if (s < 0) {
-			RTE_LOG(ERR, L3FWD_CTRL, "failed to deletie route...\n");
+			RTE_LOG(ERR, RDPDK_CTRL1, "failed to deletie route...\n");
 			return -1;
 		}
 		neighbor4_refcount_decr(neighbor4_struct[socket_id], nexthop_id);
 
 	}
-	RTE_LOG(DEBUG, L3FWD_CTRL, "route ope success\n");
+	RTE_LOG(DEBUG, RDPDK_CTRL1, "route ope success\n");
 	return 0;
 }
 
@@ -158,7 +158,7 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 
 
 	if (action == ROUTE_ADD) {
-		RTE_LOG(DEBUG, L3FWD_CTRL, "adding an ipv6 route...\n");
+		RTE_LOG(DEBUG, RDPDK_CTRL1, "adding an ipv6 route...\n");
 		// lookup nexthop
 		s = neighbor6_lookup_nexthop(neighbor6_struct[socket_id], nexthop,
 									 &nexthop_id);
@@ -166,7 +166,7 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 			s = neighbor6_add_nexthop(neighbor6_struct[socket_id], nexthop,
 									  &nexthop_id, NEI_ACTION_FWD);
 			if (s < 0) {
-				RTE_LOG(ERR, L3FWD_CTRL,
+				RTE_LOG(ERR, RDPDK_CTRL1,
 						"failed to add a nexthop during route adding...\n");
 				return -1;
 			}
@@ -174,7 +174,7 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 		s = rte_lpm6_add(ipv6_rdpdk_lookup_struct[socket_id],
 						 addr->s6_addr, depth, nexthop_id);
 		if (s < 0) {
-			RTE_LOG(ERR, L3FWD_CTRL,
+			RTE_LOG(ERR, RDPDK_CTRL1,
 					"failed to add a route in lpm during route adding...\n");
 			return -1;
 		}
@@ -183,12 +183,12 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 	}
 
 	if (action == ROUTE_DELETE) {
-		RTE_LOG(DEBUG, L3FWD_CTRL, "deleting an ipv6 route...\n");
+		RTE_LOG(DEBUG, RDPDK_CTRL1, "deleting an ipv6 route...\n");
 		// lookup nexthop
 		s = neighbor6_lookup_nexthop(neighbor6_struct[socket_id], nexthop,
 									 &nexthop_id);
 		if (s < 0) {
-			RTE_LOG(ERR, L3FWD_CTRL,
+			RTE_LOG(ERR, RDPDK_CTRL1,
 					"failed to find nexthop during route deletion...\n");
 			return -1;
 		}
@@ -196,13 +196,13 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 		s = rte_lpm6_delete(ipv6_rdpdk_lookup_struct[socket_id],
 							addr->s6_addr, depth);
 		if (s < 0) {
-			RTE_LOG(ERR, L3FWD_CTRL, "failed to deletie route...\n");
+			RTE_LOG(ERR, RDPDK_CTRL1, "failed to deletie route...\n");
 			return -1;
 		}
 		neighbor6_refcount_decr(neighbor6_struct[socket_id], nexthop_id);
 
 	}
-	RTE_LOG(DEBUG, L3FWD_CTRL, "route ope success\n");
+	RTE_LOG(DEBUG, RDPDK_CTRL1, "route ope success\n");
 	return 0;
 }
 
@@ -254,12 +254,12 @@ neighbor4(neighbor_action_t action,
 		if_indextoname(port_id, ibuf);
 		s = sscanf(ibuf, "dpdk%10u.%10u", &port_id, &kni_vlan);
 		if (s <= 0) {
-			RTE_LOG(ERR, L3FWD_CTRL,
+			RTE_LOG(ERR, RDPDK_CTRL1,
 					"received a neighbor announce for an unmanaged iface %s\n",
 					ibuf);
 			return -1;
 		}
-		RTE_LOG(DEBUG, L3FWD_CTRL,
+		RTE_LOG(DEBUG, RDPDK_CTRL1,
 				"adding ipv4 neighbor with port %s vlan_id %d...\n", ibuf,
 				kni_vlan);
 
@@ -269,12 +269,12 @@ neighbor4(neighbor_action_t action,
 			s = neighbor4_add_nexthop(neighbor4_struct[socket_id], addr,
 									  &nexthop_id, NEI_ACTION_FWD);
 			if (s < 0) {
-				RTE_LOG(ERR, L3FWD_CTRL,
+				RTE_LOG(ERR, RDPDK_CTRL1,
 						"failed to add a nexthop in neighbor table...\n");
 				return -1;
 			}
 		}
-		RTE_LOG(DEBUG, L3FWD_CTRL, "add neighbor4 with port_id %d\n",
+		RTE_LOG(DEBUG, RDPDK_CTRL1, "add neighbor4 with port_id %d\n",
 				port_id);
 		neighbor4_set_lladdr_port(neighbor4_struct[socket_id], nexthop_id,
 								  &ports_eth_addr[port_id], lladdr,
@@ -283,17 +283,17 @@ neighbor4(neighbor_action_t action,
 							flags);
 	}
 	if (action == NEIGHBOR_DELETE) {
-		RTE_LOG(DEBUG, L3FWD_CTRL, "deleting ipv4 neighbor...\n");
+		RTE_LOG(DEBUG, RDPDK_CTRL1, "deleting ipv4 neighbor...\n");
 		s = neighbor4_lookup_nexthop(neighbor4_struct[socket_id], addr,
 									 &nexthop_id);
 		if (s < 0) {
-			RTE_LOG(ERR, L3FWD_CTRL,
+			RTE_LOG(ERR, RDPDK_CTRL1,
 					"failed to find a nexthop to delete in neighbor table...\n");
 			return 0;
 		}
 		neighbor4_delete(neighbor4_struct[socket_id], nexthop_id);
 	}
-	RTE_LOG(DEBUG, L3FWD_CTRL, "neigh ope success\n");
+	RTE_LOG(DEBUG, RDPDK_CTRL1, "neigh ope success\n");
 	return 0;
 }
 
@@ -346,12 +346,12 @@ neighbor6(neighbor_action_t action,
 		s = sscanf(ibuf, "dpdk%10u.%10u", &port_id, &kni_vlan);
 
 		if (s <= 0) {
-			RTE_LOG(ERR, L3FWD_CTRL,
+			RTE_LOG(ERR, RDPDK_CTRL1,
 					"received a neighbor announce for an unmanaged iface %s\n",
 					ibuf);
 			return -1;
 		}
-		RTE_LOG(DEBUG, L3FWD_CTRL,
+		RTE_LOG(DEBUG, RDPDK_CTRL1,
 				"adding ipv6 neighbor with port_id %d vlan_id %d...\n",
 				port_id, kni_vlan);
 
@@ -361,12 +361,12 @@ neighbor6(neighbor_action_t action,
 			s = neighbor6_add_nexthop(neighbor6_struct[socket_id], addr,
 									  &nexthop_id, NEI_ACTION_FWD);
 			if (s < 0) {
-				RTE_LOG(ERR, L3FWD_CTRL,
+				RTE_LOG(ERR, RDPDK_CTRL1,
 						"failed to add a nexthop in neighbor table...\n");
 				return -1;
 			}
 		}
-		RTE_LOG(DEBUG, L3FWD_CTRL, "add neighbor4 with port_id %d\n",
+		RTE_LOG(DEBUG, RDPDK_CTRL1, "add neighbor4 with port_id %d\n",
 				port_id);
 		neighbor6_set_lladdr_port(neighbor6_struct[socket_id], nexthop_id,
 								  &ports_eth_addr[port_id], lladdr,
@@ -375,17 +375,17 @@ neighbor6(neighbor_action_t action,
 							flags);
 	}
 	if (action == NEIGHBOR_DELETE) {
-		RTE_LOG(DEBUG, L3FWD_CTRL, "deleting ipv6 neighbor...\n");
+		RTE_LOG(DEBUG, RDPDK_CTRL1, "deleting ipv6 neighbor...\n");
 		s = neighbor6_lookup_nexthop(neighbor6_struct[socket_id], addr,
 									 &nexthop_id);
 		if (s < 0) {
-			RTE_LOG(ERR, L3FWD_CTRL,
+			RTE_LOG(ERR, RDPDK_CTRL1,
 					"failed to find a nexthop to delete in neighbor table...\n");
 			return 0;
 		}
 		neighbor6_delete(neighbor6_struct[socket_id], nexthop_id);
 	}
-	RTE_LOG(DEBUG, L3FWD_CTRL, "neigh ope success\n");
+	RTE_LOG(DEBUG, RDPDK_CTRL1, "neigh ope success\n");
 	return 0;
 }
 
@@ -400,8 +400,8 @@ static int addr4(__rte_unused addr_action_t action, int32_t port_id,
 
 	if_indextoname(port_id, ibuf);
 	sscanf(ibuf, "dpdk%10d", &port_id);
-	printf("SALUT port=%s %s/%d with port_id %d\n", ibuf,
-		   inet_ntop(AF_INET, addr, buf, 255), prefixlen, port_id);
+	RTE_LOG(DEBUG, RDPDK_CTRL1, "SALUT port=%s %s/%d with port_id %d\n", ibuf,
+			inet_ntop(AF_INET, addr, buf, 255), prefixlen, port_id);
 
 	control_add_ipv4_local_entry(addr, addr, 32, port_id, socket_id);
 
@@ -419,8 +419,8 @@ static int addr6(__rte_unused addr_action_t action, int32_t port_id,
 
 	if_indextoname(port_id, ibuf);
 	sscanf(ibuf, "dpdk%10d", &port_id);
-	printf("SALUT port=%s %s/%d with port_id %d\n", ibuf,
-		   inet_ntop(AF_INET6, addr, buf, 255), prefixlen, port_id);
+	RTE_LOG(DEBUG, RDPDK_CTRL1, "SALUT port=%s %s/%d with port_id %d\n", ibuf,
+			inet_ntop(AF_INET6, addr, buf, 255), prefixlen, port_id);
 
 	control_add_ipv6_local_entry(addr, addr, 32, port_id, socket_id);
 
@@ -471,19 +471,19 @@ void *control_init(int32_t socket_id)
 
 	netl_h = netl_create();
 	if (netl_h == NULL) {
-		RTE_LOG(ERR, L3FWD_CTRL, "Couldn't initialize netlink socket");
+		RTE_LOG(ERR, RDPDK_CTRL1, "Couldn't initialize netlink socket");
 		goto err;
 	}
 
 	neighbor4_struct[socket_id] = nei_create(socket_id);
 	if (neighbor4_struct[socket_id] == NULL) {
-		RTE_LOG(ERR, L3FWD_CTRL, "Couldn't initialize neighbor4 struct");
+		RTE_LOG(ERR, RDPDK_CTRL1, "Couldn't initialize neighbor4 struct");
 		goto err;
 	}
 
 	neighbor6_struct[socket_id] = nei_create(socket_id);
 	if (neighbor6_struct[socket_id] == NULL) {
-		RTE_LOG(ERR, L3FWD_CTRL, "Couldn't initialize neighbor6 struct");
+		RTE_LOG(ERR, RDPDK_CTRL1, "Couldn't initialize neighbor6 struct");
 		goto err;
 	}
 
@@ -503,7 +503,7 @@ void *control_init(int32_t socket_id)
 	if (neighbor4_add_nexthop
 		(neighbor4_struct[socket_id], &invalid_ip, &nexthop_id,
 		 NEI_ACTION_DROP) < 0) {
-		RTE_LOG(ERR, L3FWD_CTRL,
+		RTE_LOG(ERR, RDPDK_CTRL1,
 				"Couldn't add drop target in neighbor table");
 		goto err;
 	}
@@ -513,7 +513,7 @@ void *control_init(int32_t socket_id)
 	if (neighbor6_add_nexthop
 		(neighbor6_struct[socket_id], &invalid_ip6, &nexthop_id,
 		 NEI_ACTION_DROP) < 0) {
-		RTE_LOG(ERR, L3FWD_CTRL,
+		RTE_LOG(ERR, RDPDK_CTRL1,
 				"Couldn't add drop target in neighbor table");
 		goto err;
 	}
@@ -560,9 +560,9 @@ int control_main(void *data)
 	handle.socket_id = res->socket_id;
 
 
-	RTE_LOG(INFO, L3FWD_CTRL, "init ok\n");
+	RTE_LOG(INFO, RDPDK_CTRL1, "init ok\n");
 	netl_listen(netl_h, &handle);
-	RTE_LOG(ERR, L3FWD_CTRL, "netl_listen returned...\n");
+	RTE_LOG(INFO, RDPDK_CTRL1, "netl_listen returned...\n");
 
 	return 0;
 }
@@ -580,7 +580,7 @@ int control_add_ipv4_local_entry(struct in_addr *nexthop,
 		s = neighbor4_add_nexthop(neighbor4_struct[socket_id], nexthop,
 								  &nexthop_id, NEI_ACTION_KNI);
 		if (s < 0) {
-			RTE_LOG(ERR, L3FWD_CTRL,
+			RTE_LOG(ERR, RDPDK_CTRL1,
 					"failed to add a nexthop during route adding...\n");
 			return -1;
 		}
@@ -589,7 +589,7 @@ int control_add_ipv4_local_entry(struct in_addr *nexthop,
 	s = rte_lpm_add(ipv4_rdpdk_lookup_struct[socket_id],
 					rte_be_to_cpu_32(saddr->s_addr), depth, nexthop_id);
 	if (s < 0) {
-		RTE_LOG(ERR, L3FWD_CTRL,
+		RTE_LOG(ERR, RDPDK_CTRL1,
 				"failed to add a route in lpm during route adding...\n");
 		return -1;
 	}
@@ -610,7 +610,7 @@ int control_add_ipv6_local_entry(struct in6_addr *nexthop,
 		s = neighbor6_add_nexthop(neighbor6_struct[socket_id], nexthop,
 								  &nexthop_id, NEI_ACTION_KNI);
 		if (s < 0) {
-			RTE_LOG(ERR, L3FWD_CTRL,
+			RTE_LOG(ERR, RDPDK_CTRL1,
 					"failed to add a nexthop during route adding...\n");
 			return -1;
 		}
@@ -619,7 +619,7 @@ int control_add_ipv6_local_entry(struct in6_addr *nexthop,
 	s = rte_lpm6_add(ipv6_rdpdk_lookup_struct[socket_id],
 					 saddr->s6_addr, depth, nexthop_id);
 	if (s < 0) {
-		RTE_LOG(ERR, L3FWD_CTRL,
+		RTE_LOG(ERR, RDPDK_CTRL1,
 				"failed to add a route in lpm during route adding...\n");
 		return -1;
 	}
@@ -645,6 +645,6 @@ int control_callback_setup(const char *cb, uint8_t nb_ports)
 		}
 	}
 
-	RTE_LOG(INFO, L3FWD_CTRL, "executing command `%s`\n", cmd);
+	RTE_LOG(INFO, RDPDK_CTRL1, "executing command `%s`\n", cmd);
 	return system(cmd);
 }

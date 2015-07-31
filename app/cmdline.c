@@ -68,7 +68,7 @@ port_rss_reta_info(portid_t port_id,
 
 	ret = rte_eth_dev_rss_reta_query(port_id, reta_conf, nb_entries);
 	if (ret != 0) {
-		printf("Failed to get RSS RETA info, return code = %d\n", ret);
+		RTE_LOG(ERR, CMDLINE1, "Failed to get RSS RETA info, return code = %d\n", ret);
 		return;
 	}
 
@@ -77,7 +77,7 @@ port_rss_reta_info(portid_t port_id,
 		shift = i % RTE_RETA_GROUP_SIZE;
 		if (!(reta_conf[idx].mask & (1ULL << shift)))
 			continue;
-		printf("RSS RETA configuration: hash index=%u, queue=%u\n",
+		RTE_LOG(ERR, CMDLINE1, "RSS RETA configuration: hash index=%u, queue=%u\n",
 			   i, reta_conf[idx].reta[shift]);
 	}
 }
@@ -312,7 +312,7 @@ cmd_config_rss_parsed(void *parsed_result, __attribute__ ((unused))
 	else if (!strcmp(res->value, "none"))
 		rss_conf.rss_hf = 0;
 	else {
-		printf("Unknown parameter\n");
+		RTE_LOG(ERR, CMDLINE1, "Unknown parameter\n");
 		return;
 	}
 	rss_conf.rss_key = NULL;
@@ -491,7 +491,7 @@ parse_reta_config(const char *str,
 		nb_queue = (uint8_t) int_fld[FLD_QUEUE];
 
 		if (hash_index >= nb_entries) {
-			printf("Invalid RETA hash index=%d\n", hash_index);
+			RTE_LOG(ERR, CMDLINE1, "Invalid RETA hash index=%d\n", hash_index);
 			return -1;
 		}
 
@@ -606,13 +606,13 @@ showport_parse_reta_config(struct rte_eth_rss_reta_entry64 *conf,
 		return -1;
 	size = p0 - p;
 	if (size >= sizeof(s)) {
-		printf("The string size exceeds the internal buffer size\n");
+		RTE_LOG(ERR, CMDLINE1, "The string size exceeds the internal buffer size\n");
 		return -1;
 	}
 	snprintf(s, sizeof(s), "%.*s", size, p);
 	ret = rte_strsplit(s, sizeof(s), str_fld, num, ',');
 	if (ret <= 0 || ret != num) {
-		printf("The bits of masks do not match the number of "
+		RTE_LOG(ERR, CMDLINE1, "The bits of masks do not match the number of "
 			   "reta entries: %u\n", num);
 		return -1;
 	}
@@ -635,14 +635,14 @@ cmd_showport_reta_parsed(void *parsed_result, __attribute__ ((unused))
 	rte_eth_dev_info_get(res->port_id, &dev_info);
 	if (dev_info.reta_size == 0 || res->size != dev_info.reta_size ||
 		res->size > ETH_RSS_RETA_SIZE_512) {
-		printf("Invalid redirection table size: %u\n", res->size);
+		RTE_LOG(ERR, CMDLINE1, "Invalid redirection table size: %u\n", res->size);
 		return;
 	}
 
 	memset(reta_conf, 0, sizeof(reta_conf));
 	if (showport_parse_reta_config(reta_conf, res->size,
 								   res->list_of_items) < 0) {
-		printf("Invalid string: %s for reta masks\n", res->list_of_items);
+		RTE_LOG(ERR, CMDLINE1, "Invalid string: %s for reta masks\n", res->list_of_items);
 		return;
 	}
 	port_rss_reta_info(res->port_id, reta_conf, res->size);
@@ -1020,7 +1020,7 @@ int rdpdk_cmdline_init(const char *path)
 
 	fd = create_unixsock(path);
 	if (fd < 0) {
-		dprintf("open() failed\n");
+		RTE_LOG(ERR, CMDLINE1, "open() failed\n");
 		return -1;
 	}
 
@@ -1102,7 +1102,7 @@ static void *cmdline_run(void *data)
 		int res = poll(fds, nfds, CMDLINE_POLL_TIMEOUT);
 		if (res < 0 && errno != EINTR) {
 			perror("error during cmdline_run poll");
-			RTE_LOG(ERR, CMDLINE, "failed to deletie route...\n");
+			RTE_LOG(ERR, CMDLINE1, "failed to deletie route...\n");
 			return 0;
 		}
 		if (fds[0].revents & POLLIN) {

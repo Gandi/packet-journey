@@ -49,8 +49,8 @@
 #define L3FWD_ACL_IPV6_NAME	"rdpdk-acl-ipv6"
 #define ACL_LEAD_CHAR		('@')
 #define COMMENT_LEAD_CHAR	('#')
-#define RTE_LOGTYPE_L3FWD_ACL	RTE_LOGTYPE_USER3
-#define acl_log(format, ...)	RTE_LOG(ERR, L3FWD_ACL, format, ##__VA_ARGS__)
+#define RTE_LOGTYPE_RDPDK_ACL	RTE_LOGTYPE_USER3
+#define acl_log(format, ...)	RTE_LOG(ERR, RDPDK_ACL, format, ##__VA_ARGS__)
 #define uint32_t_to_char(ip, a, b, c, d) do {\
 		*a = (unsigned char)(ip >> 24 & 0xff);\
 		*b = (unsigned char)(ip >> 16 & 0xff);\
@@ -277,13 +277,13 @@ static inline void print_one_ipv4_rule(struct acl4_rule *rule, int extra)
 
 	uint32_t_to_char(rule->field[SRC_FIELD_IPV4].value.u32,
 					 &a, &b, &c, &d);
-	printf("%hhu.%hhu.%hhu.%hhu/%u ", a, b, c, d,
+	acl_log("%hhu.%hhu.%hhu.%hhu/%u ", a, b, c, d,
 		   rule->field[SRC_FIELD_IPV4].mask_range.u32);
 	uint32_t_to_char(rule->field[DST_FIELD_IPV4].value.u32,
 					 &a, &b, &c, &d);
-	printf("%hhu.%hhu.%hhu.%hhu/%u ", a, b, c, d,
+	acl_log("%hhu.%hhu.%hhu.%hhu/%u ", a, b, c, d,
 		   rule->field[DST_FIELD_IPV4].mask_range.u32);
-	printf("%hu : %hu %hu : %hu 0x%hhx/0x%hhx ",
+	acl_log("%hu : %hu %hu : %hu 0x%hhx/0x%hhx ",
 		   rule->field[SRCP_FIELD_IPV4].value.u16,
 		   rule->field[SRCP_FIELD_IPV4].mask_range.u16,
 		   rule->field[DSTP_FIELD_IPV4].value.u16,
@@ -291,7 +291,7 @@ static inline void print_one_ipv4_rule(struct acl4_rule *rule, int extra)
 		   rule->field[PROTO_FIELD_IPV4].value.u8,
 		   rule->field[PROTO_FIELD_IPV4].mask_range.u8);
 	if (extra)
-		printf("0x%x-0x%x-0x%x ",
+		acl_log("0x%x-0x%x-0x%x ",
 			   rule->data.category_mask,
 			   rule->data.priority, rule->data.userdata);
 }
@@ -302,16 +302,16 @@ static inline void print_one_ipv6_rule(struct acl6_rule *rule, int extra)
 
 	uint32_t_to_char(rule->field[SRC1_FIELD_IPV6].value.u32,
 					 &a, &b, &c, &d);
-	printf("%.2x%.2x:%.2x%.2x", a, b, c, d);
+	acl_log("%.2x%.2x:%.2x%.2x", a, b, c, d);
 	uint32_t_to_char(rule->field[SRC2_FIELD_IPV6].value.u32,
 					 &a, &b, &c, &d);
-	printf(":%.2x%.2x:%.2x%.2x", a, b, c, d);
+	acl_log(":%.2x%.2x:%.2x%.2x", a, b, c, d);
 	uint32_t_to_char(rule->field[SRC3_FIELD_IPV6].value.u32,
 					 &a, &b, &c, &d);
-	printf(":%.2x%.2x:%.2x%.2x", a, b, c, d);
+	acl_log(":%.2x%.2x:%.2x%.2x", a, b, c, d);
 	uint32_t_to_char(rule->field[SRC4_FIELD_IPV6].value.u32,
 					 &a, &b, &c, &d);
-	printf(":%.2x%.2x:%.2x%.2x/%u ", a, b, c, d,
+	acl_log(":%.2x%.2x:%.2x%.2x/%u ", a, b, c, d,
 		   rule->field[SRC1_FIELD_IPV6].mask_range.u32
 		   + rule->field[SRC2_FIELD_IPV6].mask_range.u32
 		   + rule->field[SRC3_FIELD_IPV6].mask_range.u32
@@ -319,22 +319,22 @@ static inline void print_one_ipv6_rule(struct acl6_rule *rule, int extra)
 
 	uint32_t_to_char(rule->field[DST1_FIELD_IPV6].value.u32,
 					 &a, &b, &c, &d);
-	printf("%.2x%.2x:%.2x%.2x", a, b, c, d);
+	acl_log("%.2x%.2x:%.2x%.2x", a, b, c, d);
 	uint32_t_to_char(rule->field[DST2_FIELD_IPV6].value.u32,
 					 &a, &b, &c, &d);
-	printf(":%.2x%.2x:%.2x%.2x", a, b, c, d);
+	acl_log(":%.2x%.2x:%.2x%.2x", a, b, c, d);
 	uint32_t_to_char(rule->field[DST3_FIELD_IPV6].value.u32,
 					 &a, &b, &c, &d);
-	printf(":%.2x%.2x:%.2x%.2x", a, b, c, d);
+	acl_log(":%.2x%.2x:%.2x%.2x", a, b, c, d);
 	uint32_t_to_char(rule->field[DST4_FIELD_IPV6].value.u32,
 					 &a, &b, &c, &d);
-	printf(":%.2x%.2x:%.2x%.2x/%u ", a, b, c, d,
+	acl_log(":%.2x%.2x:%.2x%.2x/%u ", a, b, c, d,
 		   rule->field[DST1_FIELD_IPV6].mask_range.u32
 		   + rule->field[DST2_FIELD_IPV6].mask_range.u32
 		   + rule->field[DST3_FIELD_IPV6].mask_range.u32
 		   + rule->field[DST4_FIELD_IPV6].mask_range.u32);
 
-	printf("%hu : %hu %hu : %hu 0x%hhx/0x%hhx ",
+	acl_log("%hu : %hu %hu : %hu 0x%hhx/0x%hhx ",
 		   rule->field[SRCP_FIELD_IPV6].value.u16,
 		   rule->field[SRCP_FIELD_IPV6].mask_range.u16,
 		   rule->field[DSTP_FIELD_IPV6].value.u16,
@@ -342,7 +342,7 @@ static inline void print_one_ipv6_rule(struct acl6_rule *rule, int extra)
 		   rule->field[PROTO_FIELD_IPV6].value.u8,
 		   rule->field[PROTO_FIELD_IPV6].mask_range.u8);
 	if (extra)
-		printf("0x%x-0x%x-0x%x ",
+		acl_log("0x%x-0x%x-0x%x ",
 			   rule->data.category_mask,
 			   rule->data.priority, rule->data.userdata);
 }
@@ -373,18 +373,18 @@ static inline void dump_acl4_rule(struct rte_mbuf *m, uint32_t sig)
 		(rte_pktmbuf_mtod(m, unsigned char *) + sizeof(struct ether_hdr));
 
 	uint32_t_to_char(rte_bswap32(ipv4_hdr->src_addr), &a, &b, &c, &d);
-	printf("Packet Src:%hhu.%hhu.%hhu.%hhu ", a, b, c, d);
+	acl_log("Packet Src:%hhu.%hhu.%hhu.%hhu ", a, b, c, d);
 	uint32_t_to_char(rte_bswap32(ipv4_hdr->dst_addr), &a, &b, &c, &d);
-	printf("Dst:%hhu.%hhu.%hhu.%hhu ", a, b, c, d);
+	acl_log("Dst:%hhu.%hhu.%hhu.%hhu ", a, b, c, d);
 
-	printf("Src port:%hu,Dst port:%hu ",
+	acl_log("Src port:%hu,Dst port:%hu ",
 		   rte_bswap16(*(uint16_t *) (ipv4_hdr + 1)),
 		   rte_bswap16(*((uint16_t *) (ipv4_hdr + 1) + 1)));
-	printf("hit ACL %d - ", offset);
+	acl_log("hit ACL %d - ", offset);
 
 	print_one_ipv4_rule(acl_config.rule_ipv4 + offset, 1);
 
-	printf("\n\n");
+	acl_log("\n\n");
 }
 
 static inline void dump_acl6_rule(struct rte_mbuf *m, uint32_t sig)
@@ -394,24 +394,24 @@ static inline void dump_acl6_rule(struct rte_mbuf *m, uint32_t sig)
 	struct ipv6_hdr *ipv6_hdr = (struct ipv6_hdr *)
 		(rte_pktmbuf_mtod(m, unsigned char *) + sizeof(struct ether_hdr));
 
-	printf("Packet Src");
+	acl_log("Packet Src");
 	for (i = 0; i < RTE_DIM(ipv6_hdr->src_addr); i += sizeof(uint16_t))
-		printf(":%.2x%.2x",
+		acl_log(":%.2x%.2x",
 			   ipv6_hdr->src_addr[i], ipv6_hdr->src_addr[i + 1]);
 
-	printf("\nDst");
+	acl_log("\nDst");
 	for (i = 0; i < RTE_DIM(ipv6_hdr->dst_addr); i += sizeof(uint16_t))
-		printf(":%.2x%.2x",
+		acl_log(":%.2x%.2x",
 			   ipv6_hdr->dst_addr[i], ipv6_hdr->dst_addr[i + 1]);
 
-	printf("\nSrc port:%hu,Dst port:%hu ",
+	acl_log("\nSrc port:%hu,Dst port:%hu ",
 		   rte_bswap16(*(uint16_t *) (ipv6_hdr + 1)),
 		   rte_bswap16(*((uint16_t *) (ipv6_hdr + 1) + 1)));
-	printf("hit ACL %d - ", offset);
+	acl_log("hit ACL %d - ", offset);
 
 	print_one_ipv6_rule(acl_config.rule_ipv6 + offset, 1);
 
-	printf("\n\n");
+	acl_log("\n\n");
 }
 #endif							/* L3FWDACL_DEBUG */
 
@@ -421,9 +421,9 @@ dump_ipv4_rules(struct acl4_rule *rule, int num, int extra)
 	int i;
 
 	for (i = 0; i < num; i++, rule++) {
-		printf("\t%d:", i + 1);
+		acl_log("\t%d:", i + 1);
 		print_one_ipv4_rule(rule, extra);
-		printf("\n");
+		acl_log("\n");
 	}
 }
 
@@ -433,9 +433,9 @@ dump_ipv6_rules(struct acl6_rule *rule, int num, int extra)
 	int i;
 
 	for (i = 0; i < num; i++, rule++) {
-		printf("\t%d:", i + 1);
+		acl_log("\t%d:", i + 1);
 		print_one_ipv6_rule(rule, extra);
-		printf("\n");
+		acl_log("\n");
 	}
 }
 
@@ -741,12 +741,12 @@ add_rules(const char *rule_path,
 
 static void dump_acl_config(void)
 {
-	printf("ACL option are:\n");
-	printf(CMD_LINE_OPT_RULE_IPV4 ": %s\n",
+	RTE_LOG(INFO, RDPDK1, "ACL option are:\n");
+	RTE_LOG(INFO, RDPDK1, CMD_LINE_OPT_RULE_IPV4 ": %s\n",
 		   acl_parm_config.rule_ipv4_name);
-	printf(CMD_LINE_OPT_RULE_IPV6 ": %s\n",
+	RTE_LOG(INFO, RDPDK1, CMD_LINE_OPT_RULE_IPV6 ": %s\n",
 		   acl_parm_config.rule_ipv6_name);
-	printf(CMD_LINE_OPT_SCALAR ": %d\n", acl_parm_config.scalar);
+	RTE_LOG(INFO, RDPDK1, CMD_LINE_OPT_SCALAR ": %d\n", acl_parm_config.scalar);
 }
 
 static int check_acl_config(void)

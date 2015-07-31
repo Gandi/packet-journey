@@ -431,7 +431,8 @@ process_step2(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 #endif
 		ipv4_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
 		dp = get_ipv4_dst_port(ipv4_hdr, 0, qconf->ipv4_lookup_struct);
-		L3FWD_DEBUG_TRACE("process_packet4 res %d\n", dp);
+		RTE_LOG(DEBUG, RDPDK1, "process_packet4 res %d\n", dp);
+
 
 		dst_port[0] = dp;
 #ifdef RDPDK_QEMU
@@ -443,7 +444,7 @@ process_step2(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 
 		dp = get_ipv6_dst_port(ipv6_hdr, 0, qconf->ipv6_lookup_struct);
 		dst_port[0] = dp;
-		L3FWD_DEBUG_TRACE("process_packet6 res %d\n", dp);
+		RTE_LOG(DEBUG, RDPDK1, "process_packet6 res %d\n", dp);
 	}
 	return 0;
 }
@@ -502,8 +503,8 @@ processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
 	/* if all 4 packets are IPV4. */
 	if (likely(flag != 0)) {
 		rte_lpm_lookupx4(qconf->ipv4_lookup_struct, dip, neighbor, 0);
-		L3FWD_DEBUG_TRACE("lookpx4 res %d:%d:%d:%d\n", neighbor[0],
-						  neighbor[1], neighbor[2], neighbor[3]);
+		RTE_LOG(DEBUG, RDPDK1, "lookpx4 res %d:%d:%d:%d\n", neighbor[0],
+				neighbor[1], neighbor[2], neighbor[3]);
 	} else {
 		dst.x = dip;
 		neighbor_entry = &kni_neighbor[port_id];
@@ -515,8 +516,8 @@ processx4_step2(const struct lcore_conf *qconf, __m128i dip, uint32_t flag,
 			get_dst_port(qconf, pkt[2], dst.u32[2], neighbor_entry);
 		neighbor[3] =
 			get_dst_port(qconf, pkt[3], dst.u32[3], neighbor_entry);
-		L3FWD_DEBUG_TRACE("get_dst_portx4 res %d:%d:%d:%d\n", neighbor[0],
-						  neighbor[1], neighbor[2], neighbor[3]);
+		RTE_LOG(DEBUG, RDPDK1, "get_dst_portx4 res %d:%d:%d:%d\n",
+				neighbor[0], neighbor[1], neighbor[2], neighbor[3]);
 	}
 }
 
@@ -550,7 +551,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					neighbor.valid \
 					|| qconf->neighbor4_struct->entries. \
 					t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI; \
-				L3FWD_DEBUG_TRACE(#step ": j %d process %d dst_port %d ipv4\n", \
+				RTE_LOG(DEBUG, RDPDK1, #step ": j %d process %d dst_port %d ipv4\n", \
 								  j, process, dst_port[j]); \
 			} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6) { \
 				is_ipv4 = 0; \
@@ -559,11 +560,11 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					neighbor.valid \
 					|| qconf->neighbor6_struct->entries. \
 					t6[dst_port[j]].neighbor.action == NEI_ACTION_KNI; \
-				L3FWD_DEBUG_TRACE(#step ": j %d process %d ipv6\n", j, process); \
+				RTE_LOG(DEBUG, RDPDK1, #step ": j %d process %d ipv6\n", j, process); \
 			} else { \
 				process = 1; \
-				L3FWD_DEBUG_TRACE \
-					(#step ": j %d process %d olflags%lx eth_type %x\n", j, \
+				RTE_LOG(DEBUG, RDPDK1, \
+					#step ": j %d process %d olflags%lx eth_type %x\n", j, \
 					 process, pkt[j]->ol_flags, rte_pktmbuf_mtod(pkt[j], \
 																 struct \
 																 ether_hdr \
@@ -577,8 +578,8 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					pkt[j] = pkt[nb_rx]; \
 					dst_port[j] = dst_port[nb_rx]; \
 				} \
-				L3FWD_DEBUG_TRACE \
-					(#step ": j %d nb_rx %d i %d dst_port %d lcore_id %d\n", j, \
+				RTE_LOG(DEBUG, RDPDK1, \
+					#step ": j %d nb_rx %d i %d dst_port %d lcore_id %d\n", j, \
 					 nb_rx, i, dst_port[j], lcore_id); \
 			} else { \
 				/* we have only ipv4 or ipv6 packets here, other protos are sent to the kni */ \
@@ -593,7 +594,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 				} \
 				pkt[j]->vlan_tci = vlan_tci; \
 				pkt[j]->ol_flags |= PKT_TX_VLAN_PKT; \
-				L3FWD_DEBUG_TRACE(#step ": olflags%lx vlan%d\n", \
+				RTE_LOG(DEBUG, RDPDK1, #step ": olflags%lx vlan%d\n", \
 								  pkt[j]->ol_flags, vlan_tci); \
 				j++; \
 			}
@@ -606,7 +607,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					neighbor.valid \
 					|| qconf->neighbor4_struct->entries. \
 					t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI; \
-				L3FWD_DEBUG_TRACE(#step ": j %d process %d dst_port %d ipv4\n", \
+				RTE_LOG(DEBUG, RDPDK1, #step ": j %d process %d dst_port %d ipv4\n", \
 								  j, process, dst_port[j]); \
 			} else if (RDPDK_TEST_IPV6_HDR(pkt[j])) { \
 				is_ipv4 = 0; \
@@ -615,11 +616,11 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					neighbor.valid \
 					|| qconf->neighbor6_struct->entries. \
 					t6[dst_port[j]].neighbor.action == NEI_ACTION_KNI; \
-				L3FWD_DEBUG_TRACE(#step ": j %d process %d ipv6\n", j, process); \
+				RTE_LOG(DEBUG, RDPDK1, #step ": j %d process %d ipv6\n", j, process); \
 			} else { \
 				process = 1; \
-				L3FWD_DEBUG_TRACE \
-					(#step ": j %d process %d olflags%lx eth_type %x\n", j, \
+				RTE_LOG(DEBUG, RDPDK1, \
+					#step ": j %d process %d olflags%lx eth_type %x\n", j, \
 					 process, pkt[j]->ol_flags, rte_pktmbuf_mtod(pkt[j], \
 																 struct \
 																 ether_hdr \
@@ -633,8 +634,8 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					pkt[j] = pkt[nb_rx]; \
 					dst_port[j] = dst_port[nb_rx]; \
 				} \
-				L3FWD_DEBUG_TRACE \
-					(#step ": j %d nb_rx %d i %d dst_port %d lcore_id %d\n", j, \
+				RTE_LOG(DEBUG, RDPDK1, \
+					#step ": j %d nb_rx %d i %d dst_port %d lcore_id %d\n", j, \
 					 nb_rx, i, dst_port[j], lcore_id); \
 			} else { \
 				/* we have only ipv4 or ipv6 packets here, other protos are sent to the kni */ \
@@ -649,7 +650,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 				} \
 				pkt[j]->vlan_tci = vlan_tci; \
 				pkt[j]->ol_flags |= PKT_TX_VLAN_PKT; \
-				L3FWD_DEBUG_TRACE(#step ": olflags%lx vlan%d\n", \
+				RTE_LOG(DEBUG, RDPDK1, #step ": olflags%lx vlan%d\n", \
 								  pkt[j]->ol_flags, vlan_tci); \
 				j++; \
 			}
@@ -686,9 +687,9 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					else
 						kni_burst_free_mbufs(&knimbuf[0], i);
 				}
-				L3FWD_DEBUG_TRACE
-					("k %d nb_rx %d i %d num %d lcore_id %d\n", k, nb_rx,
-					 i, num, lcore_id);
+				RTE_LOG(DEBUG, RDPDK1,
+						"k %d nb_rx %d i %d num %d lcore_id %d\n", k,
+						nb_rx, i, num, lcore_id);
 			}
 		}						// while loop end
 	}
@@ -1065,18 +1066,19 @@ static int main_loop(__rte_unused void *dummy)
 	qconf = &lcore_conf[lcore_id];
 
 	if (qconf->n_rx_queue == 0) {
-		RTE_LOG(INFO, L3FWD, "lcore %u has nothing to do\n", lcore_id);
+		RTE_LOG(INFO, RDPDK1, "lcore %u has nothing to do\n", lcore_id);
 		return 0;
 	}
 
-	RTE_LOG(INFO, L3FWD, "entering main loop on lcore %u\n", lcore_id);
+	RTE_LOG(INFO, RDPDK1, "entering main loop on lcore %u\n", lcore_id);
 
 	for (i = 0; i < qconf->n_rx_queue; i++) {
 		portid = qconf->rx_queue_list[i].port_id;
 		stats[lcore_id].port_id = portid;
 		queueid = qconf->rx_queue_list[i].queue_id;
-		RTE_LOG(INFO, L3FWD, " -- lcoreid=%u portid=%hhu rxqueueid=%hhu\n",
-				lcore_id, portid, queueid);
+		RTE_LOG(INFO, RDPDK1,
+				" -- lcoreid=%u portid=%hhu rxqueueid=%hhu\n", lcore_id,
+				portid, queueid);
 	}
 
 	while (1) {
@@ -1144,11 +1146,9 @@ static int main_loop(__rte_unused void *dummy)
 				continue;
 
 			/* Process up to last 3 packets one by one. */
-			L3FWD_DEBUG_TRACE
-				("main_loop nb_rx %d  queue_id %d\n", nb_rx, queueid);
-
-#define PROCESS_STEP2(offset)	process_step2(qconf, pkts_burst[nb_rx - offset], \
-								dst_port + nb_rx - offset)
+			RTE_LOG(DEBUG, RDPDK1,
+					"main_loop nb_rx %d  queue_id %d\n", nb_rx, queueid);
+#define PROCESS_STEP2(offset) process_step2(qconf, pkts_burst[nb_rx - offset], dst_port + nb_rx - offset)
 
 			switch (nb_rx % FWDSTEP) {
 			case 3:
@@ -1296,18 +1296,18 @@ static int check_lcore_params(void)
 	for (i = 0; i < nb_lcore_params; ++i) {
 		queue = lcore_params[i].queue_id;
 		if (queue >= MAX_RX_QUEUE_PER_PORT) {
-			printf("invalid queue number: %hhu\n", queue);
+			RTE_LOG(ERR, RDPDK1, "invalid queue number: %hhu\n", queue);
 			return -1;
 		}
 		lcore = lcore_params[i].lcore_id;
 		if (!rte_lcore_is_enabled(lcore)) {
-			printf("error: lcore %hhu is not enabled in lcore mask\n",
+			RTE_LOG(ERR, RDPDK1, "error: lcore %hhu is not enabled in lcore mask\n",
 				   lcore);
 			return -1;
 		}
 		if ((socketid = rte_lcore_to_socket_id(lcore) != 0) &&
 			(numa_on == 0)) {
-			printf("warning: lcore %hhu is on socket %d with numa off \n",
+			RTE_LOG(WARNING, RDPDK1, "warning: lcore %hhu is on socket %d with numa off \n",
 				   lcore, socketid);
 		}
 	}
@@ -1322,11 +1322,11 @@ static int check_port_config(const unsigned nb_ports)
 	for (i = 0; i < nb_lcore_params; ++i) {
 		portid = lcore_params[i].port_id;
 		if ((enabled_port_mask & (1 << portid)) == 0) {
-			printf("port %u is not enabled in port mask\n", portid);
+			RTE_LOG(ERR, RDPDK1, "port %u is not enabled in port mask\n", portid);
 			return -1;
 		}
 		if (portid >= nb_ports) {
-			printf("port %u is not present on the board\n", portid);
+			RTE_LOG(ERR, RDPDK1, "port %u is not present on the board\n", portid);
 			return -1;
 		}
 	}
@@ -1366,7 +1366,7 @@ static int init_lcore_rx_queues(void)
 		lcore = lcore_params[i].lcore_id;
 		nb_rx_queue = lcore_conf[lcore].n_rx_queue;
 		if (nb_rx_queue >= MAX_RX_QUEUE_PER_LCORE) {
-			printf("error: too many queues (%u) for lcore: %u\n",
+			RTE_LOG(ERR, RDPDK1, "error: too many queues (%u) for lcore: %u\n",
 				   (unsigned) nb_rx_queue + 1, (unsigned) lcore);
 			return -1;
 		} else {
@@ -1456,7 +1456,7 @@ static int init_mem(uint8_t nb_ports)
 				rte_exit(EXIT_FAILURE,
 						 "Cannot init mbuf pool on socket %d\n", socketid);
 			else
-				printf("Allocated mbuf pool on socket %d\n", socketid);
+				RTE_LOG(INFO, RDPDK1, "Allocated mbuf pool on socket %d\n", socketid);
 
 			setup_lpm(socketid);
 		}
@@ -1472,7 +1472,7 @@ static int init_mem(uint8_t nb_ports)
 						 "Cannot init kni mbuf pool on socket %d\n",
 						 socketid);
 			else
-				printf("Allocated kni mbuf pool on socket %d\n", socketid);
+				RTE_LOG(INFO, RDPDK1, "Allocated kni mbuf pool on socket %d\n", socketid);
 		}
 		qconf = &lcore_conf[lcore_id];
 		qconf->ipv4_lookup_struct = ipv4_rdpdk_lookup_struct[socketid];
@@ -1494,7 +1494,7 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask)
 	uint8_t portid, count, all_ports_up, print_flag = 0;
 	struct rte_eth_link link;
 
-	printf("\nChecking link status\n");
+	RTE_LOG(INFO, RDPDK1, "\nChecking link status\n");
 	for (count = 0; count <= MAX_CHECK_TIME; count++) {
 		all_ports_up = 1;
 		for (portid = 0; portid < port_num; portid++) {
@@ -1505,13 +1505,13 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask)
 			/* print link status if flag set */
 			if (print_flag == 1) {
 				if (link.link_status)
-					printf("Port %d Link Up - speed %u "
+					RTE_LOG(INFO, RDPDK1, "Port %d Link Up - speed %u "
 						   "Mbps - %s\n", (uint8_t) portid,
 						   (unsigned) link.link_speed,
 						   (link.link_duplex == ETH_LINK_FULL_DUPLEX) ?
 						   ("full-duplex") : ("half-duplex\n"));
 				else
-					printf("Port %d Link Down\n", (uint8_t) portid);
+					RTE_LOG(INFO, RDPDK1, "Port %d Link Down\n", (uint8_t) portid);
 				continue;
 			}
 			/* clear all_ports_up flag if any link down */
@@ -1525,7 +1525,7 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask)
 			break;
 
 		if (all_ports_up == 0) {
-			printf(".");
+			RTE_LOG(INFO, RDPDK1, ".");
 			fflush(stdout);
 			rte_delay_ms(CHECK_INTERVAL);
 		}
@@ -1533,7 +1533,7 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask)
 		/* set the print_flag if all ports up or timeout */
 		if (all_ports_up == 1 || count == (MAX_CHECK_TIME - 1)) {
 			print_flag = 1;
-			printf("done\n");
+			RTE_LOG(INFO, RDPDK1, "done\n");
 		}
 	}
 }
@@ -1551,17 +1551,17 @@ static void init_port(uint8_t portid)
 
 	/* skip ports that are not enabled */
 	if ((enabled_port_mask & (1 << portid)) == 0) {
-		printf("\nSkipping disabled port %d\n", portid);
+		RTE_LOG(INFO, RDPDK1, "\nSkipping disabled port %d\n", portid);
 		return;
 	}
 
 	/* init port */
-	printf("Initializing port %d ...\n", portid);
+	RTE_LOG(INFO, RDPDK1, "Initializing port %d ...\n", portid);
 
 	nb_rx_queue = get_port_n_rx_queues(portid);
 	//XXX the +1 is for the kni
 	nb_tx_queue = nb_rx_queue + 1;
-	printf("Creating queues: nb_rxq=%d nb_txq=%u...\n",
+	RTE_LOG(INFO, RDPDK1, "Creating queues: nb_rxq=%d nb_txq=%u...\n",
 		   nb_rx_queue, nb_tx_queue);
 
 	ret = rte_eth_dev_configure(portid, nb_rx_queue,
@@ -1631,7 +1631,7 @@ static void init_port(uint8_t portid)
 			}
 			queueid = qconf->rx_queue_list[queue].queue_id;
 
-			printf("port=%u rx_queueid=%d nb_rxd=%d core=%u\n", portid,
+			RTE_LOG(DEBUG, RDPDK1, "port=%u rx_queueid=%d nb_rxd=%d core=%u\n", portid,
 				   queueid, nb_rxd, lcore_id);
 			ret = rte_eth_rx_queue_setup(portid, queueid, nb_rxd,
 										 socketid,
@@ -1645,10 +1645,23 @@ static void init_port(uint8_t portid)
 			continue;
 		}
 
-		printf("\nInitializing rx/tx queues on lcore %u for port %u ...\n",
+		RTE_LOG(INFO, RDPDK1, "\nInitializing rx/tx queues on lcore %u for port %u ...\n",
 			   lcore_id, portid);
 
-		printf("port=%u tx_queueid=%d nb_txd=%d core=%u\n", portid,
+		rte_eth_dev_info_get(portid, &dev_info);
+		txconf = &dev_info.default_txconf;
+
+#ifdef RDPDK_QEMU
+		txconf->txq_flags = ETH_TXQ_FLAGS_NOOFFLOADS;
+#else
+		txconf->txq_flags &= ~ETH_TXQ_FLAGS_NOOFFLOADS;
+#endif
+
+		//XXX is it correct ?
+		if (port_conf.rxmode.jumbo_frame)
+			txconf->txq_flags = 0;
+
+		RTE_LOG(DEBUG, RDPDK1, "port=%u tx_queueid=%d nb_txd=%d core=%u\n", portid,
 			   nb_tx_queue, nb_txd, lcore_id);
 		ret =
 			rte_eth_tx_queue_setup(portid, nb_tx_queue, nb_txd, socketid,
@@ -1697,7 +1710,7 @@ signal_handler(int signum, __rte_unused siginfo_t * si,
 
 	/* When we receive a RTMIN or SIGINT signal, stop kni processing */
 	if (signum == SIGRTMIN || signum == SIGINT) {
-		printf("SIG is received, and the KNI processing is "
+		RTE_LOG(INFO, RDPDK1, "SIG is received, and the KNI processing is "
 			   "going to stop\n");
 		kni_stop_loop();
 		rte_atomic32_inc(&main_loop_stop);
@@ -1907,7 +1920,7 @@ int main(int argc, char **argv)
 
 		for (portid = 0; portid < nb_ports; portid++) {
 			if (kni_port_params_array[portid]->lcore_tx == lcore_id) {
-				printf("launching kni thread on lcore %u\n", lcore_id);
+				RTE_LOG(INFO, RDPDK1, "launching kni thread on lcore %u\n", lcore_id);
 				rte_eal_remote_launch(kni_main_loop, NULL, lcore_id);
 				break;
 			}
@@ -1927,17 +1940,17 @@ int main(int argc, char **argv)
 	pthread_join(cmdline_tid, NULL);
 
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
-		printf("waiting %u\n", lcore_id);
+		RTE_LOG(INFO, RDPDK1, "waiting %u\n", lcore_id);
 		if (rte_eal_wait_lcore(lcore_id) < 0)
 			return -1;
 	}
-	printf("rte_eal_wait_lcore finished\n");
+	RTE_LOG(INFO, RDPDK1, "rte_eal_wait_lcore finished\n");
 	/* start ports */
 	for (portid = 0; portid < nb_ports; portid++) {
 		if ((enabled_port_mask & (1 << portid)) == 0) {
 			continue;
 		}
-		printf("freeing kniportid %d\n", portid);
+		RTE_LOG(INFO, RDPDK1, "freeing kniportid %d\n", portid);
 		kni_free_kni(portid);
 		rte_eth_dev_stop(portid);
 	}
