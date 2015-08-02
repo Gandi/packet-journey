@@ -1,0 +1,27 @@
+Source: rdpdk
+Section: net
+Priority: optional
+Maintainer: Nikita Kozlov <nikita@gandi.net>
+Build-Depends: debhelper (>= 9), dpdk-westmere, dpdk-sandybridge, dpdk-ivybridge
+Standards-Version: 3.9.6
+Homepage: http://dpdk.org/
+#Vcs-Git: git://anonscm.debian.org/collab-maint/dpdk.git
+#Vcs-Browser: http://anonscm.debian.org/?p=collab-maint/dpdk.git;a=summary
+
+Package: rdpdk-westmere
+Architecture: any
+Depends: ${misc:Depends}, dpdk-westmere
+Description: Router-DPDK
+ Router-DPDK is doing packet processing using the Data Plane Development Kit (DPDK).
+
+Package: rdpdk-ivybridge
+Architecture: any
+Depends: ${misc:Depends}, dpdk-ivybridge
+Description: Router-DPDK
+ Router-DPDK is doing packet processing using the Data Plane Development Kit (DPDK).
+
+Package: rdpdk-sandybridge
+Architecture: any
+Depends: ${misc:Depends}, dpdk-sandybridge
+Description: Router-DPDK
+ Router-DPDK is doing packet processing using the Data Plane Development Kit (DPDK).
