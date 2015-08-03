@@ -634,7 +634,7 @@ static void cmd_obj_lpm_lkp_parsed(void *parsed_result,
 	char buf[INET6_ADDRSTRLEN];
 
 	if (res->ip.family == AF_INET) {
-		i = rte_lpm_lookup(ipv4_l3fwd_lookup_struct[0],
+		i = rte_lpm_lookup(ipv4_rdpdk_lookup_struct[0],
 						   rte_be_to_cpu_32(res->ip.addr.ipv4.s_addr),
 						   &next_hop);
 		if (i < 0) {
@@ -647,7 +647,7 @@ static void cmd_obj_lpm_lkp_parsed(void *parsed_result,
 									 INET6_ADDRSTRLEN));
 		}
 	} else if (res->ip.family == AF_INET6) {
-		i = rte_lpm6_lookup(ipv6_l3fwd_lookup_struct[0],
+		i = rte_lpm6_lookup(ipv6_rdpdk_lookup_struct[0],
 							res->ip.addr.ipv6.s6_addr, &next_hop);
 		if (i < 0) {
 			cmdline_printf(cl, "not found\n");

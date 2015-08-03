@@ -45,8 +45,8 @@
 
 /***********************start of ACL part******************************/
 #define MAX_ACL_RULE_NUM	100000
-#define L3FWD_ACL_IPV4_NAME	"l3fwd-acl-ipv4"
-#define L3FWD_ACL_IPV6_NAME	"l3fwd-acl-ipv6"
+#define L3FWD_ACL_IPV4_NAME	"rdpdk-acl-ipv4"
+#define L3FWD_ACL_IPV6_NAME	"rdpdk-acl-ipv6"
 #define ACL_LEAD_CHAR		('@')
 #define COMMENT_LEAD_CHAR	('#')
 #define RTE_LOGTYPE_L3FWD_ACL	RTE_LOGTYPE_USER3

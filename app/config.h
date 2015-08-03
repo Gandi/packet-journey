@@ -33,7 +33,7 @@ struct lcore_params {
 #define CMD_LINE_OPT_PORTMASK	"portmask"
 #define CMD_LINE_OPT_CONFIGFILE	"configfile"
 
-#define FILE_MAIN_CONFIG	"l3fwd"
+#define FILE_MAIN_CONFIG	"rdpdk"
 
 #define MAX_LCORE_PARAMS 1024
 #define MAX_JUMBO_PKT_LEN  9600

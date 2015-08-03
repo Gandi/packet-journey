@@ -51,4 +51,11 @@ dh_auto_install/rdpdk-ivybridge:
 	mv $(CURDIR)/build-ivybridge/app/x86_64-native-linuxapp-gcc-ivybridge/rdpdk $(CURDIR)/debian/rdpdk-ivybridge/usr/sbin/
 
 override_dh_shlibdeps:
-	
+
+override_dh_installinit:
+	dh_installinit --no-start --name=rdpdk
+
+override_dh_installdefault:
+	dh_installdefault --name=rdpdk
+
+

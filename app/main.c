@@ -92,8 +92,8 @@
 #include "acl.h"
 #include "config.h"
 
-lookup_struct_t *ipv4_l3fwd_lookup_struct[NB_SOCKETS];
-lookup6_struct_t *ipv6_l3fwd_lookup_struct[NB_SOCKETS];
+lookup_struct_t *ipv4_rdpdk_lookup_struct[NB_SOCKETS];
+lookup6_struct_t *ipv6_rdpdk_lookup_struct[NB_SOCKETS];
 neighbor_struct_t *neighbor4_struct[NB_SOCKETS];
 neighbor_struct_t *neighbor6_struct[NB_SOCKETS];
 
@@ -313,11 +313,11 @@ send_packetsx4(struct lcore_conf *qconf, uint8_t port,
 
 static inline uint8_t
 get_ipv4_dst_port(void *ipv4_hdr, uint8_t portid,
-				  lookup_struct_t * ipv4_l3fwd_lookup_struct)
+				  lookup_struct_t * ipv4_rdpdk_lookup_struct)
 {
 	uint8_t next_hop;
 
-	return (uint8_t) ((rte_lpm_lookup(ipv4_l3fwd_lookup_struct,
+	return (uint8_t) ((rte_lpm_lookup(ipv4_rdpdk_lookup_struct,
 									  rte_be_to_cpu_32(((struct ipv4_hdr *)
 														ipv4_hdr)->dst_addr),
 									  &next_hop) ==
@@ -326,10 +326,10 @@ get_ipv4_dst_port(void *ipv4_hdr, uint8_t portid,
 
 static inline uint8_t
 get_ipv6_dst_port(void *ipv6_hdr, uint8_t portid,
-				  lookup6_struct_t * ipv6_l3fwd_lookup_struct)
+				  lookup6_struct_t * ipv6_rdpdk_lookup_struct)
 {
 	uint8_t next_hop;
-	return (uint8_t) ((rte_lpm6_lookup(ipv6_l3fwd_lookup_struct,
+	return (uint8_t) ((rte_lpm6_lookup(ipv6_rdpdk_lookup_struct,
 									   ((struct ipv6_hdr *)
 										ipv6_hdr)->dst_addr,
 									   &next_hop) ==
@@ -1390,10 +1390,10 @@ static void setup_lpm(int socketid)
 
 	/* create the LPM table */
 	snprintf(s, sizeof(s), "IPV4_L3FWD_LPM_%d", socketid);
-	ipv4_l3fwd_lookup_struct[socketid] =
+	ipv4_rdpdk_lookup_struct[socketid] =
 		rte_lpm_create(s, socketid, IPV4_L3FWD_LPM_MAX_RULES, 0);
-	if (ipv4_l3fwd_lookup_struct[socketid] == NULL)
-		rte_exit(EXIT_FAILURE, "Unable to create the l3fwd LPM table"
+	if (ipv4_rdpdk_lookup_struct[socketid] == NULL)
+		rte_exit(EXIT_FAILURE, "Unable to create the rdpdk LPM table"
 				 " on socket %d\n", socketid);
 
 	/* create the LPM6 table */
@@ -1402,10 +1402,10 @@ static void setup_lpm(int socketid)
 	config.max_rules = IPV6_L3FWD_LPM_MAX_RULES;
 	config.number_tbl8s = IPV6_L3FWD_LPM_NUMBER_TBL8S;
 	config.flags = 0;
-	ipv6_l3fwd_lookup_struct[socketid] = rte_lpm6_create(s, socketid,
+	ipv6_rdpdk_lookup_struct[socketid] = rte_lpm6_create(s, socketid,
 														 &config);
-	if (ipv6_l3fwd_lookup_struct[socketid] == NULL)
-		rte_exit(EXIT_FAILURE, "Unable to create the l3fwd LPM6 table"
+	if (ipv6_rdpdk_lookup_struct[socketid] == NULL)
+		rte_exit(EXIT_FAILURE, "Unable to create the rdpdk LPM6 table"
 				 " on socket %d\n", socketid);
 }
 
@@ -1480,9 +1480,9 @@ static int init_mem(uint8_t nb_ports)
 				printf("Allocated kni mbuf pool on socket %d\n", socketid);
 		}
 		qconf = &lcore_conf[lcore_id];
-		qconf->ipv4_lookup_struct = ipv4_l3fwd_lookup_struct[socketid];
+		qconf->ipv4_lookup_struct = ipv4_rdpdk_lookup_struct[socketid];
 		qconf->neighbor4_struct = neighbor4_struct[socketid];
-		qconf->ipv6_lookup_struct = ipv6_l3fwd_lookup_struct[socketid];
+		qconf->ipv6_lookup_struct = ipv6_rdpdk_lookup_struct[socketid];
 		qconf->neighbor6_struct = neighbor6_struct[socketid];
 		qconf->acx_ipv4 = ipv4_acx[socketid];
 		qconf->acx_ipv6 = ipv6_acx[socketid];
