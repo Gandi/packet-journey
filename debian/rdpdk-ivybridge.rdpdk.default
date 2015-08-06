@@ -1,7 +1,1 @@
-#
-
-NSNAME=rdpdk
-NSEXEC="/bin/ip netns exec $NSNAME"
-
-EAL_ARGS="--log-level 8 -l 0,1,2,3 -n 1"
-L3FWD_ARGS="-f /etc/rdpdk.conf"
+rdpdk-westmere.rdpdk.default
