@@ -43,6 +43,7 @@ struct rte_eth_conf port_conf = {
 			   .hw_ip_checksum = 1,
 							 /**< IP checksum offload enabled */
 #endif
+               .hw_vlan_strip = 1,
 			   .hw_vlan_filter = 0,
 							 /**< VLAN filtering disabled */
 			   .jumbo_frame = 0,
@@ -76,7 +77,7 @@ void print_usage(const char *prgname)
 		   "  --portmask PORTMASK: hexadecimal bitmask of ports to configure\n"
 		   "  --callback-setup: script called when ifaces are set up\n"
 		   "  --rule_ipv4=FILE \n"
-		   "  --rule_ip6=FILE \n",
+		   "  --rule_ipv6=FILE \n",
 		   prgname);
 }
 
@@ -506,26 +507,26 @@ static int install_cfgfile(const char *file_name, char *prgname)
 		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
 							  CMD_LINE_OPT_UNIXSOCK);
 	if (entry) {
-		unixsock_path = entry;
+		unixsock_path = strdup(entry);
 	}
 
 	entry =
 		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
 							  CMD_LINE_OPT_CALLBACK_SETUP);
 	if (entry) {
-		callback_setup = entry;
+		callback_setup = strdup(entry);
 	}
 
 	entry =
 		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_RULE_IPV4);
 	if (entry) {
-		acl_parm_config.rule_ipv4_name = entry;
+		acl_parm_config.rule_ipv4_name = strdup(entry);
 	}
 
 	entry =
 		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_RULE_IPV6);
 	if (entry) {
-		acl_parm_config.rule_ipv6_name = entry;
+		acl_parm_config.rule_ipv6_name = strdup(entry);
 	}
 
 	/*      optional    */
