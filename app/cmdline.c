@@ -92,8 +92,7 @@ struct cmd_showport_result {
 };
 
 static void cmd_showport_parsed(void *parsed_result,
-								struct cmdline *cl,
-								void *data)
+								struct cmdline *cl, void *data)
 {
 	struct cmd_showport_result *res = parsed_result;
 	if (!strcmp(res->show, "clear")) {
@@ -104,9 +103,9 @@ static void cmd_showport_parsed(void *parsed_result,
 	} else if (!strcmp(res->what, "info"))
 		port_infos_display(cl, res->portnum);
 	else if (!strcmp(res->what, "stats"))
-		nic_stats_display(cl, res->portnum, (intptr_t)data);
+		nic_stats_display(cl, res->portnum, (intptr_t) data);
 	else if (!strcmp(res->what, "xstats"))
-		nic_xstats_display(cl, res->portnum, (intptr_t)data);
+		nic_xstats_display(cl, res->portnum, (intptr_t) data);
 }
 
 cmdline_parse_token_string_t cmd_showport_show =
@@ -138,7 +137,7 @@ cmdline_parse_inst_t cmd_showport = {
 
 cmdline_parse_inst_t cmd_showport_json = {
 	.f = cmd_showport_parsed,
-	.data = (void*)1,
+	.data = (void *) 1,
 	.help_str = "show|clear port info|stats|xstats X (X = port number)",
 	.tokens = {
 			   (void *) &cmd_showport_show,
@@ -734,7 +733,7 @@ static void cmd_stats_parsed(__rte_unused
 							 void *parsed_result,
 							 struct cmdline *cl, __rte_unused void *data)
 {
-	rdpdk_stats_display(cl, (intptr_t)data);
+	rdpdk_stats_display(cl, (intptr_t) data);
 }
 
 cmdline_parse_token_string_t cmd_stats_stats =
@@ -754,7 +753,7 @@ cmdline_parse_inst_t cmd_stats = {
 
 cmdline_parse_inst_t cmd_stats_json = {
 	.f = cmd_stats_parsed,		/* function to call */
-	.data = (void*)1,				/* 2nd arg of func */
+	.data = (void *) 1,			/* 2nd arg of func */
 	.help_str = "show stats",
 	.tokens = {					/* token list, NULL terminated */
 			   (void *) &cmd_stats_stats,

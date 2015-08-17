@@ -42,7 +42,7 @@ void rdpdk_stats_display(struct cmdline *cl, int option)
 	total_packets_kni_tx = 0;
 	total_packets_kni_rx = 0;
 
-	if(option) {
+	if (option) {
 
 		cmdline_printf(cl, "{\"lcores\": [");
 
@@ -50,12 +50,14 @@ void rdpdk_stats_display(struct cmdline *cl, int option)
 			if (!rte_lcore_is_enabled(lcoreid))
 				continue;
 
-			cmdline_printf(cl, 
-				"{\"lcore\": %u, \"portid\": %lu, \"loop\": %lu, \"tx\": %lu, \"rx\": %lu, \"kni_tx\": %lu, \"kni_rx\": %lu, \"drop\": %lu}, ",
-				lcoreid, stats[lcoreid].port_id, stats[lcoreid].nb_iteration_looped,
-				stats[lcoreid].nb_tx, stats[lcoreid].nb_rx, stats[lcoreid].nb_kni_tx,
-				stats[lcoreid].nb_kni_rx, stats[lcoreid].nb_dropped
-			);
+			cmdline_printf(cl,
+						   "{\"lcore\": %u, \"portid\": %lu, \"loop\": %lu, \"tx\": %lu, \"rx\": %lu, \"kni_tx\": %lu, \"kni_rx\": %lu, \"drop\": %lu}, ",
+						   lcoreid, stats[lcoreid].port_id,
+						   stats[lcoreid].nb_iteration_looped,
+						   stats[lcoreid].nb_tx, stats[lcoreid].nb_rx,
+						   stats[lcoreid].nb_kni_tx,
+						   stats[lcoreid].nb_kni_rx,
+						   stats[lcoreid].nb_dropped);
 
 			total_packets_dropped += stats[lcoreid].nb_dropped;
 			total_packets_tx += stats[lcoreid].nb_tx;
@@ -67,12 +69,12 @@ void rdpdk_stats_display(struct cmdline *cl, int option)
 		// add a null object to end the array
 		cmdline_printf(cl, "{}");
 
-		cmdline_printf(cl, 
-			"], \"total\": {\"tx\": %lu, \"rx\": %lu, \"kni_tx\": %lu, \"kni_rx\": %lu, \"drop\": %lu}}\n",
-			total_packets_tx, total_packets_rx, total_packets_kni_tx, total_packets_kni_rx,	total_packets_dropped
-		);
-	}
-	else {
+		cmdline_printf(cl,
+					   "], \"total\": {\"tx\": %lu, \"rx\": %lu, \"kni_tx\": %lu, \"kni_rx\": %lu, \"drop\": %lu}}\n",
+					   total_packets_tx, total_packets_rx,
+					   total_packets_kni_tx, total_packets_kni_rx,
+					   total_packets_dropped);
+	} else {
 
 		cmdline_printf(cl,
 					   "\nLcore statistics ====================================");
@@ -84,13 +86,15 @@ void rdpdk_stats_display(struct cmdline *cl, int option)
 			cmdline_printf(cl,
 						   "\nStatistics for lcore %u portid %lu ---------------"
 						   "\nLoop iteration: %lu" "\nPackets sent: %lu"
-						   "\nPackets received: %lu" "\nPackets kni sent: %lu"
+						   "\nPackets received: %lu"
+						   "\nPackets kni sent: %lu"
 						   "\nPackets kni received: %lu"
 						   "\nPackets dropped: %lu", lcoreid,
 						   stats[lcoreid].port_id,
 						   stats[lcoreid].nb_iteration_looped,
 						   stats[lcoreid].nb_tx, stats[lcoreid].nb_rx,
-						   stats[lcoreid].nb_kni_tx, stats[lcoreid].nb_kni_rx,
+						   stats[lcoreid].nb_kni_tx,
+						   stats[lcoreid].nb_kni_rx,
 						   stats[lcoreid].nb_dropped);
 
 			total_packets_dropped += stats[lcoreid].nb_dropped;
@@ -170,33 +174,37 @@ void nic_stats_display(struct cmdline *cl, portid_t port_id, int option)
 
 	rte_eth_stats_get(port_id, &stats);
 
-	if(option) {
+	if (option) {
 
-		cmdline_printf(cl, 
-			"{\"portid\": %d, "
-			"\"rx\": {\"packets\": %" PRIu64 ", \"errors\": %" PRIu64 ", \"bytes\": %" PRIu64 ", "
-			"\"badcrc\": %" PRIu64 ", \"badlen\": %" PRIu64 ", \"nombuf\": %" PRIu64 ", "
-			"\"xon\": %" PRIu64 ", \"xoff\": %" PRIu64 "}, "
-			"\"tx\": {\"packets\": %" PRIu64 ", \"errors\": %" PRIu64 ", \"bytes\": %" PRIu64 ", "
-			"\"xon\": %" PRIu64 ", \"xoff\": %" PRIu64 "}, ",
-			port_id,
-			stats.ipackets, stats.ierrors, stats.ibytes, stats.ibadcrc, stats.ibadlen, stats.rx_nombuf,
-			stats.rx_pause_xon, stats.rx_pause_xoff,
-			stats.opackets, stats.oerrors, stats.obytes,
-			stats.tx_pause_xon, stats.tx_pause_xoff
-		);
+		cmdline_printf(cl,
+					   "{\"portid\": %d, "
+					   "\"rx\": {\"packets\": %" PRIu64 ", \"errors\": %"
+					   PRIu64 ", \"bytes\": %" PRIu64 ", " "\"badcrc\": %"
+					   PRIu64 ", \"badlen\": %" PRIu64 ", \"nombuf\": %"
+					   PRIu64 ", " "\"xon\": %" PRIu64 ", \"xoff\": %"
+					   PRIu64 "}, " "\"tx\": {\"packets\": %" PRIu64
+					   ", \"errors\": %" PRIu64 ", \"bytes\": %" PRIu64
+					   ", " "\"xon\": %" PRIu64 ", \"xoff\": %" PRIu64
+					   "}, ", port_id, stats.ipackets, stats.ierrors,
+					   stats.ibytes, stats.ibadcrc, stats.ibadlen,
+					   stats.rx_nombuf, stats.rx_pause_xon,
+					   stats.rx_pause_xoff, stats.opackets, stats.oerrors,
+					   stats.obytes, stats.tx_pause_xon,
+					   stats.tx_pause_xoff);
 
 		cmdline_printf(cl, "\"queues\": [");
 
 		for (i = 0; i < RTE_ETHDEV_QUEUE_STAT_CNTRS; i++) {
-			cmdline_printf(cl, 
-				"{\"queueid\": %d, "
-				"\"rx\": {\"packets\": %" PRIu64 ", \"errors\": %" PRIu64 ", \"bytes\": %" PRIu64 "}, "
-				"\"tx\": {\"packets\": %" PRIu64 ", \"bytes\": %" PRIu64 "}}, ",
-				i,
-				stats.q_ipackets[i], stats.q_errors[i], stats.q_ibytes[i],
-				stats.q_opackets[i], stats.q_obytes[i]
-			);
+			cmdline_printf(cl,
+						   "{\"queueid\": %d, "
+						   "\"rx\": {\"packets\": %" PRIu64
+						   ", \"errors\": %" PRIu64 ", \"bytes\": %" PRIu64
+						   "}, " "\"tx\": {\"packets\": %" PRIu64
+						   ", \"bytes\": %" PRIu64 "}}, ", i,
+						   stats.q_ipackets[i], stats.q_errors[i],
+						   stats.q_ibytes[i], stats.q_opackets[i],
+						   stats.q_obytes[i]
+				);
 		}
 
 		// add a null object to end the array
@@ -204,26 +212,28 @@ void nic_stats_display(struct cmdline *cl, portid_t port_id, int option)
 
 		cmdline_printf(cl, "]}\n");
 
-	}
-	else {
+	} else {
 
 		cmdline_printf(cl, "\n  %s NIC statistics for port %-2d %s\n",
 					   nic_stats_border, port_id, nic_stats_border);
 
 		cmdline_printf(cl,
 					   "  RX-packets:              %10" PRIu64
-					   "    RX-errors: %10" PRIu64 "    RX-bytes: %10" PRIu64
-					   "\n", stats.ipackets, stats.ierrors, stats.ibytes);
+					   "    RX-errors: %10" PRIu64 "    RX-bytes: %10"
+					   PRIu64 "\n", stats.ipackets, stats.ierrors,
+					   stats.ibytes);
 		cmdline_printf(cl,
 					   "  RX-badcrc:               %10" PRIu64
-					   "    RX-badlen: %10" PRIu64 "  RX-errors:  %10" PRIu64
-					   "\n", stats.ibadcrc, stats.ibadlen, stats.ierrors);
+					   "    RX-badlen: %10" PRIu64 "  RX-errors:  %10"
+					   PRIu64 "\n", stats.ibadcrc, stats.ibadlen,
+					   stats.ierrors);
 		cmdline_printf(cl, "  RX-nombuf:               %10" PRIu64 "\n",
 					   stats.rx_nombuf);
 		cmdline_printf(cl,
 					   "  TX-packets:              %10" PRIu64
-					   "    TX-errors: %10" PRIu64 "    TX-bytes: %10" PRIu64
-					   "\n", stats.opackets, stats.oerrors, stats.obytes);
+					   "    TX-errors: %10" PRIu64 "    TX-bytes: %10"
+					   PRIu64 "\n", stats.opackets, stats.oerrors,
+					   stats.obytes);
 
 		cmdline_printf(cl, "\n");
 		for (i = 0; i < RTE_ETHDEV_QUEUE_STAT_CNTRS; i++) {
@@ -236,8 +246,9 @@ void nic_stats_display(struct cmdline *cl, portid_t port_id, int option)
 		cmdline_printf(cl, "\n");
 		for (i = 0; i < RTE_ETHDEV_QUEUE_STAT_CNTRS; i++) {
 			cmdline_printf(cl, "  Stats reg %2d TX-packets: %10" PRIu64
-						   "                             TX-bytes: %10" PRIu64
-						   "\n", i, stats.q_opackets[i], stats.q_obytes[i]);
+						   "                             TX-bytes: %10"
+						   PRIu64 "\n", i, stats.q_opackets[i],
+						   stats.q_obytes[i]);
 		}
 
 		/* Display statistics of XON/XOFF pause frames, if any. */
@@ -287,24 +298,23 @@ void nic_xstats_display(struct cmdline *cl, portid_t port_id, int option)
 		return;
 	}
 
-	if(option) {
+	if (option) {
 
 		cmdline_printf(cl, "{\"portid\": %d, ", port_id);
 
 		for (i = 0; i < len; i++)
-			cmdline_printf(cl, "%s\"%s\": %" PRIu64, (i != 0) ? ", " : "", xstats[i].name,
-				xstats[i].value);
+			cmdline_printf(cl, "%s\"%s\": %" PRIu64, (i != 0) ? ", " : "",
+						   xstats[i].name, xstats[i].value);
 
 		cmdline_printf(cl, "}\n");
 
-	}
-	else {
+	} else {
 		cmdline_printf(cl, "===== NIC extended statistics for port %-2d\n",
-			port_id);
-	
+					   port_id);
+
 		for (i = 0; i < len; i++)
 			cmdline_printf(cl, "%s: %" PRIu64 "\n", xstats[i].name,
-				xstats[i].value);
+						   xstats[i].value);
 	}
 
 	free(xstats);

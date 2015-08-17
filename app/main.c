@@ -98,7 +98,7 @@ neighbor_struct_t *neighbor4_struct[NB_SOCKETS];
 neighbor_struct_t *neighbor6_struct[NB_SOCKETS];
 
 struct control_params_t {
-	void* addr;
+	void *addr;
 	int lcore_id;
 };
 struct control_params_t control_handle[NB_SOCKETS];
@@ -538,7 +538,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 	nb_kni = p->nb_kni;
 
 #ifdef RDPDK_QEMU
-	#define PROCESSX4_STEP(step) \
+#define PROCESSX4_STEP(step) \
 			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *); \
 			if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4) { \
 				is_ipv4 = 1; \
@@ -595,7 +595,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 				j++; \
 			}
 #else
-	#define PROCESSX4_STEP(step) \
+#define PROCESSX4_STEP(step) \
 			if (likely(pkt[j]->ol_flags & PKT_RX_IPV4_HDR)) { \
 				is_ipv4 = 1; \
 				process = \
@@ -1689,8 +1689,8 @@ signal_handler(int signum, __rte_unused siginfo_t * si,
 		rte_atomic32_inc(&main_loop_stop);
 		rdpdk_cmdline_stop();
 
-		for(sock = 0; sock < NB_SOCKETS; sock++) {
-			if(control_handle[sock].addr) {
+		for (sock = 0; sock < NB_SOCKETS; sock++) {
+			if (control_handle[sock].addr) {
 				control_stop(control_handle[sock].addr);
 			}
 		}
@@ -1762,23 +1762,25 @@ int main(int argc, char **argv)
 
 	// look for any lcore not bound by dpdk (kni and eal) on each socket, use it when found
 	if (numa_on) {
-		for(ctrlsock = 0; ctrlsock < NB_SOCKETS; ctrlsock++) {
+		for (ctrlsock = 0; ctrlsock < NB_SOCKETS; ctrlsock++) {
 			control_handle[ctrlsock].addr = NULL;
 			qconf = NULL;
 
 			// TODO: look for all available vcpus (not only eal enabled lcores)
 			RTE_LCORE_FOREACH_SLAVE(lcore_id) {
-				if(rte_lcore_to_socket_id(lcore_id) == ctrlsock) {
+				if (rte_lcore_to_socket_id(lcore_id) == ctrlsock) {
 					qconf = &lcore_conf[lcore_id];
-					if(qconf->n_rx_queue == 0) {
+					if (qconf->n_rx_queue == 0) {
 						for (portid = 0; portid < nb_ports; portid++) {
-							if (kni_port_params_array[portid]->lcore_tx == lcore_id) {
+							if (kni_port_params_array[portid]->lcore_tx ==
+								lcore_id) {
 								break;
 							}
 						}
 
-						if(portid == nb_ports) {
-							control_handle[ctrlsock].addr = control_init(ctrlsock);
+						if (portid == nb_ports) {
+							control_handle[ctrlsock].addr =
+								control_init(ctrlsock);
 							control_handle[ctrlsock].lcore_id = lcore_id;
 							break;
 						}
@@ -1786,9 +1788,11 @@ int main(int argc, char **argv)
 				}
 			}
 
-			if(qconf) { // check if any lcore is enabled on this socket
-				if(control_handle[ctrlsock].addr == NULL) { // if no lcore is available on this socket
-					rte_exit(EXIT_FAILURE, "no free lcore found on socket %d for control, exiting ...\n", ctrlsock);
+			if (qconf) {		// check if any lcore is enabled on this socket
+				if (control_handle[ctrlsock].addr == NULL) {	// if no lcore is available on this socket
+					rte_exit(EXIT_FAILURE,
+							 "no free lcore found on socket %d for control, exiting ...\n",
+							 ctrlsock);
 				}
 			}
 		}
@@ -1796,9 +1800,9 @@ int main(int argc, char **argv)
 
 	ctrlsock = 0;
 	control_tid = 0;
-	
+
 	// launch in a thread on socket 0 if numa is disabled
-	if(!numa_on) {
+	if (!numa_on) {
 		control_handle[0].addr = control_init(ctrlsock);
 	}
 
@@ -1842,18 +1846,22 @@ int main(int argc, char **argv)
 	check_all_ports_link_status((uint8_t) nb_ports, enabled_port_mask);
 
 	if (numa_on) {
-		for(ctrlsock = 0; ctrlsock < NB_SOCKETS; ctrlsock++) {
-			if(control_handle[ctrlsock].addr) {
+		for (ctrlsock = 0; ctrlsock < NB_SOCKETS; ctrlsock++) {
+			if (control_handle[ctrlsock].addr) {
 				lcore_id = control_handle[ctrlsock].lcore_id;
-				printf("launching control thread for socketid %d on lcore %u\n", ctrlsock, lcore_id);
-				rte_eal_remote_launch(control_main, control_handle[ctrlsock].addr, lcore_id);
+				printf
+					("launching control thread for socketid %d on lcore %u\n",
+					 ctrlsock, lcore_id);
+				rte_eal_remote_launch(control_main,
+									  control_handle[ctrlsock].addr,
+									  lcore_id);
 
 				snprintf(thread_name, 16, "control-%d", ctrlsock);
-				pthread_setname_np(lcore_config[lcore_id].thread_id, thread_name);
+				pthread_setname_np(lcore_config[lcore_id].thread_id,
+								   thread_name);
 			}
 		}
-	}
-	else {
+	} else {
 		pthread_create(&control_tid, NULL, (void *) control_main,
 					   control_handle[0].addr);
 		snprintf(thread_name, 16, "control-0");
@@ -1861,7 +1869,9 @@ int main(int argc, char **argv)
 
 		CPU_ZERO(&cpuset);
 		CPU_SET(0, &cpuset);
-		ret = pthread_setaffinity_np(control_tid, sizeof(cpu_set_t), &cpuset);
+		ret =
+			pthread_setaffinity_np(control_tid, sizeof(cpu_set_t),
+								   &cpuset);
 
 		if (ret != 0) {
 			perror("control pthread_setaffinity_np: ");
@@ -1896,10 +1906,10 @@ int main(int argc, char **argv)
 				 "control callback setup returned error: err=%d,", ret);
 	}
 
-	if(control_tid) {
+	if (control_tid) {
 		pthread_join(control_tid, NULL);
 	}
-	
+
 	pthread_join(cmdline_tid, NULL);
 
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
@@ -1919,8 +1929,8 @@ int main(int argc, char **argv)
 	}
 	rdpdk_cmdline_terminate(sock, unixsock_path);
 
-	for(ctrlsock = 0; ctrlsock < NB_SOCKETS; ctrlsock++) {
-		if(control_handle[ctrlsock].addr) {
+	for (ctrlsock = 0; ctrlsock < NB_SOCKETS; ctrlsock++) {
+		if (control_handle[ctrlsock].addr) {
 			control_terminate(control_handle[ctrlsock].addr);
 		}
 	}

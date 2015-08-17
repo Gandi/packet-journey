@@ -253,7 +253,8 @@ neighbor4(neighbor_action_t action,
 		unsigned kni_vlan;
 
 		if_indextoname(port_id, ibuf);
-		s = sscanf(ibuf, "vEth%10u_%10u.%10u", &port_id, &kni_num, &kni_vlan);
+		s = sscanf(ibuf, "vEth%10u_%10u.%10u", &port_id, &kni_num,
+				   &kni_vlan);
 		if (s <= 0) {
 			RTE_LOG(ERR, L3FWD_CTRL,
 					"received a neighbor announce for an unmanaged iface %s\n",
@@ -345,7 +346,8 @@ neighbor6(neighbor_action_t action,
 		unsigned kni_vlan;
 
 		if_indextoname(port_id, ibuf);
-		s = sscanf(ibuf, "vEth%10u_%10u.%10u", &port_id, &kni_num, &kni_vlan);
+		s = sscanf(ibuf, "vEth%10u_%10u.%10u", &port_id, &kni_num,
+				   &kni_vlan);
 
 		if (s <= 0) {
 			RTE_LOG(ERR, L3FWD_CTRL,

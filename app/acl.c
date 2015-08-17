@@ -742,8 +742,10 @@ add_rules(const char *rule_path,
 static void dump_acl_config(void)
 {
 	printf("ACL option are:\n");
-	printf(CMD_LINE_OPT_RULE_IPV4 ": %s\n", acl_parm_config.rule_ipv4_name);
-	printf(CMD_LINE_OPT_RULE_IPV6 ": %s\n", acl_parm_config.rule_ipv6_name);
+	printf(CMD_LINE_OPT_RULE_IPV4 ": %s\n",
+		   acl_parm_config.rule_ipv4_name);
+	printf(CMD_LINE_OPT_RULE_IPV6 ": %s\n",
+		   acl_parm_config.rule_ipv6_name);
 	printf(CMD_LINE_OPT_SCALAR ": %d\n", acl_parm_config.scalar);
 }
 

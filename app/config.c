@@ -43,7 +43,7 @@ struct rte_eth_conf port_conf = {
 			   .hw_ip_checksum = 1,
 							 /**< IP checksum offload enabled */
 #endif
-               .hw_vlan_strip = 1,
+			   .hw_vlan_strip = 1,
 			   .hw_vlan_filter = 0,
 							 /**< VLAN filtering disabled */
 			   .jumbo_frame = 0,
@@ -76,9 +76,7 @@ void print_usage(const char *prgname)
 		   "  [--scalar: Use scalar function to do lookupn acl tables]\n"
 		   "  --portmask PORTMASK: hexadecimal bitmask of ports to configure\n"
 		   "  --callback-setup: script called when ifaces are set up\n"
-		   "  --rule_ipv4=FILE \n"
-		   "  --rule_ipv6=FILE \n",
-		   prgname);
+		   "  --rule_ipv4=FILE \n" "  --rule_ipv6=FILE \n", prgname);
 }
 
 static int parse_max_pkt_len(const char *pktlen)
@@ -518,13 +516,15 @@ static int install_cfgfile(const char *file_name, char *prgname)
 	}
 
 	entry =
-		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_RULE_IPV4);
+		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
+							  CMD_LINE_OPT_RULE_IPV4);
 	if (entry) {
 		acl_parm_config.rule_ipv4_name = strdup(entry);
 	}
 
 	entry =
-		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_RULE_IPV6);
+		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
+							  CMD_LINE_OPT_RULE_IPV6);
 	if (entry) {
 		acl_parm_config.rule_ipv6_name = strdup(entry);
 	}
@@ -550,7 +550,8 @@ static int install_cfgfile(const char *file_name, char *prgname)
 		}
 	}
 
-	entry = rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_SCALAR);
+	entry =
+		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_SCALAR);
 	if (entry) {
 		if (strtoul(entry, NULL, 0)) {
 			acl_parm_config.scalar = 1;
@@ -622,7 +623,8 @@ int parse_args(int argc, char **argv)
 	argv += ret;
 
 	for (opt = 1; opt < argc; opt++) {
-		if (strcmp(argv[opt], "--configfile") == 0 && argv[opt + 1] != NULL) {
+		if (strcmp(argv[opt], "--configfile") == 0
+			&& argv[opt + 1] != NULL) {
 			return install_cfgfile(argv[opt + 1], prgname);
 		}
 	}
@@ -658,13 +660,13 @@ int parse_args(int argc, char **argv)
 
 			if (!strncmp(lgopts[option_index].name, CMD_LINE_OPT_PORTMASK,
 						 sizeof(CMD_LINE_OPT_PORTMASK))) {
-                enabled_port_mask = parse_portmask(optarg);
-                if (enabled_port_mask == 0) {
-                    printf("invalid portmask\n");
-                    print_usage(prgname);
-                    return -1;
-                }
-            }
+				enabled_port_mask = parse_portmask(optarg);
+				if (enabled_port_mask == 0) {
+					printf("invalid portmask\n");
+					print_usage(prgname);
+					return -1;
+				}
+			}
 
 			if (!strncmp
 				(lgopts[option_index].name, CMD_LINE_OPT_UNIXSOCK,
@@ -690,19 +692,22 @@ int parse_args(int argc, char **argv)
 			}
 
 			if (!strncmp(lgopts[option_index].name,
-						 CMD_LINE_OPT_RULE_IPV4, sizeof(CMD_LINE_OPT_RULE_IPV4))) {
+						 CMD_LINE_OPT_RULE_IPV4,
+						 sizeof(CMD_LINE_OPT_RULE_IPV4))) {
 				acl_parm_config.rule_ipv4_name = optarg;
-            }
+			}
 
 			if (!strncmp(lgopts[option_index].name,
-						 CMD_LINE_OPT_RULE_IPV6, sizeof(CMD_LINE_OPT_RULE_IPV6))) {
+						 CMD_LINE_OPT_RULE_IPV6,
+						 sizeof(CMD_LINE_OPT_RULE_IPV6))) {
 				acl_parm_config.rule_ipv6_name = optarg;
 			}
 
 			if (!strncmp(lgopts[option_index].name,
-						 CMD_LINE_OPT_SCALAR, sizeof(CMD_LINE_OPT_SCALAR))) {
+						 CMD_LINE_OPT_SCALAR,
+						 sizeof(CMD_LINE_OPT_SCALAR))) {
 				acl_parm_config.scalar = 1;
-            }
+			}
 
 			if (!strncmp
 				(lgopts[option_index].name, CMD_LINE_OPT_ENABLE_JUMBO,
