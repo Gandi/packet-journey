@@ -33,7 +33,7 @@ static void print_ethaddr(struct cmdline *cl, const char *name,
 void rdpdk_stats_display(struct cmdline *cl, int option)
 {
 	uint64_t total_packets_dropped, total_packets_tx, total_packets_rx;
-	uint64_t total_packets_kni_tx, total_packets_kni_rx;
+	uint64_t total_packets_kni_tx, total_packets_kni_rx, total_packets_kni_dropped;
 	unsigned lcoreid;
 
 	total_packets_dropped = 0;
@@ -41,6 +41,7 @@ void rdpdk_stats_display(struct cmdline *cl, int option)
 	total_packets_rx = 0;
 	total_packets_kni_tx = 0;
 	total_packets_kni_rx = 0;
+	total_packets_kni_dropped = 0;
 
 	if (option) {
 
@@ -51,12 +52,13 @@ void rdpdk_stats_display(struct cmdline *cl, int option)
 				continue;
 
 			cmdline_printf(cl,
-						   "{\"lcore\": %u, \"portid\": %lu, \"loop\": %lu, \"tx\": %lu, \"rx\": %lu, \"kni_tx\": %lu, \"kni_rx\": %lu, \"drop\": %lu}, ",
+						   "{\"lcore\": %u, \"portid\": %lu, \"loop\": %lu, \"tx\": %lu, \"rx\": %lu, \"kni_tx\": %lu, \"kni_rx\": %lu, \"kni_drop\": %lu, \"drop\": %lu}, ",
 						   lcoreid, stats[lcoreid].port_id,
 						   stats[lcoreid].nb_iteration_looped,
 						   stats[lcoreid].nb_tx, stats[lcoreid].nb_rx,
 						   stats[lcoreid].nb_kni_tx,
 						   stats[lcoreid].nb_kni_rx,
+						   stats[lcoreid].nb_kni_dropped,
 						   stats[lcoreid].nb_dropped);
 
 			total_packets_dropped += stats[lcoreid].nb_dropped;
@@ -64,16 +66,18 @@ void rdpdk_stats_display(struct cmdline *cl, int option)
 			total_packets_rx += stats[lcoreid].nb_rx;
 			total_packets_kni_tx += stats[lcoreid].nb_kni_tx;
 			total_packets_kni_rx += stats[lcoreid].nb_kni_rx;
+			total_packets_kni_dropped += stats[lcoreid].nb_kni_dropped;
 		}
 
 		// add a null object to end the array
 		cmdline_printf(cl, "{}");
 
 		cmdline_printf(cl,
-					   "], \"total\": {\"tx\": %lu, \"rx\": %lu, \"kni_tx\": %lu, \"kni_rx\": %lu, \"drop\": %lu}}\n",
+					   "], \"total\": {\"tx\": %lu, \"rx\": %lu, \"kni_tx\": %lu, \"kni_rx\": %lu, \"kni_drop\": %lu, \"drop\": %lu}}\n",
 					   total_packets_tx, total_packets_rx,
 					   total_packets_kni_tx, total_packets_kni_rx,
-					   total_packets_dropped);
+					   total_packets_kni_dropped,
+                       total_packets_dropped);
 	} else {
 
 		cmdline_printf(cl,
@@ -89,12 +93,14 @@ void rdpdk_stats_display(struct cmdline *cl, int option)
 						   "\nPackets received: %lu"
 						   "\nPackets kni sent: %lu"
 						   "\nPackets kni received: %lu"
+						   "\nPackets kni dropped: %lu"
 						   "\nPackets dropped: %lu", lcoreid,
 						   stats[lcoreid].port_id,
 						   stats[lcoreid].nb_iteration_looped,
 						   stats[lcoreid].nb_tx, stats[lcoreid].nb_rx,
 						   stats[lcoreid].nb_kni_tx,
 						   stats[lcoreid].nb_kni_rx,
+						   stats[lcoreid].nb_kni_dropped,
 						   stats[lcoreid].nb_dropped);
 
 			total_packets_dropped += stats[lcoreid].nb_dropped;
@@ -102,6 +108,7 @@ void rdpdk_stats_display(struct cmdline *cl, int option)
 			total_packets_rx += stats[lcoreid].nb_rx;
 			total_packets_kni_tx += stats[lcoreid].nb_kni_tx;
 			total_packets_kni_rx += stats[lcoreid].nb_kni_rx;
+			total_packets_kni_dropped += stats[lcoreid].nb_kni_dropped;
 		}
 		cmdline_printf(cl,
 					   "\nAggregate statistics ==============================="
@@ -109,9 +116,10 @@ void rdpdk_stats_display(struct cmdline *cl, int option)
 					   "\nTotal packets received: %lu"
 					   "\nTotal packets kni sent: %lu"
 					   "\nTotal packets kni received: %lu"
+					   "\nTotal packets kni dropped: %lu"
 					   "\nTotal packets dropped: %lu", total_packets_tx,
 					   total_packets_rx, total_packets_kni_tx,
-					   total_packets_kni_rx, total_packets_dropped);
+					   total_packets_kni_rx, total_packets_kni_dropped, total_packets_dropped);
 		cmdline_printf(cl,
 					   "\n====================================================\n");
 	}
