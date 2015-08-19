@@ -1,0 +1,23 @@
+#!/bin/sh
+
+link1=$1
+mac1="1e:fb:be:26:50:73"
+
+link2=$3
+mac2="1e:fb:be:26:50:74"
+
+ip link set $link1 up
+ip link add link $link1 name $link1.2007 type vlan id 2007
+ip link set $link1.2007 address $mac1
+ip link set $link1.2007 up
+ip addr add 217.70.176.14/30 dev $link1.2007
+ip addr add 2001:4b98:dc2:1f::c301:2/120 dev $link1.2007
+
+ip link set $link1 up
+ip link add link $link1 name $link1.2004 type vlan id 2004
+ip link set $link1.2004 address $mac2
+ip link set $link1.2004 up
+ip addr add 213.167.230.61/26 dev $link1.2004
+ip addr add 2001:4b98:c001:254::61/64 dev $link1.2004
+
+#TODO put bgpd start here
