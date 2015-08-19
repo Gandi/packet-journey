@@ -42,9 +42,9 @@ do_start()
 
 	# Create namespace if not exists
 
-    if [ -n "$DEVICE_BOUND_OPT" ]; then
-        /usr/bin/dpdk_nic_bind.py $DEVICE_BOUND_OPT
-    fi
+	if [ -n "$DEVICE_BOUND_OPT" ]; then
+		/usr/bin/dpdk_nic_bind $DEVICE_BOUND_OPT
+	fi
 
 	[ ! -f /var/run/netns/$NSNAME ] && ip netns add $NSNAME
 	if [ ! -f /var/run/netns/$NSNAME ] ; then
@@ -94,9 +94,9 @@ do_stop()
 
 	[ -f /var/run/netns/$NSNAME ] && ip netns delete $NSNAME
 
-    if [ -n "$DEVICE_UNBOUND_OPT" ]; then
-        /usr/bin/dpdk_nic_bind.py $DEVICE_UNBOUND_OPT
-    fi
+	if [ -n "$DEVICE_UNBOUND_OPT" ]; then
+		/usr/bin/dpdk_nic_bind $DEVICE_UNBOUND_OPT
+	fi
 
 	return "$RETVAL"
 }
@@ -144,5 +144,3 @@ case "$1" in
 	exit 3
 	;;
 esac
-
-:
