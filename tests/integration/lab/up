@@ -8,8 +8,14 @@ mac2=$4
 ip link set $link1 up
 ip link set $link2 up
 
-ip link set $link1 address $mac1
-ip link set $link2 address $mac2
+ip link add link $link1 name $link1.0 type vlan id 0
+ip link add link $link2 name $link2.0 type vlan id 0
 
-ip add add 1.0.0.1/31 dev $link1
-ip add add 1.0.0.3/31 dev $link2
+ip link set $link1.0 up
+ip link set $link2.0 up
+
+ip link set $link1.0 address $mac1
+ip link set $link2.0 address $mac2
+
+ip add add 1.0.0.1/31 dev $link1.0
+ip add add 1.0.0.3/31 dev $link2.0
