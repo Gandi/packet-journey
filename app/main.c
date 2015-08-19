@@ -75,7 +75,6 @@
 #include <rte_tcp.h>
 #include <rte_udp.h>
 #include <rte_string_fns.h>
-#include <rte_spinlock.h>
 #include <rte_kni.h>
 #include <rte_atomic.h>
 #include <rte_lpm.h>
@@ -103,6 +102,19 @@ struct control_params_t {
 };
 struct control_params_t control_handle[NB_SOCKETS];
 
+#ifdef RTE_NEXT_ABI
+# define	RDPDK_TEST_IPV4_HDR(m) RTE_ETH_IS_IPV4_HDR((m)->packet_type)
+# define	RDPDK_TEST_IPV6_HDR(m) RTE_ETH_IS_IPV6_HDR((m)->packet_type)
+# define    RDPDK_PKT_TYPE(m)      (m)->packet_type
+# define    RDPDK_IP_MASK          (RTE_PTYPE_L3_IPV4 | RTE_PTYPE_L3_IPV6)
+# define    RDPDK_IPV4_MASK        RTE_PTYPE_L3_IPV4
+#else
+# define	RDPDK_TEST_IPV4_HDR(m) (m)->ol_flags & PKT_RX_IPV4_HDR
+# define	RDPDK_TEST_IPV6_HDR(m) (m)->ol_flags & PKT_RX_IPV6_HDR
+# define    RDPDK_PKT_TYPE(m)      (m)->ol_flags
+# define    RDPDK_IP_MASK          (PKT_RX_IPV4_HDR | PKT_RX_IPV6_HDR)
+# define    RDPDK_IPV4_MASK        PKT_RX_IPV4_HDR
+#endif
 
 #define ETHER_TYPE_BE_IPv4 0x0008
 #define ETHER_TYPE_BE_IPv6 0xDD86
@@ -173,7 +185,7 @@ struct lcore_rx_queue {
 } __rte_cache_aligned;
 
 #define MAX_RX_QUEUE_PER_LCORE 16
-#define MAX_TX_QUEUE_PER_PORT 16
+#define MAX_TX_QUEUE_PER_PORT RTE_MAX_ETHPORTS
 #define MAX_RX_QUEUE_PER_PORT 128
 
 static struct rte_mempool *pktmbuf_pool[NB_SOCKETS];
@@ -200,8 +212,6 @@ struct lcore_conf {
 struct lcore_stats stats[RTE_MAX_LCORE];
 
 static struct lcore_conf lcore_conf[RTE_MAX_LCORE];
-static rte_spinlock_t spinlock_conf[RTE_MAX_ETHPORTS] =
-	{ RTE_SPINLOCK_INITIALIZER };
 static rte_atomic32_t main_loop_stop = RTE_ATOMIC32_INIT(0);
 
 static void
@@ -223,10 +233,7 @@ send_burst(struct lcore_conf *qconf, uint16_t n, uint8_t port)
 	queueid = qconf->tx_queue_id[port];
 	m_table = (struct rte_mbuf **) qconf->tx_mbufs[port].m_table;
 
-	rte_spinlock_lock(&spinlock_conf[port]);
 	ret = rte_eth_tx_burst(port, queueid, m_table, n);
-	rte_spinlock_unlock(&spinlock_conf[port]);
-
 	if (unlikely(ret < n)) {
 		do {
 			rte_pktmbuf_free(m_table[ret]);
@@ -250,9 +257,7 @@ send_packetsx4(struct lcore_conf *qconf, uint8_t port,
 	 * then send them straightway.
 	 */
 	if (num >= MAX_TX_BURST && len == 0) {
-		rte_spinlock_lock(&spinlock_conf[port]);
 		n = rte_eth_tx_burst(port, qconf->tx_queue_id[port], m, num);
-		rte_spinlock_unlock(&spinlock_conf[port]);
 		if (unlikely(n < num)) {
 			do {
 				rte_pktmbuf_free(m[n]);
@@ -361,7 +366,7 @@ rfc1812_process(struct ipv4_hdr *ipv4_hdr, uint16_t * dp, uint32_t flags)
 {
 	uint8_t ihl;
 
-	if (likely((flags & PKT_RX_IPV4_HDR) != 0)) {
+	if (likely((flags & RDPDK_IPV4_MASK) != 0)) {
 
 		ihl = ipv4_hdr->version_ihl - IPV4_MIN_VER_IHL;
 
@@ -388,7 +393,7 @@ get_dst_port(const struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
 	if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4) {
 #else
-	if (pkt->ol_flags & PKT_RX_IPV4_HDR) {
+    if (RDPDK_TEST_IPV4_HDR(pkt)) {
 #endif
 		if (rte_lpm_lookup(qconf->ipv4_lookup_struct, dst_ipv4,
 						   &next_hop) != 0)
@@ -396,7 +401,7 @@ get_dst_port(const struct lcore_conf *qconf, struct rte_mbuf *pkt,
 #ifdef RDPDK_QEMU
 	} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6) {
 #else
-	} else if (pkt->ol_flags & PKT_RX_IPV6_HDR) {
+    } else if (RDPDK_TEST_IPV6_HDR(pkt)) {
 		eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
 #endif
 		ipv6_hdr = (struct ipv6_hdr *) (eth_hdr + 1);
@@ -424,7 +429,7 @@ process_step2(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 #ifdef RDPDK_QEMU
 	if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4) {
 #else
-	if (likely(pkt->ol_flags & PKT_RX_IPV4_HDR)) {
+    if (likely(RDPDK_TEST_IPV4_HDR(pkt))) {
 #endif
 		ipv4_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
 		dp = get_ipv4_dst_port(ipv4_hdr, 0, qconf->ipv4_lookup_struct);
@@ -434,7 +439,7 @@ process_step2(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 #ifdef RDPDK_QEMU
 	} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6) {
 #else
-	} else if (pkt->ol_flags & PKT_RX_IPV6_HDR) {
+    } else if (RDPDK_TEST_IPV6_HDR(pkt)) {
 #endif
 		ipv6_hdr = (struct ipv6_hdr *) (eth_hdr + 1);
 
@@ -446,35 +451,36 @@ process_step2(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 }
 
 /*
- * Read ol_flags and destination IPV4 addresses from 4 mbufs.
+ * Read packet_type and destination IPV4 addresses from 4 mbufs.
  */
 static inline void
-processx4_step1(struct rte_mbuf *pkt[FWDSTEP], __m128i * dip,
-				uint32_t * flag)
+processx4_step1(struct rte_mbuf *pkt[FWDSTEP],
+		__m128i *dip,
+		uint32_t *ipv4_flag)
 {
 	struct ipv4_hdr *ipv4_hdr;
 	struct ether_hdr *eth_hdr;
 	uint32_t x0, x1, x2, x3;
 
 	eth_hdr = rte_pktmbuf_mtod(pkt[0], struct ether_hdr *);
-	ipv4_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
+	ipv4_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
 	x0 = ipv4_hdr->dst_addr;
-	flag[0] = pkt[0]->ol_flags & PKT_RX_IPV4_HDR;
+	ipv4_flag[0] = RDPDK_PKT_TYPE(pkt[0]) & RDPDK_IPV4_MASK;
 
 	eth_hdr = rte_pktmbuf_mtod(pkt[1], struct ether_hdr *);
-	ipv4_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
+	ipv4_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
 	x1 = ipv4_hdr->dst_addr;
-	flag[0] &= pkt[1]->ol_flags;
+	ipv4_flag[0] &= RDPDK_PKT_TYPE(pkt[1]);
 
 	eth_hdr = rte_pktmbuf_mtod(pkt[2], struct ether_hdr *);
-	ipv4_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
+	ipv4_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
 	x2 = ipv4_hdr->dst_addr;
-	flag[0] &= pkt[2]->ol_flags;
+	ipv4_flag[0] &= RDPDK_PKT_TYPE(pkt[2]);
 
 	eth_hdr = rte_pktmbuf_mtod(pkt[3], struct ether_hdr *);
-	ipv4_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
+	ipv4_hdr = (struct ipv4_hdr *)(eth_hdr + 1);
 	x3 = ipv4_hdr->dst_addr;
-	flag[0] &= pkt[3]->ol_flags;
+	ipv4_flag[0] &= RDPDK_PKT_TYPE(pkt[3]);
 
 	dip[0] = _mm_set_epi32(x3, x2, x1, x0);
 }
@@ -596,7 +602,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 			}
 #else
 #define PROCESSX4_STEP(step) \
-			if (likely(pkt[j]->ol_flags & PKT_RX_IPV4_HDR)) { \
+			if (likely(RDPDK_TEST_IPV4_HDR(pkt[j]))) { \
 				is_ipv4 = 1; \
 				process = \
 					!qconf->neighbor4_struct->entries.t4[dst_port[j]]. \
@@ -605,7 +611,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI; \
 				L3FWD_DEBUG_TRACE(#step ": j %d process %d dst_port %d ipv4\n", \
 								  j, process, dst_port[j]); \
-			} else if (pkt[j]->ol_flags & PKT_RX_IPV6_HDR) { \
+			} else if (RDPDK_TEST_IPV6_HDR(pkt[j])) { \
 				is_ipv4 = 0; \
 				process = \
 					!qconf->neighbor6_struct->entries.t6[dst_port[j]]. \
@@ -705,17 +711,12 @@ process_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 #ifdef RDPDK_QEMU
 	if (likely(eth_hdr->ether_type == ETHER_TYPE_BE_IPv4))
 #else
-	if (likely(pkt->ol_flags & PKT_RX_IPV4_HDR))
+	if (likely(RDPDK_TEST_IPV4_HDR(pkt)))
 #endif
 		entries = &qconf->neighbor4_struct->entries.t4[*dst_port].neighbor;
 	else
 		entries = &qconf->neighbor6_struct->entries.t6[*dst_port].neighbor;
 
-#ifdef RDPDK_DEBUG
-	print_ethaddr("b smac ", &eth_hdr->s_addr);
-	print_ethaddr("b dmac ", &eth_hdr->d_addr);
-	printf("b type %x\n", eth_hdr->ether_type);
-#endif
 	ve = _mm_load_si128((__m128i *) & entries->nexthop_hwaddr);
 	
 	// requires unaligned load to prevent segfaults
@@ -726,13 +727,8 @@ process_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 
 	te = _mm_blend_epi16(te, ve, MASK_ETH);
 	_mm_storeu_si128((__m128i *) & eth_hdr->d_addr, te);
-#ifdef RDPDK_DEBUG
-	print_ethaddr("ff smac ", &eth_hdr->s_addr);
-	print_ethaddr("ff dmac ", &eth_hdr->d_addr);
-	printf("ff type %x \n", eth_hdr->ether_type);
-#endif
 	rfc1812_process((struct ipv4_hdr *) (eth_hdr + 1),
-					dst_port, pkt->ol_flags);
+					dst_port, RDPDK_PKT_TYPE(pkt));
 	*dst_port = entries->port_id;
 }
 
@@ -759,7 +755,7 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	eth_hdr = rte_pktmbuf_mtod(pkt[0], struct ether_hdr *);
 	if (likely(eth_hdr->ether_type == ETHER_TYPE_BE_IPv4))
 #else
-	if (likely(pkt[0]->ol_flags & PKT_RX_IPV4_HDR))
+	if (likely(RDPDK_TEST_IPV4_HDR(pkt[0])))
 #endif
 		entries[0] =
 			&qconf->neighbor4_struct->entries.t4[dst_port[0]].neighbor;
@@ -771,7 +767,7 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	eth_hdr = rte_pktmbuf_mtod(pkt[1], struct ether_hdr *);
 	if (likely(eth_hdr->ether_type == ETHER_TYPE_BE_IPv4))
 #else
-	if (likely(pkt[1]->ol_flags & PKT_RX_IPV4_HDR))
+	if (likely(RDPDK_TEST_IPV4_HDR(pkt[1])))
 #endif
 		entries[1] =
 			&qconf->neighbor4_struct->entries.t4[dst_port[1]].neighbor;
@@ -783,7 +779,7 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	eth_hdr = rte_pktmbuf_mtod(pkt[2], struct ether_hdr *);
 	if (likely(eth_hdr->ether_type == ETHER_TYPE_BE_IPv4))
 #else
-	if (likely(pkt[2]->ol_flags & PKT_RX_IPV4_HDR))
+	if (likely(RDPDK_TEST_IPV4_HDR(pkt[2])))
 #endif
 		entries[2] =
 			&qconf->neighbor4_struct->entries.t4[dst_port[2]].neighbor;
@@ -795,7 +791,7 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	eth_hdr = rte_pktmbuf_mtod(pkt[3], struct ether_hdr *);
 	if (likely(eth_hdr->ether_type == ETHER_TYPE_BE_IPv4))
 #else
-	if (likely(pkt[3]->ol_flags & PKT_RX_IPV4_HDR))
+	if (likely(RDPDK_TEST_IPV4_HDR(pkt[3])))
 #endif
 		entries[3] =
 			&qconf->neighbor4_struct->entries.t4[dst_port[3]].neighbor;
@@ -831,13 +827,13 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	_mm_store_si128(p[3], te[3]);
 
 	rfc1812_process((struct ipv4_hdr *) ((struct ether_hdr *) p[0] + 1),
-					&dst_port[0], pkt[0]->ol_flags);
+					&dst_port[0], RDPDK_PKT_TYPE(pkt[0]));
 	rfc1812_process((struct ipv4_hdr *) ((struct ether_hdr *) p[1] + 1),
-					&dst_port[1], pkt[1]->ol_flags);
+					&dst_port[1], RDPDK_PKT_TYPE(pkt[1]));
 	rfc1812_process((struct ipv4_hdr *) ((struct ether_hdr *) p[2] + 1),
-					&dst_port[2], pkt[2]->ol_flags);
+					&dst_port[2], RDPDK_PKT_TYPE(pkt[2]));
 	rfc1812_process((struct ipv4_hdr *) ((struct ether_hdr *) p[3] + 1),
-					&dst_port[3], pkt[3]->ol_flags);
+					&dst_port[3], RDPDK_PKT_TYPE(pkt[3]));
 }
 
 #define	GRPSZ	(1 << FWDSTEP)
@@ -927,14 +923,12 @@ prepare_one_packet(struct rte_mbuf **pkts_in, struct acl_search_t *acl,
 {
 	struct rte_mbuf *pkt = pkts_in[index];
 
-	int type = pkt->ol_flags & (PKT_RX_IPV4_HDR | PKT_RX_IPV6_HDR);
-
 	//XXX we cannot filter non IP packet yet
-	if (type == PKT_RX_IPV4_HDR) {
+	if (RDPDK_TEST_IPV4_HDR(pkt)) {
 		/* Fill acl structure */
 		acl->data_ipv4[acl->num_ipv4] = MBUF_IPV4_2PROTO(pkt);
 		acl->m_ipv4[(acl->num_ipv4)++] = pkt;
-	} else if (type == PKT_RX_IPV6_HDR) {
+	} else if (RDPDK_TEST_IPV6_HDR(pkt)) {
 		/* Fill acl structure */
 		acl->data_ipv6[acl->num_ipv6] = MBUF_IPV6_2PROTO(pkt);
 		acl->m_ipv6[(acl->num_ipv6)++] = pkt;
@@ -1007,10 +1001,7 @@ filter_packets(struct rte_mbuf **pkts, struct acl_search_t *acl_search,
 			rte_pktmbuf_free(acl_pkts[i]);
 		} else {
 			//add back the unfiltered packet in pkts but don't discard non IP packet
-			while (!
-				   (pkts[nb_pkts]->ol_flags &
-					(PKT_RX_IPV4_HDR | PKT_RX_IPV6_HDR))
-&& nb_pkts < nb_rx) {
+			while (!(RDPDK_PKT_TYPE(pkts[nb_pkts]) & RDPDK_IP_MASK) && nb_pkts < nb_rx) {
 				nb_pkts++;
 			}
 			pkts[nb_pkts++] = acl_pkts[i];
@@ -1032,10 +1023,7 @@ filter_packets(struct rte_mbuf **pkts, struct acl_search_t *acl_search,
 			rte_pktmbuf_free(acl_pkts[i]);
 		} else {
 			//add back the unfiltered packet in pkts but don't discard non IP packet
-			while (!
-				   (pkts[nb_pkts]->ol_flags &
-					(PKT_RX_IPV4_HDR | PKT_RX_IPV6_HDR))
-&& nb_pkts < nb_rx) {
+			while (!(RDPDK_PKT_TYPE(pkts[nb_pkts]) & RDPDK_IP_MASK) && nb_pkts < nb_rx) {
 				nb_pkts++;
 			}
 			pkts[nb_pkts++] = acl_pkts[i];
@@ -1044,7 +1032,7 @@ filter_packets(struct rte_mbuf **pkts, struct acl_search_t *acl_search,
 
 	//add back non IP packet that are after nb_pkts packets
 	for (i = nb_pkts; i < nb_rx; i++) {
-		if (!(pkts[i]->ol_flags & (PKT_RX_IPV4_HDR | PKT_RX_IPV6_HDR))) {
+		if (!(RDPDK_PKT_TYPE(pkts[i]) & RDPDK_IP_MASK)) {
 			pkts[nb_pkts++] = pkts[i];
 		}
 	}
