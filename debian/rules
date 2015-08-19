@@ -56,3 +56,9 @@ override_dh_shlibdeps:
 
 override_dh_installinit:
 	dh_installinit --no-start --name=rdpdk
+
+.PHONY: override_dh_strip
+override_dh_strip:
+	dh_strip -p "rdpdk-westmere" --dbg-package=rdpdk-westmere-dbg
+	dh_strip -p "rdpdk-sandybridge" --dbg-package=rdpdk-sandybridge-dbg
+	dh_strip -p "rdpdk-ivybridge" --dbg-package=rdpdk-ivybridge-dbg

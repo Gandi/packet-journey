@@ -25,3 +25,33 @@ Architecture: any
 Depends: ${misc:Depends}, dpdk-sandybridge
 Description: Router-DPDK
  Router-DPDK is doing packet processing using the Data Plane Development Kit (DPDK).
+
+Package: rdpdk-westmere-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends:
+    rdpdk-westmere (= ${binary:Version}),
+    ${misc:Depends}
+Description: debugging symbols for rdpdk-westmere
+ This package contains the debugging symbols for rdpdk-westmere.
+
+Package: rdpdk-sandybridge-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends:
+    rdpdk-sandybridge (= ${binary:Version}),
+    ${misc:Depends}
+Description: debugging symbols for rdpdk-sandybridge
+ This package contains the debugging symbols for rdpdk-sandybridge.
+
+Package: rdpdk-ivybridge-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends:
+    rdpdk-ivybridge (= ${binary:Version}),
+    ${misc:Depends}
+Description: debugging symbols for rdpdk-ivybridge
+ This package contains the debugging symbols for rdpdk-ivybridge.
