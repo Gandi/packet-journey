@@ -1,3 +1,9 @@
+rdpdk (0.1.4) unstable; urgency=low
+
+  * rename vEth to dpdk.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Thu, 20 Aug 2015 14:23:29 +0200
+
 rdpdk (0.1.3) unstable; urgency=low
 
   * fix typo in rpath for sandybridge and ivybridge.

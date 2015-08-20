@@ -294,12 +294,12 @@ int kni_alloc(uint8_t port_id, struct rte_mempool *pktmbuf_pool)
 	for (i = 0; i < params[port_id]->nb_kni; i++) {
 		/* Clear conf at first */
 		memset(&conf, 0, sizeof(conf));
-		if (params[port_id]->nb_lcore_k) {
-			snprintf(conf.name, RTE_KNI_NAMESIZE, "vEth%u_%u", port_id, i);
+		if (params[port_id]->nb_lcore_k > 1) {
+			snprintf(conf.name, RTE_KNI_NAMESIZE, "dpdk%u_%u", port_id, i);
 			conf.core_id = params[port_id]->lcore_k[i];
 			conf.force_bind = 1;
 		} else
-			snprintf(conf.name, RTE_KNI_NAMESIZE, "vEth%u", port_id);
+			snprintf(conf.name, RTE_KNI_NAMESIZE, "dpdk%u", port_id);
 		conf.group_id = (uint16_t) port_id;
 		conf.mbuf_size = MAX_PACKET_SZ;
 		/*
