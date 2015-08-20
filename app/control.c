@@ -249,12 +249,10 @@ neighbor4(neighbor_action_t action,
 		if (lladdr == NULL)
 			return -1;
 		char ibuf[IFNAMSIZ];
-//	unsigned kni_num;
 		unsigned kni_vlan;
 
 		if_indextoname(port_id, ibuf);
-		s = sscanf(ibuf, "dpdk%10u.%10u", &port_id, // &kni_num,
-				   &kni_vlan);
+		s = sscanf(ibuf, "dpdk%10u.%10u", &port_id, &kni_vlan);
 		if (s <= 0) {
 			RTE_LOG(ERR, L3FWD_CTRL,
 					"received a neighbor announce for an unmanaged iface %s\n",
@@ -342,12 +340,10 @@ neighbor6(neighbor_action_t action,
 		if (lladdr == NULL)
 			return -1;
 		char ibuf[IFNAMSIZ];
-//		unsigned kni_num;
 		unsigned kni_vlan;
 
 		if_indextoname(port_id, ibuf);
-		s = sscanf(ibuf, "dpdk%10u.%10u", &port_id,// &kni_num,
-				   &kni_vlan);
+		s = sscanf(ibuf, "dpdk%10u.%10u", &port_id, &kni_vlan);
 
 		if (s <= 0) {
 			RTE_LOG(ERR, L3FWD_CTRL,
@@ -398,7 +394,6 @@ static int addr4(__rte_unused addr_action_t action, int32_t port_id,
 {
 	char buf[255];
 	char ibuf[IFNAMSIZ];
-//	unsigned kni_num;
 	struct control_handle *handle = args;
 	assert(handle != NULL);
 	int32_t socket_id = handle->socket_id;
@@ -418,7 +413,6 @@ static int addr6(__rte_unused addr_action_t action, int32_t port_id,
 {
 	char buf[255];
 	char ibuf[IFNAMSIZ];
-//	unsigned kni_num;
 	struct control_handle *handle = args;
 	assert(handle != NULL);
 	int32_t socket_id = handle->socket_id;
