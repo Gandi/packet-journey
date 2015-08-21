@@ -446,7 +446,7 @@ static inline __u32 nl_mgrp(__u32 group)
 struct netl_handle *netl_create(void)
 {
 	struct netl_handle *netl_handle;
-	int rcvbuf = 1024 * 1024;
+	int rcvbuf = 1024 * 1024 * 1024;
 	socklen_t addr_len;
 	unsigned subscriptions = 0;
 
