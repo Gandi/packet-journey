@@ -422,25 +422,17 @@ process_step2(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr *);
 
 #ifdef RDPDK_QEMU
-	uint16_t offset = 0;
-	dp = -1;
-	if (eth_hdr->ether_type == ETHER_TYPE_BE_VLAN) {
-		dp = ((struct vlan_hdr *) (eth_hdr + 1))->eth_proto;
-		offset = sizeof(struct vlan_hdr);
-	}
-	if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4 || dp == ETHER_TYPE_BE_IPv4) {
-		ipv4_hdr = (struct ipv4_hdr *) ((char *)(eth_hdr + 1) + offset);
+	if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4) {
 #else
 	if (likely(pkt->ol_flags & PKT_RX_IPV4_HDR)) {
-		ipv4_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
 #endif
+		ipv4_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
 		dp = get_ipv4_dst_port(ipv4_hdr, 0, qconf->ipv4_lookup_struct);
 		L3FWD_DEBUG_TRACE("process_packet4 res %d\n", dp);
 
 		dst_port[0] = dp;
 #ifdef RDPDK_QEMU
-	} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6 || dp == ETHER_TYPE_BE_IPv6) {
-		ipv6_hdr = (struct ipv6_hdr *) ((char *)(eth_hdr + 1) + offset);
+	} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6) {
 #else
 	} else if (pkt->ol_flags & PKT_RX_IPV6_HDR) {
 #endif
@@ -540,7 +532,6 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 #endif
 #ifdef RDPDK_QEMU
 	struct ether_hdr *eth_hdr;
-	uint16_t eth_proto = -1;
 #endif
 
 	p = kni_port_params_array[portid];
@@ -549,10 +540,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 #ifdef RDPDK_QEMU
 #define PROCESSX4_STEP(step) \
 			eth_hdr = rte_pktmbuf_mtod(pkt[j], struct ether_hdr *); \
-			if (eth_hdr->ether_type == ETHER_TYPE_BE_VLAN) { \
-				eth_proto = ((struct vlan_hdr *)(eth_hdr + 1))->eth_proto; \
-			} \
-			if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4 || eth_proto == ETHER_TYPE_BE_IPv4) { \
+			if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv4) { \
 				is_ipv4 = 1; \
 				process = \
 					!qconf->neighbor4_struct->entries.t4[dst_port[j]]. \
@@ -561,7 +549,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					t4[dst_port[j]].neighbor.action == NEI_ACTION_KNI; \
 				L3FWD_DEBUG_TRACE(#step ": j %d process %d dst_port %d ipv4\n", \
 								  j, process, dst_port[j]); \
-			} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6 || eth_proto == ETHER_TYPE_BE_IPv6) { \
+			} else if (eth_hdr->ether_type == ETHER_TYPE_BE_IPv6) { \
 				is_ipv4 = 0; \
 				process = \
 					!qconf->neighbor6_struct->entries.t6[dst_port[j]]. \
@@ -715,10 +703,7 @@ process_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 
 	eth_hdr = (rte_pktmbuf_mtod(pkt, struct ether_hdr *));
 #ifdef RDPDK_QEMU
-	uint16_t ether_type = (eth_hdr->ether_type == ETHER_TYPE_BE_VLAN) ?
-							((struct vlan_hdr *)(eth_hdr + 1))->eth_proto : eth_hdr->ether_type;
-
-	if (likely(ether_type == ETHER_TYPE_BE_IPv4))
+	if (likely(eth_hdr->ether_type == ETHER_TYPE_BE_IPv4))
 #else
 	if (likely(pkt->ol_flags & PKT_RX_IPV4_HDR))
 #endif
