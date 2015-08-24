@@ -18,7 +18,7 @@ neighbor6_lookup_nexthop(struct nei_table *t, struct in6_addr *nexthop,
 	for (i = 0; i < NEI_NUM_ENTRIES; i++) {
 		entry = &(t->entries.t6[i]);
 		if (entry->neighbor.in_use
-			&& entry->addr.s6_addr == nexthop->s6_addr) {
+			&& !memcmp(entry->addr.s6_addr, nexthop->s6_addr, sizeof(nexthop->s6_addr))) {
 			*nexthop_id = i;
 			return 0;
 		}
@@ -43,8 +43,8 @@ neighbor6_add_nexthop(struct nei_table *t, struct in6_addr *nexthop,
 			entry->neighbor.valid = 0;
 			entry->neighbor.action = action;
 			memcpy(entry->addr.s6_addr, nexthop->s6_addr,
-				   sizeof(*nexthop->s6_addr));
-			memset(&entry->neighbor.nexthop_hwaddr.addr_bytes, 0,
+				   sizeof(nexthop->s6_addr));
+			memset(entry->neighbor.nexthop_hwaddr.addr_bytes, 0,
 				   sizeof(entry->neighbor.nexthop_hwaddr.addr_bytes));
 
 			return 0;
