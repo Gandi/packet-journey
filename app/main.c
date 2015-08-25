@@ -717,7 +717,13 @@ process_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	printf("b type %x\n", eth_hdr->ether_type);
 #endif
 	ve = _mm_load_si128((__m128i *) & entries->nexthop_hwaddr);
-	te = _mm_load_si128((__m128i *) eth_hdr);
+	
+	// requires unaligned load to prevent segfaults
+	// happens on any packet when using virtio because of soft vlan stripping,
+	// eth_hdr is always at (headroom + sizeof(struct vlan_hdr))
+	// also happens when not using virtio but packet type is still unknown...
+	te = _mm_loadu_si128((__m128i *) eth_hdr);
+
 	te = _mm_blend_epi16(te, ve, MASK_ETH);
 	_mm_storeu_si128((__m128i *) & eth_hdr->d_addr, te);
 #ifdef RDPDK_DEBUG
