@@ -1,3 +1,9 @@
+rdpdk (0.1.5) unstable; urgency=low
+
+  * fix rename vEth to dpdk.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Tue, 25 Aug 2015 02:23:29 +0200
+
 rdpdk (0.1.4) unstable; urgency=low
 
   * rename vEth to dpdk.
