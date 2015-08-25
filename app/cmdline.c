@@ -974,11 +974,12 @@ static int rdpdk_cmdline_free(void *cmdline)
 int rdpdk_cmdline_terminate(int sock, const char *path)
 {
 	int i;
+    int ret = 0; //here for silence write warning
 
 	for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
 		if (cmdline_clients[i].cmdline_tid) {
 #define CMDLINE_QUIT_MSG "DPDK closing...\n"
-			write(cmdline_clients[i].sock, CMDLINE_QUIT_MSG,
+			ret = write(cmdline_clients[i].sock, CMDLINE_QUIT_MSG,
 				  sizeof(CMDLINE_QUIT_MSG));
 			shutdown(cmdline_clients[i].sock, SHUT_RDWR);
 			close(cmdline_clients[i].sock);
@@ -996,7 +997,7 @@ int rdpdk_cmdline_terminate(int sock, const char *path)
 	}
 	close(sock);
 	unlink(path);
-	return 0;
+	return ret;
 }
 
 int rdpdk_cmdline_stop(void)
@@ -1026,7 +1027,7 @@ static void *cmdline_run(void *data)
 	struct pollfd fds[CMDLINE_MAX_SOCK];
 	int sock = (intptr_t) data;
 	int nfds = 1;
-	int i, ret;
+	int i, ret = 0;
 
 	fds[0].events = POLLIN;
 	fds[0].fd = sock;
@@ -1063,7 +1064,7 @@ static void *cmdline_run(void *data)
 
 			if (i == CMDLINE_MAX_CLIENTS) {
 #define CMDLINE_MCLI_MSG "Max client reached... \n"
-				write(res, CMDLINE_MCLI_MSG, sizeof(CMDLINE_MCLI_MSG));
+				ret = write(res, CMDLINE_MCLI_MSG, sizeof(CMDLINE_MCLI_MSG));
 				close(res);
 			}
 		}

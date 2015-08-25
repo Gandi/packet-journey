@@ -1,3 +1,9 @@
+rdpdk (0.1.6) unstable; urgency=low
+
+  * Make it compatible with dpdk 2.1.0 .
+
+ -- Nikita Kozlov <nikita@gandi.net>  Tue, 26 Aug 2015 00:42:29 +0200
+
 rdpdk (0.1.5) unstable; urgency=low
 
   * fix rename vEth to dpdk.
