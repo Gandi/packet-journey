@@ -1914,7 +1914,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if ((ret = control_callback_setup(callback_setup))) {
+	if ((ret = control_callback_setup(callback_setup, nb_ports))) {
 		perror("control_callback_setup failure with: ");
 		rte_exit(EXIT_FAILURE,
 				 "control callback setup returned error: err=%d,", ret);

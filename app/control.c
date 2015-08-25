@@ -627,18 +627,22 @@ int control_add_ipv6_local_entry(struct in6_addr *nexthop,
 	return nexthop_id;
 }
 
-int control_callback_setup(const char *cb)
+int control_callback_setup(const char *cb, uint8_t nb_ports)
 {
 	char cmd[CTRL_CBK_MAX_SIZE];
 	int len;
 	char ether1[ETHER_ADDR_FMT_SIZE];
+	uint8_t port;
 
-	ether_format_addr(ether1, ETHER_ADDR_FMT_SIZE, ports_eth_addr);
+	len = snprintf(cmd, CTRL_CBK_MAX_SIZE, "%s", cb);
 
-	len =
-		snprintf(cmd, CTRL_CBK_MAX_SIZE, "%s %s %s", cb, "dpdk0", ether1);
-	if (len > CTRL_CBK_MAX_SIZE) {
-		rte_panic("control callback too long");
+	for (port = 0; port < nb_ports; port++) {
+		ether_format_addr(ether1, ETHER_ADDR_FMT_SIZE, &ports_eth_addr[port]);
+		len += snprintf(&cmd[len], CTRL_CBK_MAX_SIZE - len, " dpdk%d %s", port, ether1);
+
+		if (len > CTRL_CBK_MAX_SIZE) {
+			rte_panic("control callback too long");
+		}
 	}
 
 	RTE_LOG(INFO, L3FWD_CTRL, "executing command `%s`\n", cmd);
