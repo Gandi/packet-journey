@@ -40,17 +40,26 @@ override_dh_auto_install: dh_auto_install/rdpdk-westmere dh_auto_install/rdpdk-s
 .PHONY: dh_auto_install/rdpdk-westmere
 dh_auto_install/rdpdk-westmere:
 	mkdir -p $(CURDIR)/debian/rdpdk-westmere/usr/sbin
+	mkdir -p $(CURDIR)/debian/rdpdk-westmere/usr/lib
 	mv $(CURDIR)/build-westmere/app/x86_64-native-linuxapp-gcc-westmere/rdpdk $(CURDIR)/debian/rdpdk-westmere/usr/sbin/
+	mv $(CURDIR)/build-westmere/lib/libnetlink/x86_64-native-linuxapp-gcc-westmere/lib/* $(CURDIR)/debian/rdpdk-westmere/usr/lib
+	mv $(CURDIR)/build-westmere/lib/libneighbour/x86_64-native-linuxapp-gcc-westmere/lib/* $(CURDIR)/debian/rdpdk-westmere/usr/lib
 
 .PHONY: dh_auto_install/rdpdk-sandybridge
 dh_auto_install/rdpdk-sandybridge:
 	mkdir -p $(CURDIR)/debian/rdpdk-sandybridge/usr/sbin
+	mkdir -p $(CURDIR)/debian/rdpdk-sandybridge/usr/lib
 	mv $(CURDIR)/build-sandybridge/app/x86_64-native-linuxapp-gcc-sandybridge/rdpdk $(CURDIR)/debian/rdpdk-sandybridge/usr/sbin/
+	mv $(CURDIR)/build-sandybridge/lib/libnetlink/x86_64-native-linuxapp-gcc-sandybridge/lib/* $(CURDIR)/debian/rdpdk-sandybridge/usr/lib
+	mv $(CURDIR)/build-sandybridge/lib/libneighbour/x86_64-native-linuxapp-gcc-sandybridge/lib/* $(CURDIR)/debian/rdpdk-sandybridge/usr/lib
 
 .PHONY: dh_auto_install/rdpdk-ivybridge
 dh_auto_install/rdpdk-ivybridge:
 	mkdir -p $(CURDIR)/debian/rdpdk-ivybridge/usr/sbin
+	mkdir -p $(CURDIR)/debian/rdpdk-ivybridge/usr/lib
 	mv $(CURDIR)/build-ivybridge/app/x86_64-native-linuxapp-gcc-ivybridge/rdpdk $(CURDIR)/debian/rdpdk-ivybridge/usr/sbin/
+	mv $(CURDIR)/build-ivybridge/lib/libnetlink/x86_64-native-linuxapp-gcc-ivybridge/lib/* $(CURDIR)/debian/rdpdk-ivybridge/usr/lib
+	mv $(CURDIR)/build-ivybridge/lib/libneighbour/x86_64-native-linuxapp-gcc-ivybridge/lib/* $(CURDIR)/debian/rdpdk-ivybridge/usr/lib
 
 override_dh_shlibdeps:
 

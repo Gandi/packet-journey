@@ -1,3 +1,9 @@
+rdpdk (0.1.8) unstable; urgency=low
+
+  * Add missing libs in package.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 26 Aug 2015 13:59:29 +0200
+
 rdpdk (0.1.7) unstable; urgency=low
 
   * Dynamicly link against newest dpdk.
