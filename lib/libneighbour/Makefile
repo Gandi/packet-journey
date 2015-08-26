@@ -11,4 +11,7 @@ SRCS-y += neighbour.c
 
 SYMLINK-y-include += libneighbour.h
 
+LIBABIVER=1
+EXPORT_MAP := libneighbour.map
+
 include $(RTE_SDK)/mk/rte.extlib.mk

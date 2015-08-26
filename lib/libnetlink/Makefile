@@ -10,4 +10,7 @@ SRCS-y += netlink.c
 
 SYMLINK-y-include += libnetlink.h
 
+LIBABIVER=1
+EXPORT_MAP := libnetlink.map
+
 include $(RTE_SDK)/mk/rte.extlib.mk
