@@ -21,15 +21,15 @@ override_dh_auto_build: dh_auto_build/rdpdk-westmere dh_auto_build/rdpdk-ivybrid
 
 .PHONY: dh_auto_build/rdpdk-westmere
 dh_auto_build/rdpdk-westmere:
-	RTE_SDK=/usr/share/dpdk-westmere/ RTE_TARGET=x86_64-native-linuxapp-gcc-westmere make O='$$(RTE_SRCDIR)/build-westmere' EXTRA_LDFLAGS='--rpath=/usr/lib/dpdk-westmere'
+	RTE_SDK=/usr/share/dpdk-westmere/ RTE_TARGET=x86_64-native-linuxapp-gcc-westmere make O='$$(RTE_SRCDIR)/build-westmere' EXTRA_LDFLAGS='-Wl,--rpath=/usr/lib/dpdk-westmere'
 
 .PHONY: dh_auto_build/rdpdk-ivybridge
 dh_auto_build/rdpdk-ivybridge:
-	RTE_SDK=/usr/share/dpdk-ivybridge/ RTE_TARGET=x86_64-native-linuxapp-gcc-ivybridge make O='$$(RTE_SRCDIR)/build-ivybridge' EXTRA_LDFLAGS='--rpath=/usr/lib/dpdk-ivybridge'
+	RTE_SDK=/usr/share/dpdk-ivybridge/ RTE_TARGET=x86_64-native-linuxapp-gcc-ivybridge make O='$$(RTE_SRCDIR)/build-ivybridge' EXTRA_LDFLAGS='-Wl,--rpath=/usr/lib/dpdk-ivybridge'
 
 .PHONY: dh_auto_build/rdpdk-sandybridge
 dh_auto_build/rdpdk-sandybridge:
-	RTE_SDK=/usr/share/dpdk-sandybridge/ RTE_TARGET=x86_64-native-linuxapp-gcc-sandybridge make O='$$(RTE_SRCDIR)/build-sandybridge' EXTRA_LDFLAGS='--rpath=/usr/lib/dpdk-sandybridge'
+	RTE_SDK=/usr/share/dpdk-sandybridge/ RTE_TARGET=x86_64-native-linuxapp-gcc-sandybridge make O='$$(RTE_SRCDIR)/build-sandybridge' EXTRA_LDFLAGS='-Wl,--rpath=/usr/lib/dpdk-sandybridge'
 
 override_dh_auto_test:
 override_dh_auto_clean:
