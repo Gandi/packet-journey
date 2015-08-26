@@ -1,0 +1,3 @@
+LIBNEIGHBOR_1.0 {
+    global: *;
+};

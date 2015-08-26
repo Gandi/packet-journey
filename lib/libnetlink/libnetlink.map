@@ -1,0 +1,4 @@
+LIBNETLINK_1.0 {
+    global: *;
+
+};
