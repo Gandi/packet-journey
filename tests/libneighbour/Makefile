@@ -5,10 +5,11 @@ APP = test_libneighbour
 NS := $(shell mktemp -u -t XXXXXX | sed 's@/tmp/@@')
 
 SRCS-y += a.c
-SRCS-y += $(BASE_OUTPUT)/lib/libneighbour/$(RTE_TARGET)/lib/libneighbour.a
 
 CFLAGS += -I$(BASE_OUTPUT)/lib/libneighbour/$(RTE_TARGET)/include
 CFLAGS += -I$(SRCDIR)/../../include/
+
+LDFLAGS += -L$(BASE_OUTPUT)/lib/libneighbour/$(RTE_TARGET)/lib -lneighbour
 
 .PHONY: default test
 default: all

@@ -5,10 +5,11 @@ APP = test_libnetlink
 NS := $(shell mktemp -u -t XXXXXX | sed 's@/tmp/@@')
 
 SRCS-y += a.c
-SRCS-y += $(BASE_OUTPUT)/lib/libnetlink/$(RTE_TARGET)/lib/libnetlink.a
 
 CFLAGS += -I$(BASE_OUTPUT)/lib/libnetlink/$(RTE_TARGET)/include
 CFLAGS += -I$(SRCDIR)/../../include/
+
+LDFLAGS += -L$(BASE_OUTPUT)/lib/libnetlink/$(RTE_TARGET)/lib -lnetlink
 
 .PHONY: default test
 default: all
