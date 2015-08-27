@@ -130,11 +130,7 @@ struct control_params_t control_handle[NB_SOCKETS];
 	addr[12], addr[13],addr[14], addr[15]
 #endif
 
-#define IPV6_ADDR_LEN 16
-
 #define MEMPOOL_CACHE_SIZE 256
-
-#define MBUF_SIZE (MAX_PACKET_SZ + sizeof(struct rte_mbuf) + RTE_PKTMBUF_HEADROOM)
 
 /*
  * This expression is used to calculate the number of mbufs needed depending on user input, taking
@@ -148,6 +144,8 @@ struct control_params_t control_handle[NB_SOCKETS];
 				nb_ports*nb_tx_queue*RTE_TEST_TX_DESC_DEFAULT +								\
 				nb_lcores*MEMPOOL_CACHE_SIZE),												\
 				(unsigned)8192)
+
+
 
 #define BURST_TX_DRAIN_US 100	/* TX drain every ~100us */
 
@@ -1423,7 +1421,7 @@ static int init_mem(uint8_t nb_ports)
 	nb_lcores = rte_lcore_count();
 	nb_rx_queue = get_ports_n_rx_queues();
 	nb_tx_queue = nb_rx_queue;
-	nb_mbuf = NB_MBUF;
+    nb_mbuf = NB_MBUF;
 
 	memset(&kni_neighbor, 0, sizeof(kni_neighbor));
 
@@ -1450,11 +1448,9 @@ static int init_mem(uint8_t nb_ports)
 		if (pktmbuf_pool[socketid] == NULL) {
 			snprintf(s, sizeof(s), "mbuf_pool_%d", socketid);
 			pktmbuf_pool[socketid] =
-				rte_mempool_create(s, nb_mbuf, MBUF_SIZE,
+				rte_pktmbuf_pool_create(s, nb_mbuf,
 								   MEMPOOL_CACHE_SIZE,
-								   sizeof(struct rte_pktmbuf_pool_private),
-								   rte_pktmbuf_pool_init, NULL,
-								   rte_pktmbuf_init, NULL, socketid, 0);
+								   0, RTE_MBUF_DEFAULT_BUF_SIZE, socketid);
 			if (pktmbuf_pool[socketid] == NULL)
 				rte_exit(EXIT_FAILURE,
 						 "Cannot init mbuf pool on socket %d\n", socketid);
@@ -1466,11 +1462,9 @@ static int init_mem(uint8_t nb_ports)
 		if (knimbuf_pool[socketid] == NULL) {
 			snprintf(s, sizeof(s), "knimbuf_pool_%d", socketid);
 			knimbuf_pool[socketid] =
-				rte_mempool_create(s, nb_mbuf, MBUF_SIZE,
+				rte_pktmbuf_pool_create(s, nb_mbuf,
 								   MEMPOOL_CACHE_SIZE,
-								   sizeof(struct rte_pktmbuf_pool_private),
-								   rte_pktmbuf_pool_init, NULL,
-								   rte_pktmbuf_init, NULL, socketid, 0);
+								   0, RTE_MBUF_DEFAULT_BUF_SIZE, socketid);
 			if (knimbuf_pool[socketid] == NULL)
 				rte_exit(EXIT_FAILURE,
 						 "Cannot init kni mbuf pool on socket %d\n",
