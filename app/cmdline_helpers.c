@@ -33,7 +33,8 @@ static void print_ethaddr(struct cmdline *cl, const char *name,
 void rdpdk_stats_display(struct cmdline *cl, int option)
 {
 	uint64_t total_packets_dropped, total_packets_tx, total_packets_rx;
-	uint64_t total_packets_kni_tx, total_packets_kni_rx, total_packets_kni_dropped;
+	uint64_t total_packets_kni_tx, total_packets_kni_rx,
+		total_packets_kni_dropped;
 	unsigned lcoreid;
 
 	total_packets_dropped = 0;
@@ -76,8 +77,7 @@ void rdpdk_stats_display(struct cmdline *cl, int option)
 					   "], \"total\": {\"tx\": %lu, \"rx\": %lu, \"kni_tx\": %lu, \"kni_rx\": %lu, \"kni_drop\": %lu, \"drop\": %lu}}\n",
 					   total_packets_tx, total_packets_rx,
 					   total_packets_kni_tx, total_packets_kni_rx,
-					   total_packets_kni_dropped,
-                       total_packets_dropped);
+					   total_packets_kni_dropped, total_packets_dropped);
 	} else {
 
 		cmdline_printf(cl,
@@ -119,7 +119,8 @@ void rdpdk_stats_display(struct cmdline *cl, int option)
 					   "\nTotal packets kni dropped: %lu"
 					   "\nTotal packets dropped: %lu", total_packets_tx,
 					   total_packets_rx, total_packets_kni_tx,
-					   total_packets_kni_rx, total_packets_kni_dropped, total_packets_dropped);
+					   total_packets_kni_rx, total_packets_kni_dropped,
+					   total_packets_dropped);
 		cmdline_printf(cl,
 					   "\n====================================================\n");
 	}

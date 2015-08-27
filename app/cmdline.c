@@ -974,13 +974,13 @@ static int rdpdk_cmdline_free(void *cmdline)
 int rdpdk_cmdline_terminate(int sock, const char *path)
 {
 	int i;
-    int ret = 0; //here for silence write warning
+	int ret = 0;				//here for silence write warning
 
 	for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
 		if (cmdline_clients[i].cmdline_tid) {
 #define CMDLINE_QUIT_MSG "DPDK closing...\n"
 			ret = write(cmdline_clients[i].sock, CMDLINE_QUIT_MSG,
-				  sizeof(CMDLINE_QUIT_MSG));
+						sizeof(CMDLINE_QUIT_MSG));
 			shutdown(cmdline_clients[i].sock, SHUT_RDWR);
 			close(cmdline_clients[i].sock);
 
@@ -1064,7 +1064,8 @@ static void *cmdline_run(void *data)
 
 			if (i == CMDLINE_MAX_CLIENTS) {
 #define CMDLINE_MCLI_MSG "Max client reached... \n"
-				ret = write(res, CMDLINE_MCLI_MSG, sizeof(CMDLINE_MCLI_MSG));
+				ret =
+					write(res, CMDLINE_MCLI_MSG, sizeof(CMDLINE_MCLI_MSG));
 				close(res);
 			}
 		}

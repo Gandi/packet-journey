@@ -564,25 +564,25 @@ static int install_cfgfile(const char *file_name, char *prgname)
 	if (entry) {
 
 		if (strtoul(entry, NULL, 0)) {
-		printf("jumbo frame is enabled - disabling simple TX path\n");
-		port_conf.rxmode.jumbo_frame = 1;
+			printf("jumbo frame is enabled - disabling simple TX path\n");
+			port_conf.rxmode.jumbo_frame = 1;
 
-		entry =
-			rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
-								  CMD_LINE_OPT_MAXPKT_LEN);
-		if (entry) {
-			ret = parse_max_pkt_len(entry);
-			if ((ret < 64) || (ret > MAX_JUMBO_PKT_LEN)) {
-				printf("invalid packet length\n");
-				print_usage(prgname);
-				return -1;
+			entry =
+				rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
+									  CMD_LINE_OPT_MAXPKT_LEN);
+			if (entry) {
+				ret = parse_max_pkt_len(entry);
+				if ((ret < 64) || (ret > MAX_JUMBO_PKT_LEN)) {
+					printf("invalid packet length\n");
+					print_usage(prgname);
+					return -1;
+				}
+				port_conf.rxmode.max_rx_pkt_len = ret;
 			}
-			port_conf.rxmode.max_rx_pkt_len = ret;
-		}
 
-		printf("set jumbo frame max packet length to %u\n",
-			   (unsigned int) port_conf.rxmode.max_rx_pkt_len);
-        }
+			printf("set jumbo frame max packet length to %u\n",
+				   (unsigned int) port_conf.rxmode.max_rx_pkt_len);
+		}
 	}
 
 	/*                  */

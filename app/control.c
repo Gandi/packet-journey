@@ -636,8 +636,7 @@ int control_callback_setup(const char *cb)
 	ether_format_addr(ether1, ETHER_ADDR_FMT_SIZE, ports_eth_addr);
 
 	len =
-		snprintf(cmd, CTRL_CBK_MAX_SIZE, "%s %s %s", cb, "dpdk0",
-				 ether1);
+		snprintf(cmd, CTRL_CBK_MAX_SIZE, "%s %s %s", cb, "dpdk0", ether1);
 	if (len > CTRL_CBK_MAX_SIZE) {
 		rte_panic("control callback too long");
 	}
