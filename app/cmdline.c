@@ -88,7 +88,9 @@ struct cmd_loglevel_result {
 	uint8_t level;
 };
 
-static void cmd_loglevel_parsed(void *parsed_result, __rte_unused struct cmdline *cl, __rte_unused void *data)
+static void cmd_loglevel_parsed(void *parsed_result,
+								__rte_unused struct cmdline *cl,
+								__rte_unused void *data)
 {
 	struct cmd_loglevel_result *res = parsed_result;
 	rte_set_log_level(res->level);
@@ -117,7 +119,9 @@ struct cmd_logtype_result {
 	uint8_t enable;
 };
 
-static void cmd_logtype_parsed(void *parsed_result, __rte_unused struct cmdline *cl, __rte_unused void *data)
+static void cmd_logtype_parsed(void *parsed_result,
+							   __rte_unused struct cmdline *cl,
+							   __rte_unused void *data)
 {
 	struct cmd_logtype_result *res = parsed_result;
 	rte_set_log_type(res->type, res->enable);
