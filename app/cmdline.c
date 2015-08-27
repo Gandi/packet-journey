@@ -82,6 +82,67 @@ port_rss_reta_info(portid_t port_id,
 	}
 }
 
+/* *** SET LOGLEVEL *** */
+struct cmd_loglevel_result {
+	cmdline_fixed_string_t loglevel;
+	uint8_t level;
+};
+
+static void cmd_loglevel_parsed(void *parsed_result, __rte_unused struct cmdline *cl, __rte_unused void *data)
+{
+	struct cmd_loglevel_result *res = parsed_result;
+	rte_set_log_level(res->level);
+}
+
+cmdline_parse_token_string_t cmd_loglevel_loglevel =
+TOKEN_STRING_INITIALIZER(struct cmd_loglevel_result, loglevel, "loglevel");
+cmdline_parse_token_num_t cmd_loglevel_level =
+TOKEN_NUM_INITIALIZER(struct cmd_loglevel_result, level, UINT8);
+
+cmdline_parse_inst_t cmd_loglevel = {
+	.f = cmd_loglevel_parsed,
+	.data = NULL,
+	.help_str = "loglevel level",
+	.tokens = {
+			   (void *) &cmd_loglevel_loglevel,
+			   (void *) &cmd_loglevel_level,
+			   NULL,
+			   },
+};
+
+/* *** SET LOGTYPE *** */
+struct cmd_logtype_result {
+	cmdline_fixed_string_t logtype;
+	uint8_t type;
+	uint8_t enable;
+};
+
+static void cmd_logtype_parsed(void *parsed_result, __rte_unused struct cmdline *cl, __rte_unused void *data)
+{
+	struct cmd_logtype_result *res = parsed_result;
+	rte_set_log_type(res->type, res->enable);
+}
+
+cmdline_parse_token_string_t cmd_logtype_logtype =
+TOKEN_STRING_INITIALIZER(struct cmd_logtype_result, logtype, "logtype");
+cmdline_parse_token_num_t cmd_logtype_type =
+TOKEN_NUM_INITIALIZER(struct cmd_logtype_result, type, UINT8);
+cmdline_parse_token_num_t cmd_logtype_enable =
+TOKEN_NUM_INITIALIZER(struct cmd_logtype_result, enable, UINT8);
+
+cmdline_parse_inst_t cmd_logtype = {
+	.f = cmd_logtype_parsed,
+	.data = NULL,
+	.help_str = "logtype type enable",
+	.tokens = {
+			   (void *) &cmd_logtype_logtype,
+			   (void *) &cmd_logtype_type,
+			   (void *) &cmd_logtype_enable,
+			   NULL,
+			   },
+};
+
+
 /* *** SHOW PORT INFO *** */
 struct cmd_showport_result {
 	cmdline_fixed_string_t show;
@@ -881,6 +942,8 @@ cmdline_parse_ctx_t main_ctx[] = {
 	(cmdline_parse_inst_t *) & cmd_obj_acl_add,
 	(cmdline_parse_inst_t *) & cmd_obj_lpm_lkp,
 	(cmdline_parse_inst_t *) & cmd_stats,
+	(cmdline_parse_inst_t *) & cmd_loglevel,
+	(cmdline_parse_inst_t *) & cmd_logtype,
 	(cmdline_parse_inst_t *) & cmd_neigh,
 	(cmdline_parse_inst_t *) & cmd_stats_json,
 	(cmdline_parse_inst_t *) & cmd_showport,
