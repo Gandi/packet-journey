@@ -562,7 +562,7 @@ int control_main(void *data)
 
 	RTE_LOG(INFO, L3FWD_CTRL, "init ok\n");
 	netl_listen(netl_h, &handle);
-	RTE_LOG(INFO, L3FWD_CTRL, "netl_listen returned...\n");
+	RTE_LOG(ERR, L3FWD_CTRL, "netl_listen returned...\n");
 
 	return 0;
 }
