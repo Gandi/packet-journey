@@ -563,6 +563,7 @@ static int install_cfgfile(const char *file_name, char *prgname)
 							  CMD_LINE_OPT_ENABLE_JUMBO);
 	if (entry) {
 
+		if (strtoul(entry, NULL, 0)) {
 		printf("jumbo frame is enabled - disabling simple TX path\n");
 		port_conf.rxmode.jumbo_frame = 1;
 
@@ -581,6 +582,7 @@ static int install_cfgfile(const char *file_name, char *prgname)
 
 		printf("set jumbo frame max packet length to %u\n",
 			   (unsigned int) port_conf.rxmode.max_rx_pkt_len);
+        }
 	}
 
 	/*                  */
