@@ -141,13 +141,8 @@ static void kni_egress(struct kni_port_params *p, uint32_t lcore_id)
 		stats[lcore_id].nb_tx += nb_tx;
 		if (unlikely(nb_tx < num)) {
 			/* Free mbufs not tx to NIC */
-			if (nb_tx > 0) {
-				kni_burst_free_mbufs(&pkts_burst[nb_tx], num - nb_tx);
-				stats[lcore_id].nb_kni_dropped += num - nb_tx;
-			} else {
-				kni_burst_free_mbufs(&pkts_burst[0], num);
-				stats[lcore_id].nb_kni_dropped += num;
-			}
+            kni_burst_free_mbufs(&pkts_burst[nb_tx], num - nb_tx);
+            stats[lcore_id].nb_kni_dropped += num - nb_tx;
 		}
 	}
 }
