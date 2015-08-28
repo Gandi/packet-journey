@@ -121,12 +121,15 @@ static void kni_egress(struct kni_port_params *p, uint32_t lcore_id)
 	unsigned nb_tx, num;
 	uint32_t nb_kni;
 	struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
+	uint16_t queue_num;
 
 	if (p == NULL)
 		return;
 
 	nb_kni = p->nb_kni;
 	port_id = p->port_id;
+	//TODO we may stock it in kni_params so we won't have to recalcule it each time.
+	queue_num = get_port_n_rx_queues(port_id);
 	for (i = 0; i < nb_kni; i++) {
 		/* Burst rx from kni */
 		num = rte_kni_rx_burst(p->kni[i], pkts_burst, MAX_PKT_BURST);
@@ -135,7 +138,9 @@ static void kni_egress(struct kni_port_params *p, uint32_t lcore_id)
 			return;
 		}
 		/* Burst tx to eth */
-		nb_tx = rte_eth_tx_burst(port_id, 0, pkts_burst, (uint16_t) num);
+		nb_tx =
+			rte_eth_tx_burst(port_id, queue_num, pkts_burst,
+							 (uint16_t) num);
 		rte_kni_handle_request(p->kni[i]);
 		stats[lcore_id].nb_kni_rx += num;
 		stats[lcore_id].nb_tx += nb_tx;
@@ -205,6 +210,7 @@ void init_kni(void)
 static int kni_change_mtu(uint8_t port_id, unsigned new_mtu)
 {
 	int ret;
+	uint16_t nb_rx_queue;
 	struct rte_eth_conf conf;
 
 	if (port_id >= rte_eth_dev_count()) {
@@ -228,8 +234,12 @@ static int kni_change_mtu(uint8_t port_id, unsigned new_mtu)
 	/* mtu + length of header + length of FCS = max pkt length */
 	conf.rxmode.max_rx_pkt_len = new_mtu + KNI_ENET_HEADER_SIZE +
 		KNI_ENET_FCS_SIZE;
-	//FIXME we must set correct values for nb_rx_queue and nb_tx_queue here instead of 1
-	ret = rte_eth_dev_configure(port_id, 1, 1, &conf);
+
+	nb_rx_queue = get_port_n_rx_queues(port_id);
+	//XXX nb_rx_queue +1 for the kni
+	ret =
+		rte_eth_dev_configure(port_id, nb_rx_queue, nb_rx_queue + 1,
+							  &conf);
 	if (ret < 0) {
 		RTE_LOG(ERR, KNI, "Fail to reconfigure port %d\n", port_id);
 		return ret;

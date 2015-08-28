@@ -1345,7 +1345,7 @@ static uint8_t get_ports_n_rx_queues(void)
 	return nb_queue;
 }
 
-static uint8_t get_port_n_rx_queues(uint8_t port)
+uint8_t get_port_n_rx_queues(uint8_t port)
 {
 	int nb_queue = 0;
 	uint16_t i;
@@ -1559,7 +1559,8 @@ static void init_port(uint8_t portid)
 	printf("Initializing port %d ...\n", portid);
 
 	nb_rx_queue = get_port_n_rx_queues(portid);
-	nb_tx_queue = nb_rx_queue;
+	//XXX the +1 is for the kni
+	nb_tx_queue = nb_rx_queue + 1;
 	printf("Creating queues: nb_rxq=%d nb_txq=%u...\n",
 		   nb_rx_queue, nb_tx_queue);
 
@@ -1575,6 +1576,37 @@ static void init_port(uint8_t portid)
 	 */
 	rte_eth_macaddr_get(portid, &ports_eth_addr[portid]);
 	print_ethaddr(" Address:", &ports_eth_addr[portid]);
+
+
+	rte_eth_dev_info_get(portid, &dev_info);
+	txconf = &dev_info.default_txconf;
+
+#ifdef RDPDK_QEMU
+	txconf->txq_flags = ETH_TXQ_FLAGS_NOOFFLOADS;
+#else
+	txconf->txq_flags &= ~ETH_TXQ_FLAGS_NOOFFLOADS;
+#endif
+
+	//XXX is it correct ?
+	if (port_conf.rxmode.jumbo_frame)
+		txconf->txq_flags = 0;
+
+	printf("port=%u tx_queueid=%d nb_txd=%d kni\n", portid,
+		   nb_tx_queue, nb_txd);
+	//XXX kni tx queue
+
+	//FIXME must set the correct kni core id for that port
+	if (numa_on)
+		socketid = (uint8_t) rte_lcore_to_socket_id(5);
+	else
+		socketid = 0;
+
+	ret =
+		rte_eth_tx_queue_setup(portid, nb_tx_queue - 1, nb_txd, socketid,
+							   txconf);
+	if (ret < 0)
+		rte_exit(EXIT_FAILURE, "rte_eth_tx_queue_setup: err=%d, "
+				 "port=%u\n", ret, portid);
 
 	nb_tx_queue = 0;
 	/* init one TX queue per couple (lcore,port) */
@@ -1615,19 +1647,6 @@ static void init_port(uint8_t portid)
 
 		printf("\nInitializing rx/tx queues on lcore %u for port %u ...\n",
 			   lcore_id, portid);
-
-		rte_eth_dev_info_get(portid, &dev_info);
-		txconf = &dev_info.default_txconf;
-
-#ifdef RDPDK_QEMU
-		txconf->txq_flags = ETH_TXQ_FLAGS_NOOFFLOADS;
-#else
-		txconf->txq_flags &= ~ETH_TXQ_FLAGS_NOOFFLOADS;
-#endif
-
-		//XXX is it correct ?
-		if (port_conf.rxmode.jumbo_frame)
-			txconf->txq_flags = 0;
 
 		printf("port=%u tx_queueid=%d nb_txd=%d core=%u\n", portid,
 			   nb_tx_queue, nb_txd, lcore_id);
