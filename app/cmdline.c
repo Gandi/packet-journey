@@ -43,12 +43,11 @@
 #include "acl.h"
 #include "stats.h"
 
-#define CMDLINE_MAX_CLIENTS 32
-#define CMDLINE_POLL_TIMEOUT 10000
+#define CMDLINE_POLL_TIMEOUT 500
 
 static pthread_t cmdline_tid;
 
-static struct cmdline *cmdline_clients[CMDLINE_MAX_CLIENTS];
+struct client_data_t cmdline_clients[CMDLINE_MAX_CLIENTS];
 static volatile sig_atomic_t cmdline_thread_loop;
 static uint32_t g_socket_id;
 
@@ -183,7 +182,7 @@ cmdline_parse_token_num_t cmd_showport_portnum =
 TOKEN_NUM_INITIALIZER(struct cmd_showport_result, portnum, UINT8);
 cmdline_parse_token_string_t cmd_showport_option =
 TOKEN_STRING_INITIALIZER(struct cmd_showport_result, option,
-						 "-j");
+						 "-j#json");
 
 cmdline_parse_inst_t cmd_showport = {
 	.f = cmd_showport_parsed,
@@ -795,19 +794,25 @@ cmdline_parse_inst_t cmd_obj_acl_add = {
 struct cmd_stats_result {
 	cmdline_fixed_string_t stats;
 	cmdline_fixed_string_t option;
+	uint8_t				   delay;
 };
 
-static void cmd_stats_parsed(__rte_unused
+static void cmd_stats_parsed(
 							 void *parsed_result,
-							 struct cmdline *cl, __rte_unused void *data)
+							 struct cmdline *cl, void *data)
 {
-	rdpdk_stats_display(cl, (intptr_t) data);
+	struct cmd_stats_result *res = (struct cmd_stats_result*)parsed_result;
+	rdpdk_stats_display(cl, (intptr_t) data, res->delay);
 }
 
 cmdline_parse_token_string_t cmd_stats_stats =
 TOKEN_STRING_INITIALIZER(struct cmd_stats_result, stats, "stats");
 cmdline_parse_token_string_t cmd_stats_stats_json =
-TOKEN_STRING_INITIALIZER(struct cmd_stats_result, option, "-j");
+TOKEN_STRING_INITIALIZER(struct cmd_stats_result, option, "-j#json");
+cmdline_parse_token_string_t cmd_stats_stats_csv =
+TOKEN_STRING_INITIALIZER(struct cmd_stats_result, option, "-c#csv");
+cmdline_parse_token_num_t cmd_stats_stats_delay =
+TOKEN_NUM_INITIALIZER(struct cmd_stats_result, delay, UINT8);
 
 cmdline_parse_inst_t cmd_stats = {
 	.f = cmd_stats_parsed,		/* function to call */
@@ -826,6 +831,18 @@ cmdline_parse_inst_t cmd_stats_json = {
 	.tokens = {					/* token list, NULL terminated */
 			   (void *) &cmd_stats_stats,
 			   (void *) &cmd_stats_stats_json,
+			   NULL,
+			   },
+};
+
+cmdline_parse_inst_t cmd_stats_csv = {
+	.f = cmd_stats_parsed,		/* function to call */
+	.data = (void *) 2,			/* 2nd arg of func */
+	.help_str = "show stats",
+	.tokens = {					/* token list, NULL terminated */
+			   (void *) &cmd_stats_stats,
+			   (void *) &cmd_stats_stats_csv,
+			   (void *) &cmd_stats_stats_delay,
 			   NULL,
 			   },
 };
@@ -953,6 +970,7 @@ cmdline_parse_ctx_t main_ctx[] = {
 	(cmdline_parse_inst_t *) & cmd_logtype,
 	(cmdline_parse_inst_t *) & cmd_neigh,
 	(cmdline_parse_inst_t *) & cmd_stats_json,
+	(cmdline_parse_inst_t *) & cmd_stats_csv,
 	(cmdline_parse_inst_t *) & cmd_showport,
 	(cmdline_parse_inst_t *) & cmd_showport_json,
 	(cmdline_parse_inst_t *) & cmd_config_rss,
@@ -1048,17 +1066,17 @@ int rdpdk_cmdline_terminate(int sock, const char *path)
 	int ret = 0;				//here for silence write warning
 
 	for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
-		if (cmdline_clients[i]) {
+		if (cmdline_clients[i].cl) {
 #define CMDLINE_QUIT_MSG "RDPDK closing...\n"
-			ret = write(cmdline_clients[i]->s_out, CMDLINE_QUIT_MSG,
+			ret = write(cmdline_clients[i].cl->s_out, CMDLINE_QUIT_MSG,
 						sizeof(CMDLINE_QUIT_MSG));
 
-			rdpdk_cmdline_free(cmdline_clients[i]);
+			rdpdk_cmdline_free(cmdline_clients[i].cl);
 
-			shutdown(cmdline_clients[i]->s_out, SHUT_RDWR);
-			close(cmdline_clients[i]->s_out);
+			shutdown(cmdline_clients[i].cl->s_out, SHUT_RDWR);
+			close(cmdline_clients[i].cl->s_out);
 
-			cmdline_clients[i] = NULL;
+			memset(&cmdline_clients[i], 0, sizeof(struct client_data_t));
 		}
 	}
 
@@ -1080,7 +1098,7 @@ static int cmdline_clients_get(int sock)
 {
 	int j;
 	for (j = 0; j < CMDLINE_MAX_CLIENTS; j++) {
-		if (cmdline_clients[j] && cmdline_clients[j]->s_in == sock) {
+		if (cmdline_clients[j].cl && cmdline_clients[j].cl->s_in == sock) {
 			return j;
 		}
 	}
@@ -1090,9 +1108,9 @@ static int cmdline_clients_get(int sock)
 
 static void cmdline_clients_close(int id)
 {
-	rdpdk_cmdline_free(cmdline_clients[id]);
-	close(cmdline_clients[id]->s_out);
-	cmdline_clients[id] = NULL;
+	rdpdk_cmdline_free(cmdline_clients[id].cl);
+	close(cmdline_clients[id].cl->s_out);
+	memset(&cmdline_clients[id], 0, sizeof(struct client_data_t));
 	RTE_LOG(INFO, CMDLINE1, "Client id %d disconnected \n", id);
 }
 
@@ -1116,8 +1134,8 @@ static void *cmdline_run(void *data)
 			res = accept(fds[0].fd, NULL, NULL);
 
 			for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
-				if (cmdline_clients[i] == NULL) {
-					cmdline_clients[i] = cmdline_new_unixsock(res);
+				if (cmdline_clients[i].cl == NULL) {
+					cmdline_clients[i].cl = cmdline_new_unixsock(res);
 					break;
 				}
 			}
@@ -1129,6 +1147,7 @@ static void *cmdline_run(void *data)
 				close(res);
 			}
 		}
+
 		for (i = 1; i < nfds; ++i) {
 			if (fds[i].revents & (POLLIN | POLLHUP)) {
 				char buf[64];
@@ -1141,17 +1160,24 @@ static void *cmdline_run(void *data)
 					continue;
 				}
 				//read error, closing conn
-				ret = cmdline_in(cmdline_clients[j], buf, ret);
+				ret = cmdline_in(cmdline_clients[j].cl, buf, ret);
 				if (ret < 0
-					&& cmdline_clients[j]->rdl.status == RDLINE_EXITED) {
+					&& cmdline_clients[j].cl->rdl.status == RDLINE_EXITED) {
 					cmdline_clients_close(j);
 				}
 			}
 		}
+
 		nfds = 1;
 		for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
-			if (cmdline_clients[i]) {
-				fds[nfds].fd = cmdline_clients[i]->s_in;
+			if (cmdline_clients[i].cl) {
+				if(cmdline_clients[i].csv_delay) {
+					if ((time(NULL) - cmdline_clients[i].delay_timer) >= cmdline_clients[i].csv_delay) {
+						rdpdk_stats_display(cmdline_clients[i].cl, 2, cmdline_clients[i].csv_delay);
+					}
+				}
+
+				fds[nfds].fd = cmdline_clients[i].cl->s_in;
 				fds[nfds].events = POLLIN;
 				nfds++;
 			}
