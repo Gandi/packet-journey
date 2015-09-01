@@ -44,6 +44,8 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <signal.h>
+#include <sys/wait.h>
+#include <sys/prctl.h>
 
 #include <rte_common.h>
 #include <rte_vect.h>
@@ -1744,6 +1746,10 @@ int main(int argc, char **argv)
 		rte_exit(EXIT_FAILURE, "failed to set sigaction");
 	}
 
+	if (prctl(PR_SET_CHILD_SUBREAPER, 1) < 0) {
+		rte_exit(EXIT_FAILURE, "failed to prctl");
+	}
+
 	/* Sanitize lcore_conf */
 	for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++) {
 		qconf = &lcore_conf[lcore_id];
@@ -1945,6 +1951,21 @@ int main(int argc, char **argv)
 			return -1;
 	}
 	RTE_LOG(INFO, RDPDK1, "rte_eal_wait_lcore finished\n");
+
+	// prevent process from killing itself
+	if (sigaction(SIGTERM, &sa, NULL) == -1) {
+		rte_exit(EXIT_FAILURE, "failed to set sigaction");
+	}
+	ret = system("pkill -SIGTERM -P $PPID");
+	RTE_LOG(INFO, RDPDK1, "killing remaining child processes: %d\n", ret);
+
+	{
+		int pid, status;
+		while ((pid = wait(&status)) > 0) {
+			RTE_LOG(DEBUG, RDPDK1, "Reaped child pid: %d status %d\n", pid, WEXITSTATUS(status));
+		}
+	}
+
 	/* start ports */
 	for (portid = 0; portid < nb_ports; portid++) {
 		if ((enabled_port_mask & (1 << portid)) == 0) {
