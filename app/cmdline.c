@@ -42,18 +42,12 @@
 #include "acl.h"
 #include "stats.h"
 
-#define CMDLINE_MAX_CLIENTS 8
-#define CMDLINE_MAX_SOCK 32
-#define CMDLINE_POLL_TIMEOUT 1000
+#define CMDLINE_MAX_CLIENTS 32
+#define CMDLINE_POLL_TIMEOUT 10000
 
 static pthread_t cmdline_tid;
 
-struct client_data_t {
-	pthread_t cmdline_tid;
-	int sock;
-};
-
-static struct client_data_t cmdline_clients[CMDLINE_MAX_CLIENTS];
+static struct cmdline *cmdline_clients[CMDLINE_MAX_CLIENTS];
 static int cmdline_thread_loop;
 
 typedef uint8_t portid_t;
@@ -68,7 +62,8 @@ port_rss_reta_info(portid_t port_id,
 
 	ret = rte_eth_dev_rss_reta_query(port_id, reta_conf, nb_entries);
 	if (ret != 0) {
-		RTE_LOG(ERR, CMDLINE1, "Failed to get RSS RETA info, return code = %d\n", ret);
+		RTE_LOG(ERR, CMDLINE1,
+				"Failed to get RSS RETA info, return code = %d\n", ret);
 		return;
 	}
 
@@ -77,8 +72,9 @@ port_rss_reta_info(portid_t port_id,
 		shift = i % RTE_RETA_GROUP_SIZE;
 		if (!(reta_conf[idx].mask & (1ULL << shift)))
 			continue;
-		RTE_LOG(ERR, CMDLINE1, "RSS RETA configuration: hash index=%u, queue=%u\n",
-			   i, reta_conf[idx].reta[shift]);
+		RTE_LOG(ERR, CMDLINE1,
+				"RSS RETA configuration: hash index=%u, queue=%u\n", i,
+				reta_conf[idx].reta[shift]);
 	}
 }
 
@@ -491,7 +487,8 @@ parse_reta_config(const char *str,
 		nb_queue = (uint8_t) int_fld[FLD_QUEUE];
 
 		if (hash_index >= nb_entries) {
-			RTE_LOG(ERR, CMDLINE1, "Invalid RETA hash index=%d\n", hash_index);
+			RTE_LOG(ERR, CMDLINE1, "Invalid RETA hash index=%d\n",
+					hash_index);
 			return -1;
 		}
 
@@ -606,14 +603,16 @@ showport_parse_reta_config(struct rte_eth_rss_reta_entry64 *conf,
 		return -1;
 	size = p0 - p;
 	if (size >= sizeof(s)) {
-		RTE_LOG(ERR, CMDLINE1, "The string size exceeds the internal buffer size\n");
+		RTE_LOG(ERR, CMDLINE1,
+				"The string size exceeds the internal buffer size\n");
 		return -1;
 	}
 	snprintf(s, sizeof(s), "%.*s", size, p);
 	ret = rte_strsplit(s, sizeof(s), str_fld, num, ',');
 	if (ret <= 0 || ret != num) {
-		RTE_LOG(ERR, CMDLINE1, "The bits of masks do not match the number of "
-			   "reta entries: %u\n", num);
+		RTE_LOG(ERR, CMDLINE1,
+				"The bits of masks do not match the number of "
+				"reta entries: %u\n", num);
 		return -1;
 	}
 	for (i = 0; i < ret; i++)
@@ -635,14 +634,16 @@ cmd_showport_reta_parsed(void *parsed_result, __attribute__ ((unused))
 	rte_eth_dev_info_get(res->port_id, &dev_info);
 	if (dev_info.reta_size == 0 || res->size != dev_info.reta_size ||
 		res->size > ETH_RSS_RETA_SIZE_512) {
-		RTE_LOG(ERR, CMDLINE1, "Invalid redirection table size: %u\n", res->size);
+		RTE_LOG(ERR, CMDLINE1, "Invalid redirection table size: %u\n",
+				res->size);
 		return;
 	}
 
 	memset(reta_conf, 0, sizeof(reta_conf));
 	if (showport_parse_reta_config(reta_conf, res->size,
 								   res->list_of_items) < 0) {
-		RTE_LOG(ERR, CMDLINE1, "Invalid string: %s for reta masks\n", res->list_of_items);
+		RTE_LOG(ERR, CMDLINE1, "Invalid string: %s for reta masks\n",
+				res->list_of_items);
 		return;
 	}
 	port_rss_reta_info(res->port_id, reta_conf, res->size);
@@ -1044,18 +1045,17 @@ int rdpdk_cmdline_terminate(int sock, const char *path)
 	int ret = 0;				//here for silence write warning
 
 	for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
-		if (cmdline_clients[i].cmdline_tid) {
-#define CMDLINE_QUIT_MSG "DPDK closing...\n"
-			ret = write(cmdline_clients[i].sock, CMDLINE_QUIT_MSG,
+		if (cmdline_clients[i]) {
+#define CMDLINE_QUIT_MSG "RDPDK closing...\n"
+			ret = write(cmdline_clients[i]->s_out, CMDLINE_QUIT_MSG,
 						sizeof(CMDLINE_QUIT_MSG));
-			shutdown(cmdline_clients[i].sock, SHUT_RDWR);
-			close(cmdline_clients[i].sock);
 
-			if (pthread_join(cmdline_clients[i].cmdline_tid, NULL)) {
-				perror("error during free cmdline pthread_join");
-			}
-			cmdline_clients[i].cmdline_tid = 0;
-			cmdline_clients[i].sock = 0;
+			rdpdk_cmdline_free(cmdline_clients[i]);
+
+			shutdown(cmdline_clients[i]->s_out, SHUT_RDWR);
+			close(cmdline_clients[i]->s_out);
+
+			cmdline_clients[i] = NULL;
 		}
 	}
 
@@ -1073,28 +1073,32 @@ int rdpdk_cmdline_stop(void)
 	return 0;
 }
 
-static void *cmdline_handle_client(void *data)
+static int cmdline_clients_get(int sock)
 {
-	struct cmdline *cl;
-	struct client_data_t *res = (struct client_data_t *) data;
+	int j;
+	for (j = 0; j < CMDLINE_MAX_CLIENTS; j++) {
+		if (cmdline_clients[j] && cmdline_clients[j]->s_in == sock) {
+			return j;
+		}
+	}
+	rte_panic("cmdline_clients table desync");
+	return -1;
+}
 
-	cl = cmdline_new_unixsock(res->sock);
-	cmdline_interact(cl);
-	rdpdk_cmdline_free(cl);
-	close(res->sock);
-
-	res->sock = 0;
-	res->cmdline_tid = 0;
-
-	return 0;
+static void cmdline_clients_close(int id)
+{
+	rdpdk_cmdline_free(cmdline_clients[id]);
+	close(cmdline_clients[id]->s_out);
+	cmdline_clients[id] = NULL;
+	RTE_LOG(INFO, CMDLINE1, "Client id %d disconnected \n", id);
 }
 
 static void *cmdline_run(void *data)
 {
-	struct pollfd fds[CMDLINE_MAX_SOCK];
+	struct pollfd fds[CMDLINE_MAX_CLIENTS + 1];	// +1 for the listenning sock
 	int sock = (intptr_t) data;
 	int nfds = 1;
-	int i, ret = 0;
+	int i, j, ret = 0;
 
 	fds[0].events = POLLIN;
 	fds[0].fd = sock;
@@ -1107,24 +1111,10 @@ static void *cmdline_run(void *data)
 		}
 		if (fds[0].revents & POLLIN) {
 			res = accept(fds[0].fd, NULL, NULL);
-			/*
-			   fds[nfds].fd = res;
-			   fds[nfds++].events = POLLIN;
-			 */
 
-			// FIXME: do polling instead of creating unsafe threads (use cmdline_poll with dpdk 2.1)
 			for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
-				if (cmdline_clients[i].cmdline_tid == 0) {
-
-					cmdline_clients[i].sock = res;
-					ret =
-						pthread_create(&cmdline_clients[i].cmdline_tid,
-									   NULL, cmdline_handle_client,
-									   (void *) &cmdline_clients[i]);
-					if (ret != 0) {
-						perror("failed to create client cmdline thread");
-					}
-
+				if (cmdline_clients[i] == NULL) {
+					cmdline_clients[i] = cmdline_new_unixsock(res);
 					break;
 				}
 			}
@@ -1136,11 +1126,33 @@ static void *cmdline_run(void *data)
 				close(res);
 			}
 		}
-		/*for (i = 1; i < nfds; ++i) {
-		   if (fds[i].revents & (POLLIN | POLLHUP)) {
+		for (i = 1; i < nfds; ++i) {
+			if (fds[i].revents & (POLLIN | POLLHUP)) {
+				char buf[64];
 
-		   }
-		   } */
+				j = cmdline_clients_get(fds[i].fd);
+				ret = read(fds[i].fd, buf, sizeof(buf));
+				//read error, closing conn
+				if (ret <= 0) {
+					cmdline_clients_close(j);
+					continue;
+				}
+				//read error, closing conn
+				ret = cmdline_in(cmdline_clients[j], buf, ret);
+				if (ret < 0
+					&& cmdline_clients[j]->rdl.status == RDLINE_EXITED) {
+					cmdline_clients_close(j);
+				}
+			}
+		}
+		nfds = 1;
+		for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
+			if (cmdline_clients[i]) {
+				fds[nfds].fd = cmdline_clients[i]->s_in;
+				fds[nfds].events = POLLIN;
+				nfds++;
+			}
+		}
 	}
 	return 0;
 }
