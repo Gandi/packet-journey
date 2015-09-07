@@ -400,7 +400,7 @@ static int addr4(__rte_unused addr_action_t action, int32_t port_id,
 
 	if_indextoname(port_id, ibuf);
 	sscanf(ibuf, "dpdk%10d", &port_id);
-	RTE_LOG(DEBUG, RDPDK_CTRL1, "SALUT port=%s %s/%d with port_id %d\n", ibuf,
+	RTE_LOG(DEBUG, RDPDK_CTRL1, "addr4 port=%s %s/%d with port_id %d\n", ibuf,
 			inet_ntop(AF_INET, addr, buf, 255), prefixlen, port_id);
 
 	control_add_ipv4_local_entry(addr, addr, 32, port_id, socket_id);
@@ -419,10 +419,10 @@ static int addr6(__rte_unused addr_action_t action, int32_t port_id,
 
 	if_indextoname(port_id, ibuf);
 	sscanf(ibuf, "dpdk%10d", &port_id);
-	RTE_LOG(DEBUG, RDPDK_CTRL1, "SALUT port=%s %s/%d with port_id %d\n", ibuf,
+	RTE_LOG(DEBUG, RDPDK_CTRL1, "addr6 port=%s %s/%d with port_id %d\n", ibuf,
 			inet_ntop(AF_INET6, addr, buf, 255), prefixlen, port_id);
 
-	control_add_ipv6_local_entry(addr, addr, 32, port_id, socket_id);
+	control_add_ipv6_local_entry(addr, addr, 128, port_id, socket_id);
 
 	return 0;
 }
