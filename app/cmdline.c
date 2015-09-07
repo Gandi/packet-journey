@@ -50,6 +50,7 @@ static pthread_t cmdline_tid;
 
 static struct cmdline *cmdline_clients[CMDLINE_MAX_CLIENTS];
 static volatile sig_atomic_t cmdline_thread_loop;
+static uint32_t g_socket_id;
 
 typedef uint8_t portid_t;
 
@@ -700,26 +701,26 @@ static void cmd_obj_lpm_lkp_parsed(void *parsed_result,
 	char buf[INET6_ADDRSTRLEN];
 
 	if (res->ip.family == AF_INET) {
-		i = rte_lpm_lookup(ipv4_rdpdk_lookup_struct[0],
+		i = rte_lpm_lookup(ipv4_rdpdk_lookup_struct[g_socket_id],
 						   rte_be_to_cpu_32(res->ip.addr.ipv4.s_addr),
 						   &next_hop);
 		if (i < 0) {
 			cmdline_printf(cl, "not found\n");
 		} else {
 			struct in_addr *addr =
-				&neighbor4_struct[0]->entries.t4[next_hop].addr;
+				&neighbor4_struct[g_socket_id]->entries.t4[next_hop].addr;
 			cmdline_printf(cl, "present, next_hop %s\n",
 						   inet_ntop(AF_INET, addr, buf,
 									 INET6_ADDRSTRLEN));
 		}
 	} else if (res->ip.family == AF_INET6) {
-		i = rte_lpm6_lookup(ipv6_rdpdk_lookup_struct[0],
+		i = rte_lpm6_lookup(ipv6_rdpdk_lookup_struct[g_socket_id],
 							res->ip.addr.ipv6.s6_addr, &next_hop);
 		if (i < 0) {
 			cmdline_printf(cl, "not found\n");
 		} else {
 			struct in6_addr *addr =
-				&neighbor6_struct[0]->entries.t6[next_hop].addr;
+				&neighbor6_struct[g_socket_id]->entries.t6[next_hop].addr;
 			cmdline_printf(cl, "present, next_hop %s\n",
 						   inet_ntop(AF_INET6, addr, buf,
 									 INET6_ADDRSTRLEN));
@@ -850,7 +851,7 @@ static void cmd_neigh_parsed( __attribute__ ((unused))
 	is_ipv4 = !strcmp(res->proto, "ipv4");
 	if (is_ipv4) {
 		struct nei_entry4 *entry;
-		t = neighbor4_struct[0];
+		t = neighbor4_struct[g_socket_id];
 
 		for (i = 0; i < NEI_NUM_ENTRIES; i++) {
 			entry = &(t->entries.t4[i]);
@@ -870,7 +871,7 @@ static void cmd_neigh_parsed( __attribute__ ((unused))
 		}
 	} else {
 		struct nei_entry6 *entry;
-		t = neighbor6_struct[0];
+		t = neighbor6_struct[g_socket_id];
 
 		for (i = 0; i < NEI_NUM_ENTRIES; i++) {
 			entry = &(t->entries.t6[i]);
@@ -1012,7 +1013,7 @@ static void *cmdline_new_unixsock(int sock)
 	return cl;
 }
 
-int rdpdk_cmdline_init(const char *path)
+int rdpdk_cmdline_init(const char *path, uint32_t socket_id)
 {
 	int fd;
 
@@ -1025,6 +1026,7 @@ int rdpdk_cmdline_init(const char *path)
 		RTE_LOG(ERR, CMDLINE1, "open() failed\n");
 		return -1;
 	}
+	g_socket_id = socket_id;
 
 	memset(&cmdline_clients, 0, sizeof(cmdline_clients));
 	return fd;

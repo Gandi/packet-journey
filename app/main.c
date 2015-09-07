@@ -1878,6 +1878,9 @@ int main(int argc, char **argv)
 
 	check_all_ports_link_status((uint8_t) nb_ports, enabled_port_mask);
 
+	//FIXME we should spawn a thread per socket id and use distinct path
+	int cmdline_socket_id = 0;
+
 	if (numa_on) {
 		for (ctrlsock = 0; ctrlsock < NB_SOCKETS; ctrlsock++) {
 			if (control_handle[ctrlsock].addr) {
@@ -1892,6 +1895,8 @@ int main(int argc, char **argv)
 				snprintf(thread_name, 16, "control-%d", ctrlsock);
 				pthread_setname_np(lcore_config[lcore_id].thread_id,
 								   thread_name);
+				//FIXME we should spawn a thread per socket id and use distinct path
+				cmdline_socket_id = ctrlsock;
 			}
 		}
 	} else {
@@ -1914,7 +1919,8 @@ int main(int argc, char **argv)
 		}
 	}
 
-	int sock = rdpdk_cmdline_init(unixsock_path);
+	//FIXME we should spawn a thread per socket id and use distinct path
+	int sock = rdpdk_cmdline_init(unixsock_path, cmdline_socket_id);
 	cmdline_tid = rdpdk_cmdline_launch(sock);
 
 	/* launch per-lcore init on every lcore */
