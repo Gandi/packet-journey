@@ -11,6 +11,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <poll.h>
+#include <signal.h>
 
 #include <rte_common.h>
 #include <rte_log.h>
@@ -48,7 +49,7 @@
 static pthread_t cmdline_tid;
 
 static struct cmdline *cmdline_clients[CMDLINE_MAX_CLIENTS];
-static int cmdline_thread_loop;
+static volatile sig_atomic_t cmdline_thread_loop;
 
 typedef uint8_t portid_t;
 
