@@ -1604,11 +1604,10 @@ static void init_port(uint8_t portid)
 
 	printf("port=%u tx_queueid=%d nb_txd=%d kni\n", portid,
 		   nb_tx_queue, nb_txd);
-	//XXX kni tx queue
 
-	//FIXME must set the correct kni core id for that port
+	//XXX kni tx queue
 	if (numa_on)
-		socketid = (uint8_t) rte_lcore_to_socket_id(5);
+		socketid = (uint8_t) rte_lcore_to_socket_id(kni_port_params_array[portid]->lcore_tx);
 	else
 		socketid = 0;
 
