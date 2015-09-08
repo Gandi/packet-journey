@@ -78,10 +78,6 @@ protocol direct {
 protocol device {
   scan time 10;
 }
-
-protocol kernel {
-  export all;
-}
 EOF
 
 case $uts in
@@ -89,10 +85,12 @@ r1)
   echo R1
   ip link add link eth0 name eth0.0 type vlan id 0
   ip a add 1.0.0.0/31 dev eth0.0
+  sysctl -w net/ipv6/conf/eth0.0/disable_ipv6=0
   ip a add 2001:1::0/127 dev eth0.0
   ip link set eth0.0 up
 
   ip a add 1.0.1.254/24 dev dummy0
+  sysctl -w net/ipv6/conf/dummy0/disable_ipv6=0
   ip a add 2001:2::1/48 dev dummy0
   ip link set dummy0 up
   ethtool -L eth0 combined 4
@@ -119,6 +117,14 @@ protocol bgp BGPLeft {
 EOF
 
 cat << EOF >> /etc/bird/bird6.conf
+protocol kernel {
+  export all;
+  export filter {
+    krt_prefsrc = 2001:2::1;
+    accept;
+  };
+}
+
 router id 1.0.1.254;
 
 protocol bgp BGPLeft {
@@ -184,6 +190,10 @@ EOF
 
 
 cat << EOF >> /etc/bird/bird6.conf
+protocol kernel {
+  export all;
+}
+
 router id 1.0.0.1;
 protocol bgp BGPLeft {
   import all;
@@ -211,10 +221,12 @@ r3)
   echo R3
   ip link add link eth0 name eth0.0 type vlan id 0
   ip a add 1.0.0.2/31 dev eth0.0
+  sysctl -w net/ipv6/conf/eth0.0/disable_ipv6=0
   ip a add 2001:1::2/127 dev eth0.0
   ip link set eth0.0 up
 
   ip a add 1.0.2.254/24 dev dummy0
+  sysctl -w net/ipv6/conf/dummy0/disable_ipv6=0
   ip a add 2001:3::1/48 dev dummy0
   ip link set dummy0 up
   ethtool -L eth0 combined 4
@@ -240,6 +252,14 @@ protocol bgp BGPRight {
 EOF
 
 cat << EOF >> /etc/bird/bird6.conf
+protocol kernel {
+  export all;
+  export filter {
+    krt_prefsrc = 2001:3::1;
+    accept;
+  };
+}
+
 router id 1.0.2.254;
 protocol bgp BGPRight {
   import all;

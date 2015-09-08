@@ -897,7 +897,7 @@ cmdline_parse_token_string_t cmd_neigh_neigh =
 TOKEN_STRING_INITIALIZER(struct cmd_neigh_result, neigh, "neigh");
 cmdline_parse_token_string_t cmd_neigh_proto =
 TOKEN_STRING_INITIALIZER(struct cmd_neigh_result, proto,
-						 "ipv4");
+						 "ipv4#ipv6");
 
 cmdline_parse_inst_t cmd_neigh = {
 	.f = cmd_neigh_parsed,		/* function to call */
