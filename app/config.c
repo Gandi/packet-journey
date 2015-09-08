@@ -66,17 +66,17 @@ struct rte_eth_conf port_conf = {
 void print_usage(const char *prgname)
 {
 	RTE_LOG(ERR, RDPDK1, "%s [EAL options]\n"
-		   "  [--config (port,queue,lcore)[,(port,queue,lcore]]\n"
-		   "  [--kniconfig (port,lcore_tx,lcore_kthread)]\n"
-		   "  [--enable-jumbo [--max-pkt-len PKTLEN (64-9000)]]\n"
-		   "  [--promiscuous : enable promiscuous mode]\n"
-		   "  [--unixsock PATH: override cmdline unixsock path (default: /tmp/rdpdk.sock)]\n"
-		   "  [--configfile PATH: use a configfile for params]\n"
-		   "  [--no-numa: disable numa awareness]\n"
-		   "  [--scalar: Use scalar function to do lookupn acl tables]\n"
-		   "  --portmask PORTMASK: hexadecimal bitmask of ports to configure\n"
-		   "  --callback-setup: script called when ifaces are set up\n"
-		   "  --rule_ipv4=FILE \n" "  --rule_ipv6=FILE \n", prgname);
+			"  [--config (port,queue,lcore)[,(port,queue,lcore]]\n"
+			"  [--kniconfig (port,lcore_tx,lcore_kthread)]\n"
+			"  [--enable-jumbo [--max-pkt-len PKTLEN (64-9000)]]\n"
+			"  [--promiscuous : enable promiscuous mode]\n"
+			"  [--unixsock PATH: override cmdline unixsock path (default: /tmp/rdpdk.sock)]\n"
+			"  [--configfile PATH: use a configfile for params]\n"
+			"  [--no-numa: disable numa awareness]\n"
+			"  [--scalar: Use scalar function to do lookupn acl tables]\n"
+			"  --portmask PORTMASK: hexadecimal bitmask of ports to configure\n"
+			"  --callback-setup: script called when ifaces are set up\n"
+			"  --rule_ipv4=FILE \n" "  --rule_ipv6=FILE \n", prgname);
 }
 
 static int parse_max_pkt_len(const char *pktlen)
@@ -170,8 +170,9 @@ static int kni_parse_config(const char *arg)
 
 		port_id = (uint8_t) int_fld[FLD_PORT];
 		if (port_id >= RTE_MAX_ETHPORTS) {
-			RTE_LOG(ERR, KNI, "Port ID %d could not exceed the maximum %d\n",
-				   port_id, RTE_MAX_ETHPORTS);
+			RTE_LOG(ERR, KNI,
+					"Port ID %d could not exceed the maximum %d\n",
+					port_id, RTE_MAX_ETHPORTS);
 			goto fail;
 		}
 		if (kni_port_params_array[port_id]) {
@@ -189,9 +190,9 @@ static int kni_parse_config(const char *arg)
 			(uint8_t) int_fld[FLD_LCORE_TX];
 		if (kni_port_params_array[port_id]->lcore_tx >= RTE_MAX_LCORE) {
 			RTE_LOG(ERR, KNI, "lcore_tx %u ID could not "
-				   "exceed the maximum %u\n",
-				   kni_port_params_array[port_id]->lcore_tx,
-				   (unsigned) RTE_MAX_LCORE);
+					"exceed the maximum %u\n",
+					kni_port_params_array[port_id]->lcore_tx,
+					(unsigned) RTE_MAX_LCORE);
 			goto fail;
 		}
 		i = FLD_LCORE_TX + 1;
@@ -243,7 +244,7 @@ static int kni_parse_config_from_file(uint8_t port_id, char *q_arg)
 
 	if (port_id >= RTE_MAX_ETHPORTS) {
 		RTE_LOG(ERR, KNI, "Port ID %d could not exceed the maximum %d\n",
-			   port_id, RTE_MAX_ETHPORTS);
+				port_id, RTE_MAX_ETHPORTS);
 		goto fail;
 	}
 	if (kni_port_params_array[port_id]) {
@@ -261,9 +262,9 @@ static int kni_parse_config_from_file(uint8_t port_id, char *q_arg)
 		(uint8_t) int_fld[FLD_LCORE];
 	if (kni_port_params_array[port_id]->lcore_tx >= RTE_MAX_LCORE) {
 		RTE_LOG(ERR, KNI, "lcore_tx %u ID could not "
-			   "exceed the maximum %u\n",
-			   kni_port_params_array[port_id]->lcore_tx,
-			   (unsigned) RTE_MAX_LCORE);
+				"exceed the maximum %u\n",
+				kni_port_params_array[port_id]->lcore_tx,
+				(unsigned) RTE_MAX_LCORE);
 		goto fail;
 	}
 	i = FLD_LCORE + 1;
@@ -347,8 +348,9 @@ static int parse_config(const char *q_arg)
 				return -1;
 		}
 		if (nb_lcore_params >= MAX_LCORE_PARAMS) {
-			RTE_LOG(ERR, RDPDK1, "exceeded max number of lcore params: %hu\n",
-				   nb_lcore_params);
+			RTE_LOG(ERR, RDPDK1,
+					"exceeded max number of lcore params: %hu\n",
+					nb_lcore_params);
 			return -1;
 		}
 		lcore_params_array[nb_lcore_params].port_id =
@@ -396,8 +398,9 @@ static int parse_config_from_file(uint8_t port_id, char *q_arg)
 		}
 
 		if (nb_lcore_params >= MAX_LCORE_PARAMS) {
-			RTE_LOG(ERR, RDPDK1, "exceeded max number of lcore params: %hu\n",
-				   nb_lcore_params);
+			RTE_LOG(ERR, RDPDK1,
+					"exceeded max number of lcore params: %hu\n",
+					nb_lcore_params);
 			return -1;
 		}
 		lcore_params_array[nb_lcore_params].port_id = port_id;
@@ -564,7 +567,8 @@ static int install_cfgfile(const char *file_name, char *prgname)
 	if (entry) {
 
 		if (strtoul(entry, NULL, 0)) {
-			RTE_LOG(INFO, RDPDK1, "jumbo frame is enabled - disabling simple TX path\n");
+			RTE_LOG(INFO, RDPDK1,
+					"jumbo frame is enabled - disabling simple TX path\n");
 			port_conf.rxmode.jumbo_frame = 1;
 
 			entry =
@@ -580,8 +584,9 @@ static int install_cfgfile(const char *file_name, char *prgname)
 				port_conf.rxmode.max_rx_pkt_len = ret;
 			}
 
-			RTE_LOG(INFO, RDPDK1, "set jumbo frame max packet length to %u\n",
-				   (unsigned int) port_conf.rxmode.max_rx_pkt_len);
+			RTE_LOG(INFO, RDPDK1,
+					"set jumbo frame max packet length to %u\n",
+					(unsigned int) port_conf.rxmode.max_rx_pkt_len);
 		}
 	}
 
@@ -717,8 +722,8 @@ int parse_args(int argc, char **argv)
 				struct option lenopts =
 					{ CMD_LINE_OPT_MAXPKT_LEN, required_argument, 0, 0 };
 
-				RTE_LOG(INFO, RDPDK1, 
-					"jumbo frame is enabled - disabling simple TX path\n");
+				RTE_LOG(INFO, RDPDK1,
+						"jumbo frame is enabled - disabling simple TX path\n");
 				port_conf.rxmode.jumbo_frame = 1;
 
 				/* if no max-pkt-len set, use the default value ETHER_MAX_LEN */
@@ -733,8 +738,9 @@ int parse_args(int argc, char **argv)
 					}
 					port_conf.rxmode.max_rx_pkt_len = ret;
 				}
-				RTE_LOG(INFO, RDPDK1, "set jumbo frame max packet length to %u\n",
-					   (unsigned int) port_conf.rxmode.max_rx_pkt_len);
+				RTE_LOG(INFO, RDPDK1,
+						"set jumbo frame max packet length to %u\n",
+						(unsigned int) port_conf.rxmode.max_rx_pkt_len);
 			}
 			break;
 

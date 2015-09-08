@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <net/if.h>
+#include <spawn.h>
 
 #include <rte_common.h>
 #include <rte_malloc.h>
@@ -19,6 +20,11 @@
 #include "routing.h"
 
 #define CTRL_CBK_MAX_SIZE 256
+#ifndef __DECONST
+#define __DECONST(type, var)    ((type)(uintptr_t)(const void *)(var))
+#endif
+
+extern char **environ;
 
 struct control_handle {
 	int32_t socket_id;
@@ -400,8 +406,8 @@ static int addr4(__rte_unused addr_action_t action, int32_t port_id,
 
 	if_indextoname(port_id, ibuf);
 	sscanf(ibuf, "dpdk%10d", &port_id);
-	RTE_LOG(DEBUG, RDPDK_CTRL1, "addr4 port=%s %s/%d with port_id %d\n", ibuf,
-			inet_ntop(AF_INET, addr, buf, 255), prefixlen, port_id);
+	RTE_LOG(DEBUG, RDPDK_CTRL1, "addr4 port=%s %s/%d with port_id %d\n",
+			ibuf, inet_ntop(AF_INET, addr, buf, 255), prefixlen, port_id);
 
 	control_add_ipv4_local_entry(addr, addr, 32, port_id, socket_id);
 
@@ -419,8 +425,8 @@ static int addr6(__rte_unused addr_action_t action, int32_t port_id,
 
 	if_indextoname(port_id, ibuf);
 	sscanf(ibuf, "dpdk%10d", &port_id);
-	RTE_LOG(DEBUG, RDPDK_CTRL1, "addr6 port=%s %s/%d with port_id %d\n", ibuf,
-			inet_ntop(AF_INET6, addr, buf, 255), prefixlen, port_id);
+	RTE_LOG(DEBUG, RDPDK_CTRL1, "addr6 port=%s %s/%d with port_id %d\n",
+			ibuf, inet_ntop(AF_INET6, addr, buf, 255), prefixlen, port_id);
 
 	control_add_ipv6_local_entry(addr, addr, 128, port_id, socket_id);
 
@@ -633,18 +639,28 @@ int control_callback_setup(const char *cb, uint8_t nb_ports)
 	int len;
 	char ether1[ETHER_ADDR_FMT_SIZE];
 	uint8_t port;
+	const char *argv[4];
 
 	len = snprintf(cmd, CTRL_CBK_MAX_SIZE, "%s", cb);
 
 	for (port = 0; port < nb_ports; port++) {
-		ether_format_addr(ether1, ETHER_ADDR_FMT_SIZE, &ports_eth_addr[port]);
-		len += snprintf(&cmd[len], CTRL_CBK_MAX_SIZE - len, " dpdk%d %s", port, ether1);
+		ether_format_addr(ether1, ETHER_ADDR_FMT_SIZE,
+						  &ports_eth_addr[port]);
+		len +=
+			snprintf(&cmd[len], CTRL_CBK_MAX_SIZE - len, " dpdk%d %s",
+					 port, ether1);
 
 		if (len > CTRL_CBK_MAX_SIZE) {
 			rte_panic("control callback too long");
 		}
 	}
 
+	argv[0] = "/bin/sh";
+	argv[1] = "-c";
+	argv[2] = cmd;
+	argv[3] = NULL;
+
 	RTE_LOG(INFO, RDPDK_CTRL1, "executing command `%s`\n", cmd);
-	return system(cmd);
+	return posix_spawn(NULL, "/bin/sh", NULL, NULL,
+					   __DECONST(char **, argv), environ);
 }

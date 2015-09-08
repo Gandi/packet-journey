@@ -278,22 +278,22 @@ static inline void print_one_ipv4_rule(struct acl4_rule *rule, int extra)
 	uint32_t_to_char(rule->field[SRC_FIELD_IPV4].value.u32,
 					 &a, &b, &c, &d);
 	acl_log("%hhu.%hhu.%hhu.%hhu/%u ", a, b, c, d,
-		   rule->field[SRC_FIELD_IPV4].mask_range.u32);
+			rule->field[SRC_FIELD_IPV4].mask_range.u32);
 	uint32_t_to_char(rule->field[DST_FIELD_IPV4].value.u32,
 					 &a, &b, &c, &d);
 	acl_log("%hhu.%hhu.%hhu.%hhu/%u ", a, b, c, d,
-		   rule->field[DST_FIELD_IPV4].mask_range.u32);
+			rule->field[DST_FIELD_IPV4].mask_range.u32);
 	acl_log("%hu : %hu %hu : %hu 0x%hhx/0x%hhx ",
-		   rule->field[SRCP_FIELD_IPV4].value.u16,
-		   rule->field[SRCP_FIELD_IPV4].mask_range.u16,
-		   rule->field[DSTP_FIELD_IPV4].value.u16,
-		   rule->field[DSTP_FIELD_IPV4].mask_range.u16,
-		   rule->field[PROTO_FIELD_IPV4].value.u8,
-		   rule->field[PROTO_FIELD_IPV4].mask_range.u8);
+			rule->field[SRCP_FIELD_IPV4].value.u16,
+			rule->field[SRCP_FIELD_IPV4].mask_range.u16,
+			rule->field[DSTP_FIELD_IPV4].value.u16,
+			rule->field[DSTP_FIELD_IPV4].mask_range.u16,
+			rule->field[PROTO_FIELD_IPV4].value.u8,
+			rule->field[PROTO_FIELD_IPV4].mask_range.u8);
 	if (extra)
 		acl_log("0x%x-0x%x-0x%x ",
-			   rule->data.category_mask,
-			   rule->data.priority, rule->data.userdata);
+				rule->data.category_mask,
+				rule->data.priority, rule->data.userdata);
 }
 
 static inline void print_one_ipv6_rule(struct acl6_rule *rule, int extra)
@@ -312,10 +312,10 @@ static inline void print_one_ipv6_rule(struct acl6_rule *rule, int extra)
 	uint32_t_to_char(rule->field[SRC4_FIELD_IPV6].value.u32,
 					 &a, &b, &c, &d);
 	acl_log(":%.2x%.2x:%.2x%.2x/%u ", a, b, c, d,
-		   rule->field[SRC1_FIELD_IPV6].mask_range.u32
-		   + rule->field[SRC2_FIELD_IPV6].mask_range.u32
-		   + rule->field[SRC3_FIELD_IPV6].mask_range.u32
-		   + rule->field[SRC4_FIELD_IPV6].mask_range.u32);
+			rule->field[SRC1_FIELD_IPV6].mask_range.u32
+			+ rule->field[SRC2_FIELD_IPV6].mask_range.u32
+			+ rule->field[SRC3_FIELD_IPV6].mask_range.u32
+			+ rule->field[SRC4_FIELD_IPV6].mask_range.u32);
 
 	uint32_t_to_char(rule->field[DST1_FIELD_IPV6].value.u32,
 					 &a, &b, &c, &d);
@@ -329,22 +329,22 @@ static inline void print_one_ipv6_rule(struct acl6_rule *rule, int extra)
 	uint32_t_to_char(rule->field[DST4_FIELD_IPV6].value.u32,
 					 &a, &b, &c, &d);
 	acl_log(":%.2x%.2x:%.2x%.2x/%u ", a, b, c, d,
-		   rule->field[DST1_FIELD_IPV6].mask_range.u32
-		   + rule->field[DST2_FIELD_IPV6].mask_range.u32
-		   + rule->field[DST3_FIELD_IPV6].mask_range.u32
-		   + rule->field[DST4_FIELD_IPV6].mask_range.u32);
+			rule->field[DST1_FIELD_IPV6].mask_range.u32
+			+ rule->field[DST2_FIELD_IPV6].mask_range.u32
+			+ rule->field[DST3_FIELD_IPV6].mask_range.u32
+			+ rule->field[DST4_FIELD_IPV6].mask_range.u32);
 
 	acl_log("%hu : %hu %hu : %hu 0x%hhx/0x%hhx ",
-		   rule->field[SRCP_FIELD_IPV6].value.u16,
-		   rule->field[SRCP_FIELD_IPV6].mask_range.u16,
-		   rule->field[DSTP_FIELD_IPV6].value.u16,
-		   rule->field[DSTP_FIELD_IPV6].mask_range.u16,
-		   rule->field[PROTO_FIELD_IPV6].value.u8,
-		   rule->field[PROTO_FIELD_IPV6].mask_range.u8);
+			rule->field[SRCP_FIELD_IPV6].value.u16,
+			rule->field[SRCP_FIELD_IPV6].mask_range.u16,
+			rule->field[DSTP_FIELD_IPV6].value.u16,
+			rule->field[DSTP_FIELD_IPV6].mask_range.u16,
+			rule->field[PROTO_FIELD_IPV6].value.u8,
+			rule->field[PROTO_FIELD_IPV6].mask_range.u8);
 	if (extra)
 		acl_log("0x%x-0x%x-0x%x ",
-			   rule->data.category_mask,
-			   rule->data.priority, rule->data.userdata);
+				rule->data.category_mask,
+				rule->data.priority, rule->data.userdata);
 }
 
 /* Bypass comment and empty lines */
@@ -378,8 +378,8 @@ static inline void dump_acl4_rule(struct rte_mbuf *m, uint32_t sig)
 	acl_log("Dst:%hhu.%hhu.%hhu.%hhu ", a, b, c, d);
 
 	acl_log("Src port:%hu,Dst port:%hu ",
-		   rte_bswap16(*(uint16_t *) (ipv4_hdr + 1)),
-		   rte_bswap16(*((uint16_t *) (ipv4_hdr + 1) + 1)));
+			rte_bswap16(*(uint16_t *) (ipv4_hdr + 1)),
+			rte_bswap16(*((uint16_t *) (ipv4_hdr + 1) + 1)));
 	acl_log("hit ACL %d - ", offset);
 
 	print_one_ipv4_rule(acl_config.rule_ipv4 + offset, 1);
@@ -397,16 +397,16 @@ static inline void dump_acl6_rule(struct rte_mbuf *m, uint32_t sig)
 	acl_log("Packet Src");
 	for (i = 0; i < RTE_DIM(ipv6_hdr->src_addr); i += sizeof(uint16_t))
 		acl_log(":%.2x%.2x",
-			   ipv6_hdr->src_addr[i], ipv6_hdr->src_addr[i + 1]);
+				ipv6_hdr->src_addr[i], ipv6_hdr->src_addr[i + 1]);
 
 	acl_log("\nDst");
 	for (i = 0; i < RTE_DIM(ipv6_hdr->dst_addr); i += sizeof(uint16_t))
 		acl_log(":%.2x%.2x",
-			   ipv6_hdr->dst_addr[i], ipv6_hdr->dst_addr[i + 1]);
+				ipv6_hdr->dst_addr[i], ipv6_hdr->dst_addr[i + 1]);
 
 	acl_log("\nSrc port:%hu,Dst port:%hu ",
-		   rte_bswap16(*(uint16_t *) (ipv6_hdr + 1)),
-		   rte_bswap16(*((uint16_t *) (ipv6_hdr + 1) + 1)));
+			rte_bswap16(*(uint16_t *) (ipv6_hdr + 1)),
+			rte_bswap16(*((uint16_t *) (ipv6_hdr + 1) + 1)));
 	acl_log("hit ACL %d - ", offset);
 
 	print_one_ipv6_rule(acl_config.rule_ipv6 + offset, 1);
@@ -743,10 +743,11 @@ static void dump_acl_config(void)
 {
 	RTE_LOG(INFO, RDPDK1, "ACL option are:\n");
 	RTE_LOG(INFO, RDPDK1, CMD_LINE_OPT_RULE_IPV4 ": %s\n",
-		   acl_parm_config.rule_ipv4_name);
+			acl_parm_config.rule_ipv4_name);
 	RTE_LOG(INFO, RDPDK1, CMD_LINE_OPT_RULE_IPV6 ": %s\n",
-		   acl_parm_config.rule_ipv6_name);
-	RTE_LOG(INFO, RDPDK1, CMD_LINE_OPT_SCALAR ": %d\n", acl_parm_config.scalar);
+			acl_parm_config.rule_ipv6_name);
+	RTE_LOG(INFO, RDPDK1, CMD_LINE_OPT_SCALAR ": %d\n",
+			acl_parm_config.scalar);
 }
 
 static int check_acl_config(void)

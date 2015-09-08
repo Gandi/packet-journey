@@ -1303,14 +1303,16 @@ static int check_lcore_params(void)
 		}
 		lcore = lcore_params[i].lcore_id;
 		if (!rte_lcore_is_enabled(lcore)) {
-			RTE_LOG(ERR, RDPDK1, "error: lcore %hhu is not enabled in lcore mask\n",
-				   lcore);
+			RTE_LOG(ERR, RDPDK1,
+					"error: lcore %hhu is not enabled in lcore mask\n",
+					lcore);
 			return -1;
 		}
 		if ((socketid = rte_lcore_to_socket_id(lcore) != 0) &&
 			(numa_on == 0)) {
-			RTE_LOG(WARNING, RDPDK1, "warning: lcore %hhu is on socket %d with numa off \n",
-				   lcore, socketid);
+			RTE_LOG(WARNING, RDPDK1,
+					"warning: lcore %hhu is on socket %d with numa off \n",
+					lcore, socketid);
 		}
 	}
 	return 0;
@@ -1324,11 +1326,13 @@ static int check_port_config(const unsigned nb_ports)
 	for (i = 0; i < nb_lcore_params; ++i) {
 		portid = lcore_params[i].port_id;
 		if ((enabled_port_mask & (1 << portid)) == 0) {
-			RTE_LOG(ERR, RDPDK1, "port %u is not enabled in port mask\n", portid);
+			RTE_LOG(ERR, RDPDK1, "port %u is not enabled in port mask\n",
+					portid);
 			return -1;
 		}
 		if (portid >= nb_ports) {
-			RTE_LOG(ERR, RDPDK1, "port %u is not present on the board\n", portid);
+			RTE_LOG(ERR, RDPDK1, "port %u is not present on the board\n",
+					portid);
 			return -1;
 		}
 	}
@@ -1368,8 +1372,9 @@ static int init_lcore_rx_queues(void)
 		lcore = lcore_params[i].lcore_id;
 		nb_rx_queue = lcore_conf[lcore].n_rx_queue;
 		if (nb_rx_queue >= MAX_RX_QUEUE_PER_LCORE) {
-			RTE_LOG(ERR, RDPDK1, "error: too many queues (%u) for lcore: %u\n",
-				   (unsigned) nb_rx_queue + 1, (unsigned) lcore);
+			RTE_LOG(ERR, RDPDK1,
+					"error: too many queues (%u) for lcore: %u\n",
+					(unsigned) nb_rx_queue + 1, (unsigned) lcore);
 			return -1;
 		} else {
 			lcore_conf[lcore].rx_queue_list[nb_rx_queue].port_id =
@@ -1458,7 +1463,8 @@ static int init_mem(uint8_t nb_ports)
 				rte_exit(EXIT_FAILURE,
 						 "Cannot init mbuf pool on socket %d\n", socketid);
 			else
-				RTE_LOG(INFO, RDPDK1, "Allocated mbuf pool on socket %d\n", socketid);
+				RTE_LOG(INFO, RDPDK1, "Allocated mbuf pool on socket %d\n",
+						socketid);
 
 			setup_lpm(socketid);
 		}
@@ -1474,7 +1480,9 @@ static int init_mem(uint8_t nb_ports)
 						 "Cannot init kni mbuf pool on socket %d\n",
 						 socketid);
 			else
-				RTE_LOG(INFO, RDPDK1, "Allocated kni mbuf pool on socket %d\n", socketid);
+				RTE_LOG(INFO, RDPDK1,
+						"Allocated kni mbuf pool on socket %d\n",
+						socketid);
 		}
 		qconf = &lcore_conf[lcore_id];
 		qconf->ipv4_lookup_struct = ipv4_rdpdk_lookup_struct[socketid];
@@ -1508,12 +1516,13 @@ check_all_ports_link_status(uint8_t port_num, uint32_t port_mask)
 			if (print_flag == 1) {
 				if (link.link_status)
 					RTE_LOG(INFO, RDPDK1, "Port %d Link Up - speed %u "
-						   "Mbps - %s\n", (uint8_t) portid,
-						   (unsigned) link.link_speed,
-						   (link.link_duplex == ETH_LINK_FULL_DUPLEX) ?
-						   ("full-duplex") : ("half-duplex\n"));
+							"Mbps - %s\n", (uint8_t) portid,
+							(unsigned) link.link_speed,
+							(link.link_duplex == ETH_LINK_FULL_DUPLEX) ?
+							("full-duplex") : ("half-duplex\n"));
 				else
-					RTE_LOG(INFO, RDPDK1, "Port %d Link Down\n", (uint8_t) portid);
+					RTE_LOG(INFO, RDPDK1, "Port %d Link Down\n",
+							(uint8_t) portid);
 				continue;
 			}
 			/* clear all_ports_up flag if any link down */
@@ -1564,7 +1573,7 @@ static void init_port(uint8_t portid)
 	//XXX the +1 is for the kni
 	nb_tx_queue = nb_rx_queue + 1;
 	RTE_LOG(INFO, RDPDK1, "Creating queues: nb_rxq=%d nb_txq=%u...\n",
-		   nb_rx_queue, nb_tx_queue);
+			nb_rx_queue, nb_tx_queue);
 
 	ret = rte_eth_dev_configure(portid, nb_rx_queue,
 								nb_tx_queue, &port_conf);
@@ -1633,11 +1642,12 @@ static void init_port(uint8_t portid)
 			}
 			queueid = qconf->rx_queue_list[queue].queue_id;
 
-			RTE_LOG(DEBUG, RDPDK1, "port=%u rx_queueid=%d nb_rxd=%d core=%u\n", portid,
-				   queueid, nb_rxd, lcore_id);
-			ret = rte_eth_rx_queue_setup(portid, queueid, nb_rxd,
-										 socketid,
-										 NULL, pktmbuf_pool[socketid]);
+			RTE_LOG(DEBUG, RDPDK1,
+					"port=%u rx_queueid=%d nb_rxd=%d core=%u\n", portid,
+					queueid, nb_rxd, lcore_id);
+			ret =
+				rte_eth_rx_queue_setup(portid, queueid, nb_rxd, socketid,
+									   NULL, pktmbuf_pool[socketid]);
 			if (ret < 0)
 				rte_exit(EXIT_FAILURE, "rte_eth_rx_queue_setup: err=%d,"
 						 "port=%u\n", ret, portid);
@@ -1647,8 +1657,9 @@ static void init_port(uint8_t portid)
 			continue;
 		}
 
-		RTE_LOG(INFO, RDPDK1, "\nInitializing rx/tx queues on lcore %u for port %u ...\n",
-			   lcore_id, portid);
+		RTE_LOG(INFO, RDPDK1,
+				"\nInitializing rx/tx queues on lcore %u for port %u ...\n",
+				lcore_id, portid);
 
 		rte_eth_dev_info_get(portid, &dev_info);
 		txconf = &dev_info.default_txconf;
@@ -1663,8 +1674,8 @@ static void init_port(uint8_t portid)
 		if (port_conf.rxmode.jumbo_frame)
 			txconf->txq_flags = 0;
 
-		RTE_LOG(DEBUG, RDPDK1, "port=%u tx_queueid=%d nb_txd=%d core=%u\n", portid,
-			   nb_tx_queue, nb_txd, lcore_id);
+		RTE_LOG(DEBUG, RDPDK1, "port=%u tx_queueid=%d nb_txd=%d core=%u\n",
+				portid, nb_tx_queue, nb_txd, lcore_id);
 		ret =
 			rte_eth_tx_queue_setup(portid, nb_tx_queue, nb_txd, socketid,
 								   txconf);
@@ -1713,7 +1724,7 @@ signal_handler(int signum, __rte_unused siginfo_t * si,
 	/* When we receive a RTMIN or SIGINT signal, stop kni processing */
 	if (signum == SIGRTMIN || signum == SIGINT) {
 		RTE_LOG(INFO, RDPDK1, "SIG is received, and the KNI processing is "
-			   "going to stop\n");
+				"going to stop\n");
 		kni_stop_loop();
 		rte_atomic32_inc(&main_loop_stop);
 		rdpdk_cmdline_stop();
@@ -1932,7 +1943,8 @@ int main(int argc, char **argv)
 
 		for (portid = 0; portid < nb_ports; portid++) {
 			if (kni_port_params_array[portid]->lcore_tx == lcore_id) {
-				RTE_LOG(INFO, RDPDK1, "launching kni thread on lcore %u\n", lcore_id);
+				RTE_LOG(INFO, RDPDK1, "launching kni thread on lcore %u\n",
+						lcore_id);
 				rte_eal_remote_launch(kni_main_loop, NULL, lcore_id);
 				break;
 			}
@@ -1968,7 +1980,8 @@ int main(int argc, char **argv)
 	{
 		int pid, status;
 		while ((pid = wait(&status)) > 0) {
-			RTE_LOG(DEBUG, RDPDK1, "Reaped child pid: %d status %d\n", pid, WEXITSTATUS(status));
+			RTE_LOG(DEBUG, RDPDK1, "Reaped child pid: %d status %d\n", pid,
+					WEXITSTATUS(status));
 		}
 	}
 
