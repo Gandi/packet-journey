@@ -1,3 +1,9 @@
+rdpdk (0.1.12) unstable; urgency=low
+
+  * fix ipv6 local route bug.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 09 Sep 2015 00:37:29 +0200
+
 rdpdk (0.1.11) unstable; urgency=low
 
   * Use prctl for tracking childs + cmdline polling.
