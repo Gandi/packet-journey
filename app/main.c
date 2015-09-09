@@ -727,9 +727,9 @@ process_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 
 	te = _mm_blend_epi16(te, ve, MASK_ETH);
 	_mm_storeu_si128((__m128i *) & eth_hdr->d_addr, te);
+	*dst_port = entries->port_id;
 	rfc1812_process((struct ipv4_hdr *) (eth_hdr + 1),
 					dst_port, RDPDK_PKT_TYPE(pkt));
-	*dst_port = entries->port_id;
 }
 
 /*
