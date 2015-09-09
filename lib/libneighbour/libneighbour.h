@@ -20,7 +20,7 @@ struct nei_entry {
 	uint8_t action;
 
 	int16_t vlan_id;
-	int16_t port_id;
+	uint16_t port_id;
 
 	int32_t refcnt;
 };								//24bytes
