@@ -16,6 +16,7 @@
 
 #include "common.h"
 #include "stats.h"
+#include "cmdline.h"
 
 
 static void print_ethaddr(struct cmdline *cl, const char *name,
@@ -30,12 +31,13 @@ static void print_ethaddr(struct cmdline *cl, const char *name,
 //TODO permit to choose on which fd we print
 //TODO make it more easily parseable
 
-void rdpdk_stats_display(struct cmdline *cl, int option)
+void rdpdk_stats_display(struct cmdline *cl, int option, int delay)
 {
 	uint64_t total_packets_dropped, total_packets_tx, total_packets_rx;
 	uint64_t total_packets_kni_tx, total_packets_kni_rx,
 		total_packets_kni_dropped;
 	unsigned lcoreid;
+	time_t _time;
 
 	total_packets_dropped = 0;
 	total_packets_tx = 0;
@@ -44,7 +46,7 @@ void rdpdk_stats_display(struct cmdline *cl, int option)
 	total_packets_kni_rx = 0;
 	total_packets_kni_dropped = 0;
 
-	if (option) {
+	if (option == 1) { // json
 
 		cmdline_printf(cl, "{\"lcores\": [");
 
@@ -78,7 +80,51 @@ void rdpdk_stats_display(struct cmdline *cl, int option)
 					   total_packets_tx, total_packets_rx,
 					   total_packets_kni_tx, total_packets_kni_rx,
 					   total_packets_kni_dropped, total_packets_dropped);
-	} else {
+	}
+	else if (option == 2) { // csv
+
+		_time = time(NULL);
+
+		for (lcoreid = 0; lcoreid < CMDLINE_MAX_CLIENTS; lcoreid++) {
+			if (cmdline_clients[lcoreid].cl == cl) {
+				cmdline_clients[lcoreid].csv_delay = delay;
+				cmdline_clients[lcoreid].delay_timer = _time;
+				break;
+			}
+		}
+
+		for (lcoreid = 0; lcoreid < RTE_MAX_LCORE; lcoreid++) {
+			if (!rte_lcore_is_enabled(lcoreid))
+				continue;
+
+			cmdline_printf(cl,
+						   "%lu %u,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",
+						   _time,
+						   lcoreid, stats[lcoreid].port_id,
+						   stats[lcoreid].nb_iteration_looped,
+						   stats[lcoreid].nb_tx, stats[lcoreid].nb_rx,
+						   stats[lcoreid].nb_kni_tx,
+						   stats[lcoreid].nb_kni_rx,
+						   stats[lcoreid].nb_kni_dropped,
+						   stats[lcoreid].nb_dropped);
+
+			total_packets_dropped += stats[lcoreid].nb_dropped;
+			total_packets_tx += stats[lcoreid].nb_tx;
+			total_packets_rx += stats[lcoreid].nb_rx;
+			total_packets_kni_tx += stats[lcoreid].nb_kni_tx;
+			total_packets_kni_rx += stats[lcoreid].nb_kni_rx;
+			total_packets_kni_dropped += stats[lcoreid].nb_kni_dropped;
+		}
+
+		cmdline_printf(cl,
+					   "%lu -1,-1,-1,%lu,%lu,%lu,%lu,%lu,%lu\n",
+					   _time,
+					   total_packets_tx, total_packets_rx,
+					   total_packets_kni_tx, total_packets_kni_rx,
+					   total_packets_kni_dropped, total_packets_dropped);
+
+	}
+	else {
 
 		cmdline_printf(cl,
 					   "\nLcore statistics ====================================");
