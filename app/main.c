@@ -46,6 +46,7 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <sys/prctl.h>
+#include <unistd.h>
 
 #include <rte_common.h>
 #include <rte_vect.h>
@@ -1737,7 +1738,13 @@ signal_handler(int signum, __rte_unused siginfo_t * si,
 				control_stop(control_handle[sock].addr);
 			}
 		}
-		return;
+	}
+	else if (signum == SIGCHLD) {
+		int pid, status;
+		if ((pid = wait(&status)) > 0) {
+			RTE_LOG(DEBUG, RDPDK1, "SIGCHLD received, reaped child pid: %d status %d\n", pid,
+					WEXITSTATUS(status));
+		}
 	}
 }
 
@@ -1757,6 +1764,9 @@ int main(int argc, char **argv)
 	sigemptyset(&sa.sa_mask);
 	sa.sa_sigaction = signal_handler;
 	if (sigaction(SIGINT, &sa, NULL) == -1) {
+		rte_exit(EXIT_FAILURE, "failed to set sigaction");
+	}
+	if (sigaction(SIGCHLD, &sa, NULL) == -1) {
 		rte_exit(EXIT_FAILURE, "failed to set sigaction");
 	}
 
@@ -1971,6 +1981,10 @@ int main(int argc, char **argv)
 
 	// prevent process from killing itself
 	if (sigaction(SIGTERM, &sa, NULL) == -1) {
+		rte_exit(EXIT_FAILURE, "failed to set sigaction");
+	}
+	// childs will be handled here
+	if (signal(SIGCHLD, SIG_DFL) == SIG_ERR) {
 		rte_exit(EXIT_FAILURE, "failed to set sigaction");
 	}
 	ret = system("pkill -SIGTERM -P $PPID");
