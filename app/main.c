@@ -325,7 +325,8 @@ get_ipv4_dst_port(void *ipv4_hdr, uint8_t portid,
 
 	return (uint8_t) ((rte_lpm_lookup(ipv4_rdpdk_lookup_struct,
 									  rte_be_to_cpu_32(((struct ipv4_hdr *)
-														ipv4_hdr)->dst_addr),
+														ipv4_hdr)->
+													   dst_addr),
 									  &next_hop) ==
 					   0) ? next_hop : portid);
 }
@@ -1607,7 +1608,10 @@ static void init_port(uint8_t portid)
 
 	//XXX kni tx queue
 	if (numa_on)
-		socketid = (uint8_t) rte_lcore_to_socket_id(kni_port_params_array[portid]->lcore_tx);
+		socketid =
+			(uint8_t)
+			rte_lcore_to_socket_id(kni_port_params_array[portid]->
+								   lcore_tx);
 	else
 		socketid = 0;
 
@@ -1726,10 +1730,10 @@ signal_handler(int signum, __rte_unused siginfo_t * si,
 				"going to stop\n");
 		kni_stop_loop();
 		rte_atomic32_inc(&main_loop_stop);
-		rdpdk_cmdline_stop();
 
 		for (sock = 0; sock < NB_SOCKETS; sock++) {
 			if (control_handle[sock].addr) {
+				rdpdk_cmdline_stop(sock);
 				control_stop(control_handle[sock].addr);
 			}
 		}
@@ -1744,7 +1748,7 @@ int main(int argc, char **argv)
 	unsigned nb_ports;
 	unsigned lcore_id;
 	uint8_t portid;
-	pthread_t control_tid, cmdline_tid;
+	pthread_t control_tid;
 	char thread_name[16];
 	struct sigaction sa;
 	cpu_set_t cpuset;
@@ -1888,9 +1892,6 @@ int main(int argc, char **argv)
 
 	check_all_ports_link_status((uint8_t) nb_ports, enabled_port_mask);
 
-	//FIXME we should spawn a thread per socket id and use distinct path
-	int cmdline_socket_id = 0;
-
 	if (numa_on) {
 		for (ctrlsock = 0; ctrlsock < NB_SOCKETS; ctrlsock++) {
 			if (control_handle[ctrlsock].addr) {
@@ -1905,8 +1906,10 @@ int main(int argc, char **argv)
 				snprintf(thread_name, 16, "control-%d", ctrlsock);
 				pthread_setname_np(lcore_config[lcore_id].thread_id,
 								   thread_name);
-				//FIXME we should spawn a thread per socket id and use distinct path
-				cmdline_socket_id = ctrlsock;
+
+				rdpdk_cmdline_init(unixsock_path, ctrlsock);
+				rdpdk_cmdline_launch(ctrlsock,
+									 &lcore_config[lcore_id].cpuset);
 			}
 		}
 	} else {
@@ -1927,11 +1930,10 @@ int main(int argc, char **argv)
 					 "control pthread_setaffinity_np returned error: err=%d,",
 					 ret);
 		}
-	}
 
-	//FIXME we should spawn a thread per socket id and use distinct path
-	int sock = rdpdk_cmdline_init(unixsock_path, cmdline_socket_id);
-	cmdline_tid = rdpdk_cmdline_launch(sock);
+		rdpdk_cmdline_init(unixsock_path, 0);
+		rdpdk_cmdline_launch(0, &cpuset);
+	}
 
 	/* launch per-lcore init on every lcore */
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
@@ -1959,8 +1961,6 @@ int main(int argc, char **argv)
 	if (control_tid) {
 		pthread_join(control_tid, NULL);
 	}
-
-	pthread_join(cmdline_tid, NULL);
 
 	RTE_LCORE_FOREACH_SLAVE(lcore_id) {
 		RTE_LOG(INFO, RDPDK1, "waiting %u\n", lcore_id);
@@ -1993,10 +1993,10 @@ int main(int argc, char **argv)
 		kni_free_kni(portid);
 		rte_eth_dev_stop(portid);
 	}
-	rdpdk_cmdline_terminate(sock, unixsock_path);
 
 	for (ctrlsock = 0; ctrlsock < NB_SOCKETS; ctrlsock++) {
 		if (control_handle[ctrlsock].addr) {
+			rdpdk_cmdline_terminate(ctrlsock, unixsock_path);
 			control_terminate(control_handle[ctrlsock].addr);
 		}
 	}
