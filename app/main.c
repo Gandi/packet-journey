@@ -105,9 +105,13 @@ struct control_params_t {
 };
 struct control_params_t control_handle[NB_SOCKETS];
 #ifdef RDPDK_QEMU
+# define	rdpdk_mm_load_si128 _mm_loadu_si128
+# define	rdpdk_mm_store_si128 _mm_storeu_si128
 # define    RDPDK_TEST_IPV4_HDR(m) ((rte_pktmbuf_mtod((m), struct ether_hdr *)->ether_type) == ETHER_TYPE_BE_IPv4)
 # define    RDPDK_TEST_IPV6_HDR(m) ((rte_pktmbuf_mtod((m), struct ether_hdr *)->ether_type) == ETHER_TYPE_BE_IPv6)
 #else
+# define	rdpdk_mm_load_si128 _mm_load_si128
+# define	rdpdk_mm_store_si128 _mm_store_si128
 # ifdef RTE_NEXT_ABI
 #  define	RDPDK_TEST_IPV4_HDR(m) RTE_ETH_IS_IPV4_HDR((m)->packet_type)
 #  define	RDPDK_TEST_IPV6_HDR(m) RTE_ETH_IS_IPV6_HDR((m)->packet_type)
@@ -714,17 +718,10 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	dst_port[2] = entries[2]->port_id;
 	dst_port[3] = entries[3]->port_id;
 
-#ifdef RDPDK_QEMU
-	te[0] = _mm_loadu_si128(p[0]);
-	te[1] = _mm_loadu_si128(p[1]);
-	te[2] = _mm_loadu_si128(p[2]);
-	te[3] = _mm_loadu_si128(p[3]);
-#else
-	te[0] = _mm_load_si128(p[0]);
-	te[1] = _mm_load_si128(p[1]);
-	te[2] = _mm_load_si128(p[2]);
-	te[3] = _mm_load_si128(p[3]);
-#endif
+	te[0] = rdpdk_mm_load_si128(p[0]);
+	te[1] = rdpdk_mm_load_si128(p[1]);
+	te[2] = rdpdk_mm_load_si128(p[2]);
+	te[3] = rdpdk_mm_load_si128(p[3]);
 
 	/* Update first 12 bytes, keep rest bytes intact. */
 	te[0] = _mm_blend_epi16(te[0], ve[0], MASK_ETH);
@@ -732,17 +729,10 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	te[2] = _mm_blend_epi16(te[2], ve[2], MASK_ETH);
 	te[3] = _mm_blend_epi16(te[3], ve[3], MASK_ETH);
 
-#ifdef RDPDK_QEMU
-	_mm_storeu_si128(p[0], te[0]);
-	_mm_storeu_si128(p[1], te[1]);
-	_mm_storeu_si128(p[2], te[2]);
-	_mm_storeu_si128(p[3], te[3]);
-#else
-	_mm_store_si128(p[0], te[0]);
-	_mm_store_si128(p[1], te[1]);
-	_mm_store_si128(p[2], te[2]);
-	_mm_store_si128(p[3], te[3]);
-#endif
+	rdpdk_mm_store_si128(p[0], te[0]);
+	rdpdk_mm_store_si128(p[1], te[1]);
+	rdpdk_mm_store_si128(p[2], te[2]);
+	rdpdk_mm_store_si128(p[3], te[3]);
 
 	rfc1812_process((struct ipv4_hdr *) ((struct ether_hdr *) p[0] + 1),
 					&dst_port[0], RDPDK_PKT_TYPE(pkt[0]));

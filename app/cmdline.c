@@ -1054,7 +1054,10 @@ int rdpdk_cmdline_init(const char *path, uint32_t socket_id)
 	}
 
 	if (socket_id == 0) {
-		symlink(buf, path);
+		if (symlink(buf, path) < 0) {
+			RTE_LOG(ERR, CMDLINE1, "symlink() failed\n");
+			return -1;
+		}
 	}
 
 	cmdline_thread_unixsock[socket_id] = fd;
