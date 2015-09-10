@@ -105,30 +105,30 @@ struct control_params_t {
 };
 struct control_params_t control_handle[NB_SOCKETS];
 #ifdef RDPDK_QEMU
-# define	rdpdk_mm_load_si128 _mm_loadu_si128
-# define	rdpdk_mm_store_si128 _mm_storeu_si128
-# define    RDPDK_TEST_IPV4_HDR(m) ((rte_pktmbuf_mtod((m), struct ether_hdr *)->ether_type) == ETHER_TYPE_BE_IPv4)
-# define    RDPDK_TEST_IPV6_HDR(m) ((rte_pktmbuf_mtod((m), struct ether_hdr *)->ether_type) == ETHER_TYPE_BE_IPv6)
+#define	rdpdk_mm_load_si128 _mm_loadu_si128
+#define	rdpdk_mm_store_si128 _mm_storeu_si128
+#define    RDPDK_TEST_IPV4_HDR(m) ((rte_pktmbuf_mtod((m), struct ether_hdr *)->ether_type) == ETHER_TYPE_BE_IPv4)
+#define    RDPDK_TEST_IPV6_HDR(m) ((rte_pktmbuf_mtod((m), struct ether_hdr *)->ether_type) == ETHER_TYPE_BE_IPv6)
 #else
-# define	rdpdk_mm_load_si128 _mm_load_si128
-# define	rdpdk_mm_store_si128 _mm_store_si128
-# ifdef RTE_NEXT_ABI
-#  define	RDPDK_TEST_IPV4_HDR(m) RTE_ETH_IS_IPV4_HDR((m)->packet_type)
-#  define	RDPDK_TEST_IPV6_HDR(m) RTE_ETH_IS_IPV6_HDR((m)->packet_type)
-# else
-#  define	RDPDK_TEST_IPV4_HDR(m) (m)->ol_flags & PKT_RX_IPV4_HDR
-#  define	RDPDK_TEST_IPV6_HDR(m) (m)->ol_flags & PKT_RX_IPV6_HDR
-# endif
+#define	rdpdk_mm_load_si128 _mm_load_si128
+#define	rdpdk_mm_store_si128 _mm_store_si128
+#ifdef RTE_NEXT_ABI
+#define	RDPDK_TEST_IPV4_HDR(m) RTE_ETH_IS_IPV4_HDR((m)->packet_type)
+#define	RDPDK_TEST_IPV6_HDR(m) RTE_ETH_IS_IPV6_HDR((m)->packet_type)
+#else
+#define	RDPDK_TEST_IPV4_HDR(m) (m)->ol_flags & PKT_RX_IPV4_HDR
+#define	RDPDK_TEST_IPV6_HDR(m) (m)->ol_flags & PKT_RX_IPV6_HDR
+#endif
 #endif
 
 #ifdef RTE_NEXT_ABI
-# define    RDPDK_PKT_TYPE(m)      (m)->packet_type
-# define    RDPDK_IP_MASK          (RTE_PTYPE_L3_IPV4 | RTE_PTYPE_L3_IPV6)
-# define    RDPDK_IPV4_MASK        RTE_PTYPE_L3_IPV4
+#define    RDPDK_PKT_TYPE(m)      (m)->packet_type
+#define    RDPDK_IP_MASK          (RTE_PTYPE_L3_IPV4 | RTE_PTYPE_L3_IPV6)
+#define    RDPDK_IPV4_MASK        RTE_PTYPE_L3_IPV4
 #else
-# define    RDPDK_PKT_TYPE(m)      (m)->ol_flags
-# define    RDPDK_IP_MASK          (PKT_RX_IPV4_HDR | PKT_RX_IPV6_HDR)
-# define    RDPDK_IPV4_MASK        PKT_RX_IPV4_HDR
+#define    RDPDK_PKT_TYPE(m)      (m)->ol_flags
+#define    RDPDK_IP_MASK          (PKT_RX_IPV4_HDR | PKT_RX_IPV6_HDR)
+#define    RDPDK_IPV4_MASK        PKT_RX_IPV4_HDR
 #endif
 
 #define ETHER_TYPE_BE_IPv4 0x0008
