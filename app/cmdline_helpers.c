@@ -46,7 +46,7 @@ void rdpdk_stats_display(struct cmdline *cl, int option, int delay)
 	total_packets_kni_rx = 0;
 	total_packets_kni_dropped = 0;
 
-	if (option == 1) { // json
+	if (option == 1) {			// json
 
 		cmdline_printf(cl, "{\"lcores\": [");
 
@@ -80,15 +80,17 @@ void rdpdk_stats_display(struct cmdline *cl, int option, int delay)
 					   total_packets_tx, total_packets_rx,
 					   total_packets_kni_tx, total_packets_kni_rx,
 					   total_packets_kni_dropped, total_packets_dropped);
-	}
-	else if (option == 2) { // csv
+	} else if (option == 2) {	// csv
 
 		_time = time(NULL);
 
 		for (lcoreid = 0; lcoreid < CMDLINE_MAX_CLIENTS; lcoreid++) {
-			if (cmdline_clients[lcoreid].cl == cl) {
-				cmdline_clients[lcoreid].csv_delay = delay;
-				cmdline_clients[lcoreid].delay_timer = _time;
+			if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][lcoreid].cl ==
+				cl) {
+				cmdline_clients[RTE_PER_LCORE(g_socket_id)][lcoreid].
+					csv_delay = delay;
+				cmdline_clients[RTE_PER_LCORE(g_socket_id)][lcoreid].
+					delay_timer = _time;
 				break;
 			}
 		}
@@ -123,8 +125,7 @@ void rdpdk_stats_display(struct cmdline *cl, int option, int delay)
 					   total_packets_kni_tx, total_packets_kni_rx,
 					   total_packets_kni_dropped, total_packets_dropped);
 
-	}
-	else {
+	} else {
 
 		cmdline_printf(cl,
 					   "\nLcore statistics ====================================");

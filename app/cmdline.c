@@ -45,11 +45,12 @@
 
 #define CMDLINE_POLL_TIMEOUT 500
 
-static pthread_t cmdline_tid;
+static pthread_t cmdline_tid[NB_SOCKETS];
 
-struct client_data_t cmdline_clients[CMDLINE_MAX_CLIENTS];
-static volatile sig_atomic_t cmdline_thread_loop;
-static uint32_t g_socket_id;
+struct client_data_t cmdline_clients[NB_SOCKETS][CMDLINE_MAX_CLIENTS];
+static volatile sig_atomic_t cmdline_thread_loop[NB_SOCKETS];
+static int cmdline_thread_unixsock[NB_SOCKETS];
+RTE_DEFINE_PER_LCORE(uint32_t, g_socket_id);
 
 typedef uint8_t portid_t;
 
@@ -700,26 +701,30 @@ static void cmd_obj_lpm_lkp_parsed(void *parsed_result,
 	char buf[INET6_ADDRSTRLEN];
 
 	if (res->ip.family == AF_INET) {
-		i = rte_lpm_lookup(ipv4_rdpdk_lookup_struct[g_socket_id],
+		i = rte_lpm_lookup(ipv4_rdpdk_lookup_struct
+						   [RTE_PER_LCORE(g_socket_id)],
 						   rte_be_to_cpu_32(res->ip.addr.ipv4.s_addr),
 						   &next_hop);
 		if (i < 0) {
 			cmdline_printf(cl, "not found\n");
 		} else {
 			struct in_addr *addr =
-				&neighbor4_struct[g_socket_id]->entries.t4[next_hop].addr;
+				&neighbor4_struct[RTE_PER_LCORE(g_socket_id)]->entries.
+				t4[next_hop].addr;
 			cmdline_printf(cl, "present, next_hop %s\n",
 						   inet_ntop(AF_INET, addr, buf,
 									 INET6_ADDRSTRLEN));
 		}
 	} else if (res->ip.family == AF_INET6) {
-		i = rte_lpm6_lookup(ipv6_rdpdk_lookup_struct[g_socket_id],
+		i = rte_lpm6_lookup(ipv6_rdpdk_lookup_struct
+							[RTE_PER_LCORE(g_socket_id)],
 							res->ip.addr.ipv6.s6_addr, &next_hop);
 		if (i < 0) {
 			cmdline_printf(cl, "not found\n");
 		} else {
 			struct in6_addr *addr =
-				&neighbor6_struct[g_socket_id]->entries.t6[next_hop].addr;
+				&neighbor6_struct[RTE_PER_LCORE(g_socket_id)]->entries.
+				t6[next_hop].addr;
 			cmdline_printf(cl, "present, next_hop %s\n",
 						   inet_ntop(AF_INET6, addr, buf,
 									 INET6_ADDRSTRLEN));
@@ -794,14 +799,14 @@ cmdline_parse_inst_t cmd_obj_acl_add = {
 struct cmd_stats_result {
 	cmdline_fixed_string_t stats;
 	cmdline_fixed_string_t option;
-	uint8_t				   delay;
+	uint8_t delay;
 };
 
-static void cmd_stats_parsed(
-							 void *parsed_result,
+static void cmd_stats_parsed(void *parsed_result,
 							 struct cmdline *cl, void *data)
 {
-	struct cmd_stats_result *res = (struct cmd_stats_result*)parsed_result;
+	struct cmd_stats_result *res =
+		(struct cmd_stats_result *) parsed_result;
 	rdpdk_stats_display(cl, (intptr_t) data, res->delay);
 }
 
@@ -868,7 +873,7 @@ static void cmd_neigh_parsed( __attribute__ ((unused))
 	is_ipv4 = !strcmp(res->proto, "ipv4");
 	if (is_ipv4) {
 		struct nei_entry4 *entry;
-		t = neighbor4_struct[g_socket_id];
+		t = neighbor4_struct[RTE_PER_LCORE(g_socket_id)];
 
 		for (i = 0; i < NEI_NUM_ENTRIES; i++) {
 			entry = &(t->entries.t4[i]);
@@ -888,7 +893,7 @@ static void cmd_neigh_parsed( __attribute__ ((unused))
 		}
 	} else {
 		struct nei_entry6 *entry;
-		t = neighbor6_struct[g_socket_id];
+		t = neighbor6_struct[RTE_PER_LCORE(g_socket_id)];
 
 		for (i = 0; i < NEI_NUM_ENTRIES; i++) {
 			entry = &(t->entries.t6[i]);
@@ -1034,19 +1039,28 @@ static void *cmdline_new_unixsock(int sock)
 int rdpdk_cmdline_init(const char *path, uint32_t socket_id)
 {
 	int fd;
+	char buf[128];
 
 	/* everything else is checked in cmdline_new() */
 	if (!path)
 		return -1;
 
-	fd = create_unixsock(path);
+	snprintf(buf, sizeof(buf), "%s.%d", path, socket_id);
+
+	fd = create_unixsock(buf);
 	if (fd < 0) {
 		RTE_LOG(ERR, CMDLINE1, "open() failed\n");
 		return -1;
 	}
-	g_socket_id = socket_id;
 
-	memset(&cmdline_clients, 0, sizeof(cmdline_clients));
+	if (socket_id == 0) {
+		symlink(buf, path);
+	}
+
+	cmdline_thread_unixsock[socket_id] = fd;
+
+	memset(&cmdline_clients[socket_id], 0,
+		   sizeof(cmdline_clients[socket_id]));
 	return fd;
 }
 
@@ -1062,35 +1076,24 @@ static int rdpdk_cmdline_free(void *cmdline)
 
 int rdpdk_cmdline_terminate(int sock, const char *path)
 {
-	int i;
 	int ret = 0;				//here for silence write warning
+	char buf[128];
 
-	for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
-		if (cmdline_clients[i].cl) {
-#define CMDLINE_QUIT_MSG "RDPDK closing...\n"
-			ret = write(cmdline_clients[i].cl->s_out, CMDLINE_QUIT_MSG,
-						sizeof(CMDLINE_QUIT_MSG));
-
-			rdpdk_cmdline_free(cmdline_clients[i].cl);
-
-			shutdown(cmdline_clients[i].cl->s_out, SHUT_RDWR);
-			close(cmdline_clients[i].cl->s_out);
-
-			memset(&cmdline_clients[i], 0, sizeof(struct client_data_t));
-		}
-	}
-
-	if (pthread_join(cmdline_tid, NULL)) {
+	if (pthread_join(cmdline_tid[sock], NULL)) {
 		perror("error during free cmdline pthread_join");
 	}
-	close(sock);
-	unlink(path);
+	close(cmdline_thread_unixsock[RTE_PER_LCORE(g_socket_id)]);
+	if (sock == 0) {
+		unlink(path);
+	}
+	snprintf(buf, sizeof(buf), "%s.%d", path, RTE_PER_LCORE(g_socket_id));
+	unlink(buf);
 	return ret;
 }
 
-int rdpdk_cmdline_stop(void)
+int rdpdk_cmdline_stop(int sock)
 {
-	cmdline_thread_loop = 0;
+	cmdline_thread_loop[sock] = 0;
 	return 0;
 }
 
@@ -1098,7 +1101,9 @@ static int cmdline_clients_get(int sock)
 {
 	int j;
 	for (j = 0; j < CMDLINE_MAX_CLIENTS; j++) {
-		if (cmdline_clients[j].cl && cmdline_clients[j].cl->s_in == sock) {
+		if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][j].cl
+			&& cmdline_clients[RTE_PER_LCORE(g_socket_id)][j].cl->s_in ==
+			sock) {
 			return j;
 		}
 	}
@@ -1108,22 +1113,24 @@ static int cmdline_clients_get(int sock)
 
 static void cmdline_clients_close(int id)
 {
-	rdpdk_cmdline_free(cmdline_clients[id].cl);
-	close(cmdline_clients[id].cl->s_out);
-	memset(&cmdline_clients[id], 0, sizeof(struct client_data_t));
+	rdpdk_cmdline_free(cmdline_clients[RTE_PER_LCORE(g_socket_id)][id].cl);
+	close(cmdline_clients[RTE_PER_LCORE(g_socket_id)][id].cl->s_out);
+	memset(&cmdline_clients[RTE_PER_LCORE(g_socket_id)][id], 0,
+		   sizeof(struct client_data_t));
 	RTE_LOG(INFO, CMDLINE1, "Client id %d disconnected \n", id);
 }
 
 static void *cmdline_run(void *data)
 {
 	struct pollfd fds[CMDLINE_MAX_CLIENTS + 1];	// +1 for the listenning sock
-	int sock = (intptr_t) data;
+	RTE_PER_LCORE(g_socket_id) = (intptr_t) data;
 	int nfds = 1;
 	int i, j, ret = 0;
 
+
 	fds[0].events = POLLIN;
-	fds[0].fd = sock;
-	while (cmdline_thread_loop) {
+	fds[0].fd = cmdline_thread_unixsock[RTE_PER_LCORE(g_socket_id)];
+	while (cmdline_thread_loop[RTE_PER_LCORE(g_socket_id)]) {
 		int res = poll(fds, nfds, CMDLINE_POLL_TIMEOUT);
 		if (res < 0 && errno != EINTR) {
 			perror("error during cmdline_run poll");
@@ -1134,8 +1141,10 @@ static void *cmdline_run(void *data)
 			res = accept(fds[0].fd, NULL, NULL);
 
 			for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
-				if (cmdline_clients[i].cl == NULL) {
-					cmdline_clients[i].cl = cmdline_new_unixsock(res);
+				if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl ==
+					NULL) {
+					cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl =
+						cmdline_new_unixsock(res);
 					break;
 				}
 			}
@@ -1160,9 +1169,12 @@ static void *cmdline_run(void *data)
 					continue;
 				}
 				//read error, closing conn
-				ret = cmdline_in(cmdline_clients[j].cl, buf, ret);
+				ret =
+					cmdline_in(cmdline_clients[RTE_PER_LCORE(g_socket_id)]
+							   [j].cl, buf, ret);
 				if (ret < 0
-					&& cmdline_clients[j].cl->rdl.status == RDLINE_EXITED) {
+					&& cmdline_clients[RTE_PER_LCORE(g_socket_id)][j].cl->
+					rdl.status == RDLINE_EXITED) {
 					cmdline_clients_close(j);
 				}
 			}
@@ -1170,45 +1182,77 @@ static void *cmdline_run(void *data)
 
 		nfds = 1;
 		for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
-			if (cmdline_clients[i].cl) {
-				if(cmdline_clients[i].csv_delay) {
-					if ((time(NULL) - cmdline_clients[i].delay_timer) >= cmdline_clients[i].csv_delay) {
-						rdpdk_stats_display(cmdline_clients[i].cl, 2, cmdline_clients[i].csv_delay);
+			if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl) {
+				if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].
+					csv_delay) {
+					if ((time(NULL) -
+						 cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].
+						 delay_timer) >=
+						cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].
+						csv_delay) {
+						rdpdk_stats_display(cmdline_clients
+											[RTE_PER_LCORE(g_socket_id)]
+											[i].cl, 2,
+											cmdline_clients[RTE_PER_LCORE
+															(g_socket_id)]
+											[i].csv_delay);
 					}
 				}
 
-				fds[nfds].fd = cmdline_clients[i].cl->s_in;
+				fds[nfds].fd =
+					cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl->
+					s_in;
 				fds[nfds].events = POLLIN;
 				nfds++;
 			}
 		}
 	}
+
+	for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
+		if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl) {
+#define CMDLINE_QUIT_MSG "RDPDK closing...\n"
+			ret =
+				write(cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl->
+					  s_out, CMDLINE_QUIT_MSG, sizeof(CMDLINE_QUIT_MSG));
+
+			rdpdk_cmdline_free(cmdline_clients[RTE_PER_LCORE(g_socket_id)]
+							   [i].cl);
+
+			shutdown(cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl->
+					 s_out, SHUT_RDWR);
+			close(cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl->
+				  s_out);
+
+			memset(&cmdline_clients[RTE_PER_LCORE(g_socket_id)][i], 0,
+				   sizeof(struct client_data_t));
+		}
+	}
+
 	return 0;
 }
 
 
-pthread_t rdpdk_cmdline_launch(int sock)
+pthread_t rdpdk_cmdline_launch(int sock, cpu_set_t * cpuset)
 {
 	char thread_name[16];
-	cpu_set_t cpuset;
 	int ret;
 
-	cmdline_thread_loop = 1;
+	cmdline_thread_loop[sock] = 1;
 
 	ret =
-		pthread_create(&cmdline_tid, NULL, cmdline_run,
+		pthread_create(&cmdline_tid[sock], NULL, cmdline_run,
 					   (void *) (intptr_t) sock);
 	if (ret != 0) {
 		perror("failed to create cmdline thread");
 		rte_exit(EXIT_FAILURE, "failed to launch cmdline thread");
 	}
 
-	snprintf(thread_name, 16, "cmdline-%d", 0);
-	pthread_setname_np(cmdline_tid, thread_name);
+	snprintf(thread_name, 16, "cmdline-%d", sock);
+	pthread_setname_np(cmdline_tid[sock], thread_name);
 
-	CPU_ZERO(&cpuset);
-	CPU_SET(0, &cpuset);
-	ret = pthread_setaffinity_np(cmdline_tid, sizeof(cpu_set_t), &cpuset);
+	ret =
+		pthread_setaffinity_np(cmdline_tid[sock], sizeof(cpu_set_t),
+							   cpuset);
 	if (ret != 0) {
 		perror("control pthread_setaffinity_np: ");
 		rte_exit(EXIT_FAILURE,
@@ -1216,5 +1260,5 @@ pthread_t rdpdk_cmdline_launch(int sock)
 				 ret);
 	}
 
-	return cmdline_tid;
+	return cmdline_tid[sock];
 }
