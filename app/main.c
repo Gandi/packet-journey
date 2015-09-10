@@ -334,7 +334,8 @@ get_ipv4_dst_port(void *ipv4_hdr, uint8_t portid,
 
 	return (uint8_t) ((rte_lpm_lookup(ipv4_rdpdk_lookup_struct,
 									  rte_be_to_cpu_32(((struct ipv4_hdr *)
-														ipv4_hdr)->dst_addr),
+														ipv4_hdr)->
+													   dst_addr),
 									  &next_hop) ==
 					   0) ? next_hop : portid);
 }
@@ -904,8 +905,9 @@ filter_packets(struct rte_mbuf **pkts, struct acl_search_t *acl_search,
 			rte_pktmbuf_free(acl_pkts[i]);
 		} else {
 			//add back the unfiltered packet in pkts but don't discard non IP packet
-			while (!(RDPDK_PKT_TYPE(pkts[nb_pkts]) & RDPDK_IP_MASK)
-				   && nb_pkts < nb_rx) {
+			while (nb_pkts < nb_rx
+				   && !(RDPDK_PKT_TYPE(pkts[nb_pkts]) & RDPDK_IP_MASK)
+				) {
 				nb_pkts++;
 			}
 			pkts[nb_pkts++] = acl_pkts[i];
@@ -927,8 +929,9 @@ filter_packets(struct rte_mbuf **pkts, struct acl_search_t *acl_search,
 			rte_pktmbuf_free(acl_pkts[i]);
 		} else {
 			//add back the unfiltered packet in pkts but don't discard non IP packet
-			while (!(RDPDK_PKT_TYPE(pkts[nb_pkts]) & RDPDK_IP_MASK)
-				   && nb_pkts < nb_rx) {
+			while (nb_pkts < nb_rx
+				   && !(RDPDK_PKT_TYPE(pkts[nb_pkts]) & RDPDK_IP_MASK)
+				) {
 				nb_pkts++;
 			}
 			pkts[nb_pkts++] = acl_pkts[i];
