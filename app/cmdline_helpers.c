@@ -87,10 +87,10 @@ void rdpdk_stats_display(struct cmdline *cl, int option, int delay)
 		for (lcoreid = 0; lcoreid < CMDLINE_MAX_CLIENTS; lcoreid++) {
 			if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][lcoreid].cl ==
 				cl) {
-				cmdline_clients[RTE_PER_LCORE(g_socket_id)][lcoreid].
-					csv_delay = delay;
-				cmdline_clients[RTE_PER_LCORE(g_socket_id)][lcoreid].
-					delay_timer = _time;
+				cmdline_clients[RTE_PER_LCORE(g_socket_id)]
+					[lcoreid].csv_delay = delay;
+				cmdline_clients[RTE_PER_LCORE(g_socket_id)]
+					[lcoreid].delay_timer = _time;
 				break;
 			}
 		}

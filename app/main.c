@@ -326,8 +326,7 @@ get_ipv4_dst_port(void *ipv4_hdr, uint8_t portid,
 
 	return (uint8_t) ((rte_lpm_lookup(ipv4_rdpdk_lookup_struct,
 									  rte_be_to_cpu_32(((struct ipv4_hdr *)
-														ipv4_hdr)->
-													   dst_addr),
+														ipv4_hdr)->dst_addr),
 									  &next_hop) ==
 					   0) ? next_hop : portid);
 }
@@ -1609,10 +1608,9 @@ static void init_port(uint8_t portid)
 
 	//XXX kni tx queue
 	if (numa_on)
-		socketid =
-			(uint8_t)
-			rte_lcore_to_socket_id(kni_port_params_array[portid]->
-								   lcore_tx);
+		socketid = (uint8_t)
+			rte_lcore_to_socket_id(kni_port_params_array
+								   [portid]->lcore_tx);
 	else
 		socketid = 0;
 
@@ -1738,12 +1736,12 @@ signal_handler(int signum, __rte_unused siginfo_t * si,
 				control_stop(control_handle[sock].addr);
 			}
 		}
-	}
-	else if (signum == SIGCHLD) {
+	} else if (signum == SIGCHLD) {
 		int pid, status;
 		if ((pid = wait(&status)) > 0) {
-			RTE_LOG(DEBUG, RDPDK1, "SIGCHLD received, reaped child pid: %d status %d\n", pid,
-					WEXITSTATUS(status));
+			RTE_LOG(DEBUG, RDPDK1,
+					"SIGCHLD received, reaped child pid: %d status %d\n",
+					pid, WEXITSTATUS(status));
 		}
 	}
 }

@@ -709,8 +709,8 @@ static void cmd_obj_lpm_lkp_parsed(void *parsed_result,
 			cmdline_printf(cl, "not found\n");
 		} else {
 			struct in_addr *addr =
-				&neighbor4_struct[RTE_PER_LCORE(g_socket_id)]->entries.
-				t4[next_hop].addr;
+				&neighbor4_struct[RTE_PER_LCORE(g_socket_id)]->
+				entries.t4[next_hop].addr;
 			cmdline_printf(cl, "present, next_hop %s\n",
 						   inet_ntop(AF_INET, addr, buf,
 									 INET6_ADDRSTRLEN));
@@ -723,8 +723,8 @@ static void cmd_obj_lpm_lkp_parsed(void *parsed_result,
 			cmdline_printf(cl, "not found\n");
 		} else {
 			struct in6_addr *addr =
-				&neighbor6_struct[RTE_PER_LCORE(g_socket_id)]->entries.
-				t6[next_hop].addr;
+				&neighbor6_struct[RTE_PER_LCORE(g_socket_id)]->
+				entries.t6[next_hop].addr;
 			cmdline_printf(cl, "present, next_hop %s\n",
 						   inet_ntop(AF_INET6, addr, buf,
 									 INET6_ADDRSTRLEN));
@@ -1173,8 +1173,8 @@ static void *cmdline_run(void *data)
 					cmdline_in(cmdline_clients[RTE_PER_LCORE(g_socket_id)]
 							   [j].cl, buf, ret);
 				if (ret < 0
-					&& cmdline_clients[RTE_PER_LCORE(g_socket_id)][j].cl->
-					rdl.status == RDLINE_EXITED) {
+					&& cmdline_clients[RTE_PER_LCORE(g_socket_id)][j].
+					cl->rdl.status == RDLINE_EXITED) {
 					cmdline_clients_close(j);
 				}
 			}
@@ -1183,13 +1183,13 @@ static void *cmdline_run(void *data)
 		nfds = 1;
 		for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
 			if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl) {
-				if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].
-					csv_delay) {
+				if (cmdline_clients[RTE_PER_LCORE(g_socket_id)]
+					[i].csv_delay) {
 					if ((time(NULL) -
-						 cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].
-						 delay_timer) >=
-						cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].
-						csv_delay) {
+						 cmdline_clients[RTE_PER_LCORE(g_socket_id)]
+						 [i].delay_timer) >=
+						cmdline_clients[RTE_PER_LCORE(g_socket_id)]
+						[i].csv_delay) {
 						rdpdk_stats_display(cmdline_clients
 											[RTE_PER_LCORE(g_socket_id)]
 											[i].cl, 2,
@@ -1200,8 +1200,8 @@ static void *cmdline_run(void *data)
 				}
 
 				fds[nfds].fd =
-					cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl->
-					s_in;
+					cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].
+					cl->s_in;
 				fds[nfds].events = POLLIN;
 				nfds++;
 			}
@@ -1212,16 +1212,17 @@ static void *cmdline_run(void *data)
 		if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl) {
 #define CMDLINE_QUIT_MSG "RDPDK closing...\n"
 			ret =
-				write(cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl->
-					  s_out, CMDLINE_QUIT_MSG, sizeof(CMDLINE_QUIT_MSG));
+				write(cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].
+					  cl->s_out, CMDLINE_QUIT_MSG,
+					  sizeof(CMDLINE_QUIT_MSG));
 
 			rdpdk_cmdline_free(cmdline_clients[RTE_PER_LCORE(g_socket_id)]
 							   [i].cl);
 
-			shutdown(cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl->
-					 s_out, SHUT_RDWR);
-			close(cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl->
-				  s_out);
+			shutdown(cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].
+					 cl->s_out, SHUT_RDWR);
+			close(cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].
+				  cl->s_out);
 
 			memset(&cmdline_clients[RTE_PER_LCORE(g_socket_id)][i], 0,
 				   sizeof(struct client_data_t));
