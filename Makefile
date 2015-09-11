@@ -5,8 +5,15 @@ endif
 
 include $(RTE_SDK)/mk/rte.vars.mk
 
+RDPDK_QEMU = 0
+export RDPDK_QEMU
+
 O ?= $(RTE_SRCDIR)/build
-EXTRA_CFLAGS +=  -W -Wall -g3 -gdwarf-2 -O3 -include $(RTE_SDK)/$(RTE_TARGET)/include/rte_config.h -DRDPDK_OFFLOAD_VLAN #-DRDPDK_DEBUG #-DRDPDK_QEMU
+ifeq ($(RDPDK_QEMU),1)
+EXTRA_CFLAGS +=  -W -Wall -g3 -gdwarf-2 -O3 -include $(RTE_SDK)/$(RTE_TARGET)/include/rte_config.h -DRDPDK_DEBUG -DRDPDK_QEMU
+else
+EXTRA_CFLAGS +=  -W -Wall -g3 -gdwarf-2 -O3 -include $(RTE_SDK)/$(RTE_TARGET)/include/rte_config.h #-DRDPDK_DEBUG
+endif
 export EXTRA_CFLAGS
 
 DIRS-y += lib
