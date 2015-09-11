@@ -104,22 +104,6 @@ struct control_params_t {
 	int lcore_id;
 };
 struct control_params_t control_handle[NB_SOCKETS];
-#ifdef RDPDK_QEMU
-#define	rdpdk_mm_load_si128 _mm_loadu_si128
-#define	rdpdk_mm_store_si128 _mm_storeu_si128
-#define    RDPDK_TEST_IPV4_HDR(m) ((rte_pktmbuf_mtod((m), struct ether_hdr *)->ether_type) == ETHER_TYPE_BE_IPv4)
-#define    RDPDK_TEST_IPV6_HDR(m) ((rte_pktmbuf_mtod((m), struct ether_hdr *)->ether_type) == ETHER_TYPE_BE_IPv6)
-#else
-#define	rdpdk_mm_load_si128 _mm_load_si128
-#define	rdpdk_mm_store_si128 _mm_store_si128
-#ifdef RTE_NEXT_ABI
-#define	RDPDK_TEST_IPV4_HDR(m) RTE_ETH_IS_IPV4_HDR((m)->packet_type)
-#define	RDPDK_TEST_IPV6_HDR(m) RTE_ETH_IS_IPV6_HDR((m)->packet_type)
-#else
-#define	RDPDK_TEST_IPV4_HDR(m) (m)->ol_flags & PKT_RX_IPV4_HDR
-#define	RDPDK_TEST_IPV6_HDR(m) (m)->ol_flags & PKT_RX_IPV6_HDR
-#endif
-#endif
 
 #ifdef RTE_NEXT_ABI
 #define    RDPDK_PKT_TYPE(m)      (m)->packet_type
@@ -136,6 +120,52 @@ struct control_params_t control_handle[NB_SOCKETS];
 #define ETHER_TYPE_BE_IPv4 0x0008
 #define ETHER_TYPE_BE_IPv6 0xDD86
 #define ETHER_TYPE_BE_VLAN 0x0081
+
+#ifdef RTE_NEXT_ABI
+#define	RDPDK_TEST_IPV4_HDR(m) RTE_ETH_IS_IPV4_HDR((m)->packet_type)
+#define	RDPDK_TEST_IPV6_HDR(m) RTE_ETH_IS_IPV6_HDR((m)->packet_type)
+#else
+#define	RDPDK_TEST_IPV4_HDR(m) (m)->ol_flags & PKT_RX_IPV4_HDR
+#define	RDPDK_TEST_IPV6_HDR(m) (m)->ol_flags & PKT_RX_IPV6_HDR
+#endif
+
+#ifdef RDPDK_QEMU
+#define	rdpdk_mm_load_si128 _mm_loadu_si128
+#define	rdpdk_mm_store_si128 _mm_storeu_si128
+
+uint16_t
+__real_virtio_recv_mergeable_pkts(void *rx_queue, struct rte_mbuf **rx_pkts, uint16_t nb_pkts);
+uint16_t
+__wrap_virtio_recv_mergeable_pkts(void *rx_queue, struct rte_mbuf **rx_pkts, uint16_t nb_pkts);
+uint16_t
+__wrap_virtio_recv_mergeable_pkts(void *rx_queue, struct rte_mbuf **rx_pkts, uint16_t nb_pkts) {
+	uint16_t res = __real_virtio_recv_mergeable_pkts(rx_queue, rx_pkts, nb_pkts);
+	uint16_t i;
+
+	for (i = 0; i < res; i++) {
+		if ((rte_pktmbuf_mtod(rx_pkts[i], struct ether_hdr *)->ether_type) == ETHER_TYPE_BE_IPv4) {
+#ifdef RTE_NEXT_ABI
+			rx_pkts[i]->packet_type |= RDPDK_IPV4_MASK;
+#else
+			rx_pkts[i]->ol_flags |= PKT_RX_IPV4_HDR;
+#endif
+		}
+		else if ((rte_pktmbuf_mtod(rx_pkts[i], struct ether_hdr *)->ether_type) == ETHER_TYPE_BE_IPv6) {
+#ifdef RTE_NEXT_ABI
+			rx_pkts[i]->packet_type |= RDPDK_IPV6_MASK;
+#else
+			rx_pkts[i]->ol_flags |= PKT_RX_IPV6_HDR;
+#endif
+		}
+	}
+
+	return res;
+}
+
+#else
+#define	rdpdk_mm_load_si128 _mm_load_si128
+#define	rdpdk_mm_store_si128 _mm_store_si128
+#endif
 
 #ifndef IPv6_BYTES
 #define IPv6_BYTES_FMT "%02x%02x:%02x%02x:%02x%02x:%02x%02x:"\

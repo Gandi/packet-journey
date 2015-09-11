@@ -23,6 +23,9 @@ DEPDIRS-y += lib/libnetlink lib/libneighbour
 
 LDFLAGS += -lc -lpthread -ldl
 LDFLAGS += -L$(BASE_OUTPUT)/lib/libneighbour/$(RTE_TARGET)/lib -L$(BASE_OUTPUT)/lib/libnetlink/$(RTE_TARGET)/lib -lneighbour -lnetlink
+ifeq ($(RDPDK_QEMU),1)
+LDFLAGS += --wrap=virtio_recv_mergeable_pkts
+endif
 
 # workaround for a gcc bug with noreturn attribute
 # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12603
