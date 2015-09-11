@@ -134,23 +134,32 @@ struct control_params_t control_handle[NB_SOCKETS];
 #define	rdpdk_mm_store_si128 _mm_storeu_si128
 
 uint16_t
-__real_virtio_recv_mergeable_pkts(void *rx_queue, struct rte_mbuf **rx_pkts, uint16_t nb_pkts);
-uint16_t
-__wrap_virtio_recv_mergeable_pkts(void *rx_queue, struct rte_mbuf **rx_pkts, uint16_t nb_pkts);
-uint16_t
-__wrap_virtio_recv_mergeable_pkts(void *rx_queue, struct rte_mbuf **rx_pkts, uint16_t nb_pkts) {
-	uint16_t res = __real_virtio_recv_mergeable_pkts(rx_queue, rx_pkts, nb_pkts);
+__real_virtio_recv_mergeable_pkts(void *rx_queue,
+								  struct rte_mbuf **rx_pkts,
+								  uint16_t nb_pkts);
+uint16_t __wrap_virtio_recv_mergeable_pkts(void *rx_queue,
+										   struct rte_mbuf **rx_pkts,
+										   uint16_t nb_pkts);
+uint16_t __wrap_virtio_recv_mergeable_pkts(void *rx_queue,
+										   struct rte_mbuf **rx_pkts,
+										   uint16_t nb_pkts)
+{
+	uint16_t res =
+		__real_virtio_recv_mergeable_pkts(rx_queue, rx_pkts, nb_pkts);
 	uint16_t i;
 
 	for (i = 0; i < res; i++) {
-		if ((rte_pktmbuf_mtod(rx_pkts[i], struct ether_hdr *)->ether_type) == ETHER_TYPE_BE_IPv4) {
+		if ((rte_pktmbuf_mtod(rx_pkts[i], struct ether_hdr *)->ether_type)
+			== ETHER_TYPE_BE_IPv4) {
 #ifdef RTE_NEXT_ABI
 			rx_pkts[i]->packet_type |= RDPDK_IPV4_MASK;
 #else
 			rx_pkts[i]->ol_flags |= PKT_RX_IPV4_HDR;
 #endif
-		}
-		else if ((rte_pktmbuf_mtod(rx_pkts[i], struct ether_hdr *)->ether_type) == ETHER_TYPE_BE_IPv6) {
+		} else
+			if ((rte_pktmbuf_mtod
+				 (rx_pkts[i],
+				  struct ether_hdr *)->ether_type) == ETHER_TYPE_BE_IPv6) {
 #ifdef RTE_NEXT_ABI
 			rx_pkts[i]->packet_type |= RDPDK_IPV6_MASK;
 #else
@@ -910,7 +919,8 @@ prepare_acl_parameter(struct rte_mbuf **pkts_in, struct acl_search_t *acl,
  */
 static inline int
 filter_packets(struct rte_mbuf **pkts, struct acl_search_t *acl_search,
-			   int nb_rx)
+			   int nb_rx, struct rte_acl_ctx *acl4,
+			   struct rte_acl_ctx *acl6)
 {
 	uint32_t *res;
 	struct rte_mbuf **acl_pkts;
@@ -928,7 +938,7 @@ filter_packets(struct rte_mbuf **pkts, struct acl_search_t *acl_search,
 	//if num_ipv4 is equal to zero we skip it
 	for (i = 0; i < nb_res; ++i) {
 		//if the packet must be filtered, free it and don't add it back in pkts
-		if (unlikely((res[i] & ACL_DENY_SIGNATURE) != 0)) {
+		if (unlikely(acl4 != 0 && (res[i] & ACL_DENY_SIGNATURE) != 0)) {
 			/* in the ACL list, drop it */
 #ifdef L3FWDACL_DEBUG
 			dump_acl4_rule(acl_pkts[i], res[i]);
@@ -952,7 +962,7 @@ filter_packets(struct rte_mbuf **pkts, struct acl_search_t *acl_search,
 	//if num_ipv6 is equal to zero we skip it
 	for (i = 0; i < nb_res; ++i) {
 		//if the packet must be filtered, free it and don't add it back in pkts
-		if (unlikely((res[i] & ACL_DENY_SIGNATURE) != 0)) {
+		if (unlikely(acl6 != 0 && (res[i] & ACL_DENY_SIGNATURE) != 0)) {
 			/* in the ACL list, drop it */
 #ifdef L3FWDACL_DEBUG
 			dump_acl6_rule(acl_pkts[i], res[i]);
@@ -1059,6 +1069,8 @@ static int main_loop(__rte_unused void *dummy)
 			if (unlikely(nb_rx == 0))
 				continue;
 
+			RTE_LOG(DEBUG, RDPDK1,
+					"main_loop nb_rx %d  queue_id %d\n", nb_rx, queueid);
 			stats[lcore_id].nb_rx += nb_rx;
 			{
 				struct acl_search_t acl_search;
@@ -1080,14 +1092,17 @@ static int main_loop(__rte_unused void *dummy)
 									 acl_search.num_ipv6,
 									 DEFAULT_MAX_CATEGORIES);
 				}
-				nb_rx = filter_packets(pkts_burst, &acl_search, nb_rx);
+				nb_rx =
+					filter_packets(pkts_burst, &acl_search, nb_rx,
+								   qconf->acx_ipv4, qconf->acx_ipv6);
 			}
 			if (unlikely(nb_rx == 0))
 				continue;
 
 			/* Process up to last 3 packets one by one. */
 			RTE_LOG(DEBUG, RDPDK1,
-					"main_loop nb_rx %d  queue_id %d\n", nb_rx, queueid);
+					"main_loop acl nb_rx %d  queue_id %d\n", nb_rx,
+					queueid);
 #define PROCESS_STEP2(offset) process_step2(qconf, pkts_burst[nb_rx - offset], dst_port + nb_rx - offset)
 
 			switch (nb_rx % FWDSTEP) {

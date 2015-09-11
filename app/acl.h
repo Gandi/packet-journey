@@ -12,6 +12,13 @@
 #define MBUF_IPV6_2PROTO(m)	\
 	(rte_pktmbuf_mtod((m), uint8_t *) + OFF_ETHHEAD + OFF_IPV62PROTO)
 
+#ifdef L3FWDACL_DEBUG
+
+void dump_acl4_rule(struct rte_mbuf *m, uint32_t sig);
+void dump_acl6_rule(struct rte_mbuf *m, uint32_t sig);
+
+#endif
+
 int acl_init(int is_ipv4);
 
 struct acl_search_t {

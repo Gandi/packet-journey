@@ -365,7 +365,7 @@ static inline int is_bypass_line(char *buff)
 }
 
 #ifdef L3FWDACL_DEBUG
-static inline void dump_acl4_rule(struct rte_mbuf *m, uint32_t sig)
+void dump_acl4_rule(struct rte_mbuf *m, uint32_t sig)
 {
 	uint32_t offset = sig & ~ACL_DENY_SIGNATURE;
 	unsigned char a, b, c, d;
@@ -387,7 +387,7 @@ static inline void dump_acl4_rule(struct rte_mbuf *m, uint32_t sig)
 	acl_log("\n\n");
 }
 
-static inline void dump_acl6_rule(struct rte_mbuf *m, uint32_t sig)
+void dump_acl6_rule(struct rte_mbuf *m, uint32_t sig)
 {
 	unsigned i;
 	uint32_t offset = sig & ~ACL_DENY_SIGNATURE;
@@ -879,7 +879,7 @@ int acl_init(int is_ipv4)
 		for (i = 0; i < NB_SOCKETS; i++) {
 			if ((acl_ctx =
 				 setup_acl(acl_base_ipv6, acl_num_ipv6, 1, i)) != NULL) {
-				ipv4_acx[i] = acl_ctx;
+				ipv6_acx[i] = acl_ctx;
 			} else {
 				acl_log
 					("setup_acl failed for ipv6 with socketid %d, keeping previous rules for that socket\n",
