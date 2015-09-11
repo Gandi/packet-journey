@@ -125,10 +125,12 @@ struct control_params_t control_handle[NB_SOCKETS];
 #define    RDPDK_PKT_TYPE(m)      (m)->packet_type
 #define    RDPDK_IP_MASK          (RTE_PTYPE_L3_IPV4 | RTE_PTYPE_L3_IPV6)
 #define    RDPDK_IPV4_MASK        RTE_PTYPE_L3_IPV4
+#define    RDPDK_IPV6_MASK        RTE_PTYPE_L3_IPV6
 #else
 #define    RDPDK_PKT_TYPE(m)      (m)->ol_flags
 #define    RDPDK_IP_MASK          (PKT_RX_IPV4_HDR | PKT_RX_IPV6_HDR)
 #define    RDPDK_IPV4_MASK        PKT_RX_IPV4_HDR
+#define    RDPDK_IPV6_MASK        PKT_RX_IPV6_HDR
 #endif
 
 #define ETHER_TYPE_BE_IPv4 0x0008
@@ -363,36 +365,42 @@ get_ipv6_dst_port(void *ipv6_hdr, uint8_t portid,
 /* Minimum value of IPV4 total length (20B) in network byte order. */
 #define	IPV4_MIN_LEN_BE	(sizeof(struct ipv4_hdr) << 8)
 
-/*
- * From http://www.rfc-editor.org/rfc/rfc1812.txt section 5.2.2:
- * - The IP version number must be 4.
- * - The IP header length field must be large enough to hold the
- *    minimum length legal IP datagram (20 bytes = 5 words).
- * - The IP total length field must be large enough to hold the IP
- *   datagram header, whose length is specified in the IP header length
- *   field.
- * If we encounter invalid IPV4 packet, then set destination port for it
- * to BAD_PORT value.
- */
 static inline __attribute__ ((always_inline))
-void
-rfc1812_process(struct ipv4_hdr *ipv4_hdr, uint16_t * dp, uint32_t flags)
+uint8_t ip_process(void *hdr, uint16_t * dp, uint32_t flags,
+				   struct lcore_conf *qconf)
 {
-	uint8_t ihl;
+	struct nei_entry *entries;
 
 	if (likely((flags & RDPDK_IPV4_MASK) != 0)) {
-
+		uint8_t ihl;
+		struct ipv4_hdr *ipv4_hdr = (struct ipv4_hdr *) hdr;
 		ihl = ipv4_hdr->version_ihl - IPV4_MIN_VER_IHL;
 
 		ipv4_hdr->time_to_live--;
 		ipv4_hdr->hdr_checksum++;
 
-		if (ihl > IPV4_MAX_VER_IHL_DIFF ||
-			((uint8_t) ipv4_hdr->total_length == 0 &&
-			 ipv4_hdr->total_length < IPV4_MIN_LEN_BE)) {
+		if (ihl > IPV4_MAX_VER_IHL_DIFF
+			|| ipv4_hdr->total_length < IPV4_MIN_LEN_BE
+			|| ipv4_hdr->time_to_live <= 0) {
 			dp[0] = BAD_PORT;
+			return 1;
 		}
+		entries = &qconf->neighbor4_struct->entries.t4[*dp].neighbor;
+		return entries->port_id == BAD_PORT;
+	} else if (likely((flags & RDPDK_IPV6_MASK) != 0)) {
+		struct ipv6_hdr *ipv6_hdr = (struct ipv6_hdr *) hdr;
+
+		ipv6_hdr->hop_limits--;
+
+		//TODO add more tests
+		if (ipv6_hdr->hop_limits <= 0) {
+			dp[0] = BAD_PORT;
+			return 1;
+		}
+		entries = &qconf->neighbor6_struct->entries.t6[*dp].neighbor;
+		return entries->port_id == BAD_PORT;
 	}
+	return 0;
 }
 
 static inline __attribute__ ((always_inline)) uint16_t
@@ -435,8 +443,6 @@ process_step2(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 		ipv4_hdr = (struct ipv4_hdr *) (eth_hdr + 1);
 		dp = get_ipv4_dst_port(ipv4_hdr, 0, qconf->ipv4_lookup_struct);
 		RTE_LOG(DEBUG, RDPDK1, "process_packet4 res %d\n", dp);
-
-
 		dst_port[0] = dp;
 	} else if (RDPDK_TEST_IPV6_HDR(pkt)) {
 		ipv6_hdr = (struct ipv6_hdr *) (eth_hdr + 1);
@@ -554,6 +560,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 					t6[dst_port[j]].neighbor.action == NEI_ACTION_KNI; \
 				RTE_LOG(DEBUG, RDPDK1, #step ": j %d process %d ipv6\n", j, process); \
 			} else { \
+                is_ipv4 = 0; \
 				process = 1; \
 				RTE_LOG(DEBUG, RDPDK1, \
 					#step ": j %d process %d olflags%lx eth_type %x\n", j, \
@@ -562,7 +569,8 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 																 ether_hdr \
 																 *)->ether_type); \
 			} \
-			if (unlikely(process)) { \
+            process += ip_process((struct ether_hdr *) pkt[j] + 1, &dst_port[j], RDPDK_PKT_TYPE(pkt[j]), qconf); \
+			if (process) { \
 				/* no dest neighbor addr available, send it through the kni */ \
 				knimbuf[i++] = pkt[j]; \
 				if (j != --nb_rx) { \
@@ -657,13 +665,11 @@ process_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	te = _mm_blend_epi16(te, ve, MASK_ETH);
 	_mm_storeu_si128((__m128i *) & eth_hdr->d_addr, te);
 	*dst_port = entries->port_id;
-	rfc1812_process((struct ipv4_hdr *) (eth_hdr + 1),
-					dst_port, RDPDK_PKT_TYPE(pkt));
 }
 
 /*
  * Update source and destination MAC addresses in the ethernet header.
- * Perform RFC1812 checks and updates for IPV4 packets.
+ * Perform checks and updates for IP packets.
  */
 static inline void
 processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
@@ -673,11 +679,6 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	__m128i ve[FWDSTEP];
 	__m128i *p[FWDSTEP];
 	struct nei_entry *entries[FWDSTEP];
-
-	p[0] = (rte_pktmbuf_mtod(pkt[0], __m128i *));
-	p[1] = (rte_pktmbuf_mtod(pkt[1], __m128i *));
-	p[2] = (rte_pktmbuf_mtod(pkt[2], __m128i *));
-	p[3] = (rte_pktmbuf_mtod(pkt[3], __m128i *));
 
 	if (likely(RDPDK_TEST_IPV4_HDR(pkt[0])))
 		entries[0] =
@@ -707,16 +708,21 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 		entries[3] =
 			&qconf->neighbor6_struct->entries.t6[dst_port[3]].neighbor;
 
-	ve[0] = _mm_load_si128((__m128i *) & entries[0]->nexthop_hwaddr);
-	ve[1] = _mm_load_si128((__m128i *) & entries[1]->nexthop_hwaddr);
-	ve[2] = _mm_load_si128((__m128i *) & entries[2]->nexthop_hwaddr);
-	ve[3] = _mm_load_si128((__m128i *) & entries[3]->nexthop_hwaddr);
-
 	/* Pivot dst_port */
 	dst_port[0] = entries[0]->port_id;
 	dst_port[1] = entries[1]->port_id;
 	dst_port[2] = entries[2]->port_id;
 	dst_port[3] = entries[3]->port_id;
+
+	p[0] = (rte_pktmbuf_mtod(pkt[0], __m128i *));
+	p[1] = (rte_pktmbuf_mtod(pkt[1], __m128i *));
+	p[2] = (rte_pktmbuf_mtod(pkt[2], __m128i *));
+	p[3] = (rte_pktmbuf_mtod(pkt[3], __m128i *));
+
+	ve[0] = _mm_load_si128((__m128i *) & entries[0]->nexthop_hwaddr);
+	ve[1] = _mm_load_si128((__m128i *) & entries[1]->nexthop_hwaddr);
+	ve[2] = _mm_load_si128((__m128i *) & entries[2]->nexthop_hwaddr);
+	ve[3] = _mm_load_si128((__m128i *) & entries[3]->nexthop_hwaddr);
 
 	te[0] = rdpdk_mm_load_si128(p[0]);
 	te[1] = rdpdk_mm_load_si128(p[1]);
@@ -733,15 +739,6 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	rdpdk_mm_store_si128(p[1], te[1]);
 	rdpdk_mm_store_si128(p[2], te[2]);
 	rdpdk_mm_store_si128(p[3], te[3]);
-
-	rfc1812_process((struct ipv4_hdr *) ((struct ether_hdr *) p[0] + 1),
-					&dst_port[0], RDPDK_PKT_TYPE(pkt[0]));
-	rfc1812_process((struct ipv4_hdr *) ((struct ether_hdr *) p[1] + 1),
-					&dst_port[1], RDPDK_PKT_TYPE(pkt[1]));
-	rfc1812_process((struct ipv4_hdr *) ((struct ether_hdr *) p[2] + 1),
-					&dst_port[2], RDPDK_PKT_TYPE(pkt[2]));
-	rfc1812_process((struct ipv4_hdr *) ((struct ether_hdr *) p[3] + 1),
-					&dst_port[3], RDPDK_PKT_TYPE(pkt[3]));
 }
 
 #define	GRPSZ	(1 << FWDSTEP)
@@ -977,6 +974,7 @@ static int main_loop(__rte_unused void *dummy)
 	lcore_id = rte_lcore_id();
 	qconf = &lcore_conf[lcore_id];
 
+
 	if (qconf->n_rx_queue == 0) {
 		RTE_LOG(INFO, RDPDK1, "lcore %u has nothing to do\n", lcore_id);
 		return 0;
@@ -1189,10 +1187,10 @@ static int main_loop(__rte_unused void *dummy)
 					stats[lcore_id].nb_tx += k;
 					send_packetsx4(qconf, pn, pkts_burst + j, k);
 				} else {
-					//FIXME move it in processx4_step_checkneighbor so packets would be dropped more earlier
 					stats[lcore_id].nb_dropped += k;
 					for (m = j; m != j + k; m++)
 						rte_pktmbuf_free(pkts_burst[m]);
+
 				}
 			}
 		}
