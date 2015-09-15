@@ -648,7 +648,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 	switch (nb_rx % FWDSTEP) {
 		while (j < nb_rx) {
 			i = 0; // reinit i here after the first duck device
-			       // iteration
+		// iteration
 
 		case 0:
 			PROCESSX4_STEP(0);
