@@ -26,10 +26,6 @@ default: all
 .PHONY: test
 test: default
 
-.PHONY: reindent
-reindent:
-	indent -kr -ut -ts 4 */*.c */*/*.c */*.h */*/*.h
-
 .PHONY: format
 format:
 	clang-format -i */*.h */*.c
