@@ -30,5 +30,9 @@ test: default
 reindent:
 	indent -kr -ut -ts 4 */*.c */*/*.c */*.h */*/*.h
 
+.PHONY: format
+format:
+	clang-format -i */*.h */*.c
+
 include $(RTE_SDK)/mk/rte.extsubdir.mk
 

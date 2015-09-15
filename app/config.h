@@ -26,17 +26,17 @@ struct lcore_params {
 #define CMD_LINE_OPT_UNIXSOCK "unixsock"
 #define CMD_LINE_OPT_RULE_IPV4 "rule_ipv4"
 #define CMD_LINE_OPT_RULE_IPV6 "rule_ipv6"
-#define CMD_LINE_OPT_SCALAR	"scalar"
+#define CMD_LINE_OPT_SCALAR "scalar"
 #define CMD_LINE_OPT_PROMISC "promiscuous"
 #define CMD_LINE_OPT_NO_NUMA "no-numa"
 #define CMD_LINE_OPT_ENABLE_JUMBO "enable-jumbo"
 #define CMD_LINE_OPT_MAXPKT_LEN "max-pkt-len"
-#define CMD_LINE_OPT_PORTMASK	"portmask"
-#define CMD_LINE_OPT_CONFIGFILE	"configfile"
+#define CMD_LINE_OPT_PORTMASK "portmask"
+#define CMD_LINE_OPT_CONFIGFILE "configfile"
 
-#define FILE_MAIN_CONFIG	"rdpdk"
+#define FILE_MAIN_CONFIG "rdpdk"
 
 #define MAX_LCORE_PARAMS 1024
-#define MAX_JUMBO_PKT_LEN  9600
+#define MAX_JUMBO_PKT_LEN 9600
 
 #endif

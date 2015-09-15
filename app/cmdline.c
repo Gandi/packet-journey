@@ -30,7 +30,6 @@
 #include <cmdline_parse_string.h>
 #include <cmdline.h>
 
-
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -55,9 +54,8 @@ RTE_DEFINE_PER_LCORE(uint32_t, g_socket_id);
 typedef uint8_t portid_t;
 
 static void
-port_rss_reta_info(portid_t port_id,
-				   struct rte_eth_rss_reta_entry64 *reta_conf,
-				   uint16_t nb_entries)
+port_rss_reta_info(portid_t port_id, struct rte_eth_rss_reta_entry64 *reta_conf,
+		   uint16_t nb_entries)
 {
 	uint16_t i, idx, shift;
 	int ret;
@@ -65,7 +63,7 @@ port_rss_reta_info(portid_t port_id,
 	ret = rte_eth_dev_rss_reta_query(port_id, reta_conf, nb_entries);
 	if (ret != 0) {
 		RTE_LOG(ERR, CMDLINE1,
-				"Failed to get RSS RETA info, return code = %d\n", ret);
+			"Failed to get RSS RETA info, return code = %d\n", ret);
 		return;
 	}
 
@@ -75,8 +73,8 @@ port_rss_reta_info(portid_t port_id,
 		if (!(reta_conf[idx].mask & (1ULL << shift)))
 			continue;
 		RTE_LOG(ERR, CMDLINE1,
-				"RSS RETA configuration: hash index=%u, queue=%u\n", i,
-				reta_conf[idx].reta[shift]);
+			"RSS RETA configuration: hash index=%u, queue=%u\n", i,
+			reta_conf[idx].reta[shift]);
 	}
 }
 
@@ -86,28 +84,27 @@ struct cmd_loglevel_result {
 	uint8_t level;
 };
 
-static void cmd_loglevel_parsed(void *parsed_result,
-								__rte_unused struct cmdline *cl,
-								__rte_unused void *data)
+static void
+cmd_loglevel_parsed(void *parsed_result, __rte_unused struct cmdline *cl,
+		    __rte_unused void *data)
 {
 	struct cmd_loglevel_result *res = parsed_result;
 	rte_set_log_level(res->level);
 }
 
 cmdline_parse_token_string_t cmd_loglevel_loglevel =
-TOKEN_STRING_INITIALIZER(struct cmd_loglevel_result, loglevel, "loglevel");
+    TOKEN_STRING_INITIALIZER(struct cmd_loglevel_result, loglevel, "loglevel");
 cmdline_parse_token_num_t cmd_loglevel_level =
-TOKEN_NUM_INITIALIZER(struct cmd_loglevel_result, level, UINT8);
+    TOKEN_NUM_INITIALIZER(struct cmd_loglevel_result, level, UINT8);
 
 cmdline_parse_inst_t cmd_loglevel = {
-	.f = cmd_loglevel_parsed,
-	.data = NULL,
-	.help_str = "loglevel level",
-	.tokens = {
-			   (void *) &cmd_loglevel_loglevel,
-			   (void *) &cmd_loglevel_level,
-			   NULL,
-			   },
+    .f = cmd_loglevel_parsed,
+    .data = NULL,
+    .help_str = "loglevel level",
+    .tokens =
+	{
+	 (void *)&cmd_loglevel_loglevel, (void *)&cmd_loglevel_level, NULL,
+	},
 };
 
 /* *** SET LOGTYPE *** */
@@ -117,33 +114,31 @@ struct cmd_logtype_result {
 	uint8_t enable;
 };
 
-static void cmd_logtype_parsed(void *parsed_result,
-							   __rte_unused struct cmdline *cl,
-							   __rte_unused void *data)
+static void
+cmd_logtype_parsed(void *parsed_result, __rte_unused struct cmdline *cl,
+		   __rte_unused void *data)
 {
 	struct cmd_logtype_result *res = parsed_result;
 	rte_set_log_type(res->type, res->enable);
 }
 
 cmdline_parse_token_string_t cmd_logtype_logtype =
-TOKEN_STRING_INITIALIZER(struct cmd_logtype_result, logtype, "logtype");
+    TOKEN_STRING_INITIALIZER(struct cmd_logtype_result, logtype, "logtype");
 cmdline_parse_token_num_t cmd_logtype_type =
-TOKEN_NUM_INITIALIZER(struct cmd_logtype_result, type, UINT8);
+    TOKEN_NUM_INITIALIZER(struct cmd_logtype_result, type, UINT8);
 cmdline_parse_token_num_t cmd_logtype_enable =
-TOKEN_NUM_INITIALIZER(struct cmd_logtype_result, enable, UINT8);
+    TOKEN_NUM_INITIALIZER(struct cmd_logtype_result, enable, UINT8);
 
 cmdline_parse_inst_t cmd_logtype = {
-	.f = cmd_logtype_parsed,
-	.data = NULL,
-	.help_str = "logtype type enable",
-	.tokens = {
-			   (void *) &cmd_logtype_logtype,
-			   (void *) &cmd_logtype_type,
-			   (void *) &cmd_logtype_enable,
-			   NULL,
-			   },
+    .f = cmd_logtype_parsed,
+    .data = NULL,
+    .help_str = "logtype type enable",
+    .tokens =
+	{
+	 (void *)&cmd_logtype_logtype, (void *)&cmd_logtype_type,
+	 (void *)&cmd_logtype_enable, NULL,
+	},
 };
-
 
 /* *** SHOW PORT INFO *** */
 struct cmd_showport_result {
@@ -154,8 +149,8 @@ struct cmd_showport_result {
 	cmdline_fixed_string_t option;
 };
 
-static void cmd_showport_parsed(void *parsed_result,
-								struct cmdline *cl, void *data)
+static void
+cmd_showport_parsed(void *parsed_result, struct cmdline *cl, void *data)
 {
 	struct cmd_showport_result *res = parsed_result;
 	if (!strcmp(res->show, "clear")) {
@@ -166,52 +161,44 @@ static void cmd_showport_parsed(void *parsed_result,
 	} else if (!strcmp(res->what, "info"))
 		port_infos_display(cl, res->portnum);
 	else if (!strcmp(res->what, "stats"))
-		nic_stats_display(cl, res->portnum, (intptr_t) data);
+		nic_stats_display(cl, res->portnum, (intptr_t)data);
 	else if (!strcmp(res->what, "xstats"))
-		nic_xstats_display(cl, res->portnum, (intptr_t) data);
+		nic_xstats_display(cl, res->portnum, (intptr_t)data);
 }
 
 cmdline_parse_token_string_t cmd_showport_show =
-TOKEN_STRING_INITIALIZER(struct cmd_showport_result, show,
-						 "show#clear");
+    TOKEN_STRING_INITIALIZER(struct cmd_showport_result, show, "show#clear");
 cmdline_parse_token_string_t cmd_showport_port =
-TOKEN_STRING_INITIALIZER(struct cmd_showport_result, port, "port");
-cmdline_parse_token_string_t cmd_showport_what =
-TOKEN_STRING_INITIALIZER(struct cmd_showport_result, what,
-						 "info#stats#xstats");
+    TOKEN_STRING_INITIALIZER(struct cmd_showport_result, port, "port");
+cmdline_parse_token_string_t cmd_showport_what = TOKEN_STRING_INITIALIZER(
+    struct cmd_showport_result, what, "info#stats#xstats");
 cmdline_parse_token_num_t cmd_showport_portnum =
-TOKEN_NUM_INITIALIZER(struct cmd_showport_result, portnum, UINT8);
+    TOKEN_NUM_INITIALIZER(struct cmd_showport_result, portnum, UINT8);
 cmdline_parse_token_string_t cmd_showport_option =
-TOKEN_STRING_INITIALIZER(struct cmd_showport_result, option,
-						 "-j#json");
+    TOKEN_STRING_INITIALIZER(struct cmd_showport_result, option, "-j#json");
 
 cmdline_parse_inst_t cmd_showport = {
-	.f = cmd_showport_parsed,
-	.data = NULL,
-	.help_str = "show|clear port info|stats|xstats X (X = port number)",
-	.tokens = {
-			   (void *) &cmd_showport_show,
-			   (void *) &cmd_showport_port,
-			   (void *) &cmd_showport_what,
-			   (void *) &cmd_showport_portnum,
-			   NULL,
-			   },
+    .f = cmd_showport_parsed,
+    .data = NULL,
+    .help_str = "show|clear port info|stats|xstats X (X = port number)",
+    .tokens =
+	{
+	 (void *)&cmd_showport_show, (void *)&cmd_showport_port,
+	 (void *)&cmd_showport_what, (void *)&cmd_showport_portnum, NULL,
+	},
 };
 
 cmdline_parse_inst_t cmd_showport_json = {
-	.f = cmd_showport_parsed,
-	.data = (void *) 1,
-	.help_str = "show|clear port info|stats|xstats X (X = port number)",
-	.tokens = {
-			   (void *) &cmd_showport_show,
-			   (void *) &cmd_showport_port,
-			   (void *) &cmd_showport_what,
-			   (void *) &cmd_showport_portnum,
-			   (void *) &cmd_showport_option,
-			   NULL,
-			   },
+    .f = cmd_showport_parsed,
+    .data = (void *)1,
+    .help_str = "show|clear port info|stats|xstats X (X = port number)",
+    .tokens =
+	{
+	 (void *)&cmd_showport_show, (void *)&cmd_showport_port,
+	 (void *)&cmd_showport_what, (void *)&cmd_showport_portnum,
+	 (void *)&cmd_showport_option, NULL,
+	},
 };
-
 
 /*
  * Displays the RSS hash functions of a port, and, optionaly, the RSS hash
@@ -223,12 +210,12 @@ struct cmd_showport_rss_hash {
 	cmdline_fixed_string_t port;
 	uint8_t port_id;
 	cmdline_fixed_string_t rss_hash;
-	cmdline_fixed_string_t key;	/* optional argument */
+	cmdline_fixed_string_t key; /* optional argument */
 };
 
-static void cmd_showport_rss_hash_parsed(void *parsed_result,
-										 struct cmdline *cl,
-										 void *show_rss_key)
+static void
+cmd_showport_rss_hash_parsed(void *parsed_result, struct cmdline *cl,
+			     void *show_rss_key)
 {
 	struct cmd_showport_rss_hash *res = parsed_result;
 
@@ -236,45 +223,43 @@ static void cmd_showport_rss_hash_parsed(void *parsed_result,
 }
 
 cmdline_parse_token_string_t cmd_showport_rss_hash_show =
-TOKEN_STRING_INITIALIZER(struct cmd_showport_rss_hash, show, "show");
+    TOKEN_STRING_INITIALIZER(struct cmd_showport_rss_hash, show, "show");
 cmdline_parse_token_string_t cmd_showport_rss_hash_port =
-TOKEN_STRING_INITIALIZER(struct cmd_showport_rss_hash, port, "port");
+    TOKEN_STRING_INITIALIZER(struct cmd_showport_rss_hash, port, "port");
 cmdline_parse_token_num_t cmd_showport_rss_hash_port_id =
-TOKEN_NUM_INITIALIZER(struct cmd_showport_rss_hash, port_id, UINT8);
+    TOKEN_NUM_INITIALIZER(struct cmd_showport_rss_hash, port_id, UINT8);
 cmdline_parse_token_string_t cmd_showport_rss_hash_rss_hash =
-TOKEN_STRING_INITIALIZER(struct cmd_showport_rss_hash, rss_hash,
-						 "rss-hash");
+    TOKEN_STRING_INITIALIZER(struct cmd_showport_rss_hash, rss_hash,
+			     "rss-hash");
 cmdline_parse_token_string_t cmd_showport_rss_hash_rss_key =
-TOKEN_STRING_INITIALIZER(struct cmd_showport_rss_hash, key, "key");
+    TOKEN_STRING_INITIALIZER(struct cmd_showport_rss_hash, key, "key");
 
 cmdline_parse_inst_t cmd_showport_rss_hash = {
-	.f = cmd_showport_rss_hash_parsed,
-	.data = NULL,
-	.help_str = "show port X rss-hash (X = port number)\n",
-	.tokens = {
-			   (void *) &cmd_showport_rss_hash_show,
-			   (void *) &cmd_showport_rss_hash_port,
-			   (void *) &cmd_showport_rss_hash_port_id,
-			   (void *) &cmd_showport_rss_hash_rss_hash,
-			   NULL,
-			   },
+    .f = cmd_showport_rss_hash_parsed,
+    .data = NULL,
+    .help_str = "show port X rss-hash (X = port number)\n",
+    .tokens =
+	{
+	 (void *)&cmd_showport_rss_hash_show,
+	 (void *)&cmd_showport_rss_hash_port,
+	 (void *)&cmd_showport_rss_hash_port_id,
+	 (void *)&cmd_showport_rss_hash_rss_hash, NULL,
+	},
 };
 
 cmdline_parse_inst_t cmd_showport_rss_hash_key = {
-	.f = cmd_showport_rss_hash_parsed,
-	.data = (void *) 1,
-	.help_str = "show port X rss-hash key (X = port number)\n",
-	.tokens = {
-			   (void *) &cmd_showport_rss_hash_show,
-			   (void *) &cmd_showport_rss_hash_port,
-			   (void *) &cmd_showport_rss_hash_port_id,
-			   (void *) &cmd_showport_rss_hash_rss_hash,
-			   (void *) &cmd_showport_rss_hash_rss_key,
-			   NULL,
-			   },
+    .f = cmd_showport_rss_hash_parsed,
+    .data = (void *)1,
+    .help_str = "show port X rss-hash key (X = port number)\n",
+    .tokens =
+	{
+	 (void *)&cmd_showport_rss_hash_show,
+	 (void *)&cmd_showport_rss_hash_port,
+	 (void *)&cmd_showport_rss_hash_port_id,
+	 (void *)&cmd_showport_rss_hash_rss_hash,
+	 (void *)&cmd_showport_rss_hash_rss_key, NULL,
+	},
 };
-
-
 
 /* *** configure rss *** */
 struct cmd_config_rss {
@@ -286,17 +271,17 @@ struct cmd_config_rss {
 };
 
 static void
-cmd_config_rss_parsed(void *parsed_result, __attribute__ ((unused))
-					  struct cmdline *cl, __attribute__ ((unused))
-					  void *data)
+cmd_config_rss_parsed(void *parsed_result,
+		      __attribute__((unused)) struct cmdline *cl,
+		      __attribute__((unused)) void *data)
 {
 	struct cmd_config_rss *res = parsed_result;
 	struct rte_eth_rss_conf rss_conf;
 	uint8_t i;
 
 	if (!strcmp(res->value, "all"))
-		rss_conf.rss_hf = ETH_RSS_IP | ETH_RSS_TCP |
-			ETH_RSS_UDP | ETH_RSS_SCTP | ETH_RSS_L2_PAYLOAD;
+		rss_conf.rss_hf = ETH_RSS_IP | ETH_RSS_TCP | ETH_RSS_UDP |
+				  ETH_RSS_SCTP | ETH_RSS_L2_PAYLOAD;
 	else if (!strcmp(res->value, "ip"))
 		rss_conf.rss_hf = ETH_RSS_IP;
 	else if (!strcmp(res->value, "udp"))
@@ -319,29 +304,26 @@ cmd_config_rss_parsed(void *parsed_result, __attribute__ ((unused))
 }
 
 cmdline_parse_token_string_t cmd_config_rss_port =
-TOKEN_STRING_INITIALIZER(struct cmd_config_rss, port, "port");
+    TOKEN_STRING_INITIALIZER(struct cmd_config_rss, port, "port");
 cmdline_parse_token_string_t cmd_config_rss_keyword =
-TOKEN_STRING_INITIALIZER(struct cmd_config_rss, keyword, "config");
+    TOKEN_STRING_INITIALIZER(struct cmd_config_rss, keyword, "config");
 cmdline_parse_token_string_t cmd_config_rss_all =
-TOKEN_STRING_INITIALIZER(struct cmd_config_rss, all, "all");
+    TOKEN_STRING_INITIALIZER(struct cmd_config_rss, all, "all");
 cmdline_parse_token_string_t cmd_config_rss_name =
-TOKEN_STRING_INITIALIZER(struct cmd_config_rss, name, "rss");
-cmdline_parse_token_string_t cmd_config_rss_value =
-TOKEN_STRING_INITIALIZER(struct cmd_config_rss, value,
-						 "all#ip#tcp#udp#sctp#ether#none");
+    TOKEN_STRING_INITIALIZER(struct cmd_config_rss, name, "rss");
+cmdline_parse_token_string_t cmd_config_rss_value = TOKEN_STRING_INITIALIZER(
+    struct cmd_config_rss, value, "all#ip#tcp#udp#sctp#ether#none");
 
 cmdline_parse_inst_t cmd_config_rss = {
-	.f = cmd_config_rss_parsed,
-	.data = NULL,
-	.help_str = "port config all rss all|ip|tcp|udp|sctp|ether|none",
-	.tokens = {
-			   (void *) &cmd_config_rss_port,
-			   (void *) &cmd_config_rss_keyword,
-			   (void *) &cmd_config_rss_all,
-			   (void *) &cmd_config_rss_name,
-			   (void *) &cmd_config_rss_value,
-			   NULL,
-			   },
+    .f = cmd_config_rss_parsed,
+    .data = NULL,
+    .help_str = "port config all rss all|ip|tcp|udp|sctp|ether|none",
+    .tokens =
+	{
+	 (void *)&cmd_config_rss_port, (void *)&cmd_config_rss_keyword,
+	 (void *)&cmd_config_rss_all, (void *)&cmd_config_rss_name,
+	 (void *)&cmd_config_rss_value, NULL,
+	},
 };
 
 /* *** configure rss hash key *** */
@@ -353,34 +335,36 @@ struct cmd_config_rss_hash_key {
 	cmdline_fixed_string_t key;
 };
 
-static uint8_t hexa_digit_to_value(char hexa_digit)
+static uint8_t
+hexa_digit_to_value(char hexa_digit)
 {
 	if ((hexa_digit >= '0') && (hexa_digit <= '9'))
-		return (uint8_t) (hexa_digit - '0');
+		return (uint8_t)(hexa_digit - '0');
 	if ((hexa_digit >= 'a') && (hexa_digit <= 'f'))
-		return (uint8_t) ((hexa_digit - 'a') + 10);
+		return (uint8_t)((hexa_digit - 'a') + 10);
 	if ((hexa_digit >= 'A') && (hexa_digit <= 'F'))
-		return (uint8_t) ((hexa_digit - 'A') + 10);
+		return (uint8_t)((hexa_digit - 'A') + 10);
 	/* Invalid hexa digit */
 	return 0xFF;
 }
 
-static uint8_t parse_and_check_key_hexa_digit(struct cmdline *cl,
-											  char *key, int idx)
+static uint8_t
+parse_and_check_key_hexa_digit(struct cmdline *cl, char *key, int idx)
 {
 	uint8_t hexa_v;
 
 	hexa_v = hexa_digit_to_value(key[idx]);
 	if (hexa_v == 0xFF)
-		cmdline_printf(cl,
-					   "invalid key: character %c at position %d is not a "
-					   "valid hexa digit\n", key[idx], idx);
+		cmdline_printf(
+		    cl, "invalid key: character %c at position %d is not a "
+			"valid hexa digit\n",
+		    key[idx], idx);
 	return hexa_v;
 }
 
 static void
-cmd_config_rss_hash_key_parsed(void *parsed_result,
-							   struct cmdline *cl, __rte_unused void *data)
+cmd_config_rss_hash_key_parsed(void *parsed_result, struct cmdline *cl,
+			       __rte_unused void *data)
 {
 	struct cmd_config_rss_hash_key *res = parsed_result;
 	uint8_t hash_key[RSS_HASH_KEY_LENGTH];
@@ -390,10 +374,10 @@ cmd_config_rss_hash_key_parsed(void *parsed_result,
 
 	/* Check the length of the RSS hash key */
 	if (strlen(res->key) != (RSS_HASH_KEY_LENGTH * 2)) {
-		cmdline_printf(cl,
-					   "key length: %d invalid - key must be a string of %d"
-					   "hexa-decimal numbers\n", (int) strlen(res->key),
-					   RSS_HASH_KEY_LENGTH * 2);
+		cmdline_printf(
+		    cl, "key length: %d invalid - key must be a string of %d"
+			"hexa-decimal numbers\n",
+		    (int)strlen(res->key), RSS_HASH_KEY_LENGTH * 2);
 		return;
 	}
 	/* Translate RSS hash key into binary representation */
@@ -401,39 +385,39 @@ cmd_config_rss_hash_key_parsed(void *parsed_result,
 		xdgt0 = parse_and_check_key_hexa_digit(cl, res->key, (i * 2));
 		if (xdgt0 == 0xFF)
 			return;
-		xdgt1 = parse_and_check_key_hexa_digit(cl, res->key, (i * 2) + 1);
+		xdgt1 =
+		    parse_and_check_key_hexa_digit(cl, res->key, (i * 2) + 1);
 		if (xdgt1 == 0xFF)
 			return;
-		hash_key[i] = (uint8_t) ((xdgt0 * 16) + xdgt1);
+		hash_key[i] = (uint8_t)((xdgt0 * 16) + xdgt1);
 	}
 	port_rss_hash_key_update(cl, res->port_id, hash_key);
 }
 
 cmdline_parse_token_string_t cmd_config_rss_hash_key_port =
-TOKEN_STRING_INITIALIZER(struct cmd_config_rss_hash_key, port, "port");
+    TOKEN_STRING_INITIALIZER(struct cmd_config_rss_hash_key, port, "port");
 cmdline_parse_token_string_t cmd_config_rss_hash_key_config =
-TOKEN_STRING_INITIALIZER(struct cmd_config_rss_hash_key, config,
-						 "config");
+    TOKEN_STRING_INITIALIZER(struct cmd_config_rss_hash_key, config, "config");
 cmdline_parse_token_num_t cmd_config_rss_hash_key_port_id =
-TOKEN_NUM_INITIALIZER(struct cmd_config_rss_hash_key, port_id, UINT8);
+    TOKEN_NUM_INITIALIZER(struct cmd_config_rss_hash_key, port_id, UINT8);
 cmdline_parse_token_string_t cmd_config_rss_hash_key_rss_hash_key =
-TOKEN_STRING_INITIALIZER(struct cmd_config_rss_hash_key,
-						 rss_hash_key, "rss-hash-key");
+    TOKEN_STRING_INITIALIZER(struct cmd_config_rss_hash_key, rss_hash_key,
+			     "rss-hash-key");
 cmdline_parse_token_string_t cmd_config_rss_hash_key_value =
-TOKEN_STRING_INITIALIZER(struct cmd_config_rss_hash_key, key, NULL);
+    TOKEN_STRING_INITIALIZER(struct cmd_config_rss_hash_key, key, NULL);
 
 cmdline_parse_inst_t cmd_config_rss_hash_key = {
-	.f = cmd_config_rss_hash_key_parsed,
-	.data = NULL,
-	.help_str = "port config X rss-hash-key 104 hexa digits",
-	.tokens = {
-			   (void *) &cmd_config_rss_hash_key_port,
-			   (void *) &cmd_config_rss_hash_key_config,
-			   (void *) &cmd_config_rss_hash_key_port_id,
-			   (void *) &cmd_config_rss_hash_key_rss_hash_key,
-			   (void *) &cmd_config_rss_hash_key_value,
-			   NULL,
-			   },
+    .f = cmd_config_rss_hash_key_parsed,
+    .data = NULL,
+    .help_str = "port config X rss-hash-key 104 hexa digits",
+    .tokens =
+	{
+	 (void *)&cmd_config_rss_hash_key_port,
+	 (void *)&cmd_config_rss_hash_key_config,
+	 (void *)&cmd_config_rss_hash_key_port_id,
+	 (void *)&cmd_config_rss_hash_key_rss_hash_key,
+	 (void *)&cmd_config_rss_hash_key_value, NULL,
+	},
 };
 
 /* *** Configure RSS RETA *** */
@@ -447,9 +431,8 @@ struct cmd_config_rss_reta {
 };
 
 static int
-parse_reta_config(const char *str,
-				  struct rte_eth_rss_reta_entry64 *reta_conf,
-				  uint16_t nb_entries)
+parse_reta_config(const char *str, struct rte_eth_rss_reta_entry64 *reta_conf,
+		  uint16_t nb_entries)
 {
 	int i;
 	unsigned size;
@@ -458,11 +441,7 @@ parse_reta_config(const char *str,
 	char s[256];
 	const char *p, *p0 = str;
 	char *end;
-	enum fieldnames {
-		FLD_HASH_INDEX = 0,
-		FLD_QUEUE,
-		_NUM_FLD
-	};
+	enum fieldnames { FLD_HASH_INDEX = 0, FLD_QUEUE, _NUM_FLD };
 	unsigned long int_fld[_NUM_FLD];
 	char *str_fld[_NUM_FLD];
 
@@ -476,21 +455,23 @@ parse_reta_config(const char *str,
 			return -1;
 
 		snprintf(s, sizeof(s), "%.*s", size, p);
-		if (rte_strsplit(s, sizeof(s), str_fld, _NUM_FLD, ',') != _NUM_FLD)
+		if (rte_strsplit(s, sizeof(s), str_fld, _NUM_FLD, ',') !=
+		    _NUM_FLD)
 			return -1;
 		for (i = 0; i < _NUM_FLD; i++) {
 			errno = 0;
 			int_fld[i] = strtoul(str_fld[i], &end, 0);
-			if (errno != 0 || end == str_fld[i] || int_fld[i] > 65535)
+			if (errno != 0 || end == str_fld[i] ||
+			    int_fld[i] > 65535)
 				return -1;
 		}
 
-		hash_index = (uint16_t) int_fld[FLD_HASH_INDEX];
-		nb_queue = (uint8_t) int_fld[FLD_QUEUE];
+		hash_index = (uint16_t)int_fld[FLD_HASH_INDEX];
+		nb_queue = (uint8_t)int_fld[FLD_QUEUE];
 
 		if (hash_index >= nb_entries) {
 			RTE_LOG(ERR, CMDLINE1, "Invalid RETA hash index=%d\n",
-					hash_index);
+				hash_index);
 			return -1;
 		}
 
@@ -504,8 +485,8 @@ parse_reta_config(const char *str,
 }
 
 static void
-cmd_set_rss_reta_parsed(void *parsed_result,
-						struct cmdline *cl, __rte_unused void *data)
+cmd_set_rss_reta_parsed(void *parsed_result, struct cmdline *cl,
+			__rte_unused void *data)
 {
 	int ret;
 	struct rte_eth_dev_info dev_info;
@@ -516,61 +497,61 @@ cmd_set_rss_reta_parsed(void *parsed_result,
 	rte_eth_dev_info_get(res->port_id, &dev_info);
 	if (dev_info.reta_size == 0) {
 		cmdline_printf(cl, "Redirection table size is 0 which is "
-					   "invalid for RSS\n");
+				   "invalid for RSS\n");
 		return;
 	} else
 		cmdline_printf(cl, "The reta size of port %d is %u\n",
-					   res->port_id, dev_info.reta_size);
+			       res->port_id, dev_info.reta_size);
 	if (dev_info.reta_size > ETH_RSS_RETA_SIZE_512) {
-		cmdline_printf(cl,
-					   "Currently do not support more than %u entries of "
-					   "redirection table\n", ETH_RSS_RETA_SIZE_512);
+		cmdline_printf(
+		    cl, "Currently do not support more than %u entries of "
+			"redirection table\n",
+		    ETH_RSS_RETA_SIZE_512);
 		return;
 	}
 
 	memset(reta_conf, 0, sizeof(reta_conf));
 	if (!strcmp(res->list_name, "reta")) {
 		if (parse_reta_config(res->list_of_items, reta_conf,
-							  dev_info.reta_size)) {
-			cmdline_printf(cl,
-						   "Invalid RSS Redirection Table "
-						   "config entered\n");
+				      dev_info.reta_size)) {
+			cmdline_printf(cl, "Invalid RSS Redirection Table "
+					   "config entered\n");
 			return;
 		}
-		ret = rte_eth_dev_rss_reta_update(res->port_id,
-										  reta_conf, dev_info.reta_size);
+		ret = rte_eth_dev_rss_reta_update(res->port_id, reta_conf,
+						  dev_info.reta_size);
 		if (ret != 0)
 			cmdline_printf(cl, "Bad redirection table parameter, "
-						   "return code = %d \n", ret);
+					   "return code = %d \n",
+				       ret);
 	}
 }
 
 cmdline_parse_token_string_t cmd_config_rss_reta_port =
-TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, port, "port");
+    TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, port, "port");
 cmdline_parse_token_string_t cmd_config_rss_reta_keyword =
-TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, keyword, "config");
+    TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, keyword, "config");
 cmdline_parse_token_num_t cmd_config_rss_reta_port_id =
-TOKEN_NUM_INITIALIZER(struct cmd_config_rss_reta, port_id, UINT8);
+    TOKEN_NUM_INITIALIZER(struct cmd_config_rss_reta, port_id, UINT8);
 cmdline_parse_token_string_t cmd_config_rss_reta_name =
-TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, name, "rss");
+    TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, name, "rss");
 cmdline_parse_token_string_t cmd_config_rss_reta_list_name =
-TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, list_name, "reta");
+    TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, list_name, "reta");
 cmdline_parse_token_string_t cmd_config_rss_reta_list_of_items =
-TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, list_of_items,
-						 NULL);
+    TOKEN_STRING_INITIALIZER(struct cmd_config_rss_reta, list_of_items, NULL);
 cmdline_parse_inst_t cmd_config_rss_reta = {
-	.f = cmd_set_rss_reta_parsed,
-	.data = NULL,
-	.help_str = "port config X rss reta (hash,queue)[,(hash,queue)]",
-	.tokens = {
-			   (void *) &cmd_config_rss_reta_port,
-			   (void *) &cmd_config_rss_reta_keyword,
-			   (void *) &cmd_config_rss_reta_port_id,
-			   (void *) &cmd_config_rss_reta_name,
-			   (void *) &cmd_config_rss_reta_list_name,
-			   (void *) &cmd_config_rss_reta_list_of_items,
-			   NULL,
-			   },
+    .f = cmd_set_rss_reta_parsed,
+    .data = NULL,
+    .help_str = "port config X rss reta (hash,queue)[,(hash,queue)]",
+    .tokens =
+	{
+	 (void *)&cmd_config_rss_reta_port,
+	 (void *)&cmd_config_rss_reta_keyword,
+	 (void *)&cmd_config_rss_reta_port_id,
+	 (void *)&cmd_config_rss_reta_name,
+	 (void *)&cmd_config_rss_reta_list_name,
+	 (void *)&cmd_config_rss_reta_list_of_items, NULL,
+	},
 };
 
 /* *** SHOW PORT RETA INFO *** */
@@ -586,7 +567,7 @@ struct cmd_showport_reta {
 
 static int
 showport_parse_reta_config(struct rte_eth_rss_reta_entry64 *conf,
-						   uint16_t nb_entries, char *str)
+			   uint16_t nb_entries, char *str)
 {
 	uint32_t size;
 	const char *p, *p0 = str;
@@ -606,27 +587,28 @@ showport_parse_reta_config(struct rte_eth_rss_reta_entry64 *conf,
 	size = p0 - p;
 	if (size >= sizeof(s)) {
 		RTE_LOG(ERR, CMDLINE1,
-				"The string size exceeds the internal buffer size\n");
+			"The string size exceeds the internal buffer size\n");
 		return -1;
 	}
 	snprintf(s, sizeof(s), "%.*s", size, p);
 	ret = rte_strsplit(s, sizeof(s), str_fld, num, ',');
 	if (ret <= 0 || ret != num) {
 		RTE_LOG(ERR, CMDLINE1,
-				"The bits of masks do not match the number of "
-				"reta entries: %u\n", num);
+			"The bits of masks do not match the number of "
+			"reta entries: %u\n",
+			num);
 		return -1;
 	}
 	for (i = 0; i < ret; i++)
-		conf[i].mask = (uint64_t) strtoul(str_fld[i], &end, 0);
+		conf[i].mask = (uint64_t)strtoul(str_fld[i], &end, 0);
 
 	return 0;
 }
 
 static void
-cmd_showport_reta_parsed(void *parsed_result, __attribute__ ((unused))
-						 struct cmdline *cl, __attribute__ ((unused))
-						 void *data)
+cmd_showport_reta_parsed(void *parsed_result,
+			 __attribute__((unused)) struct cmdline *cl,
+			 __attribute__((unused)) void *data)
 {
 	struct cmd_showport_reta *res = parsed_result;
 	struct rte_eth_rss_reta_entry64 reta_conf[8];
@@ -635,54 +617,49 @@ cmd_showport_reta_parsed(void *parsed_result, __attribute__ ((unused))
 	memset(&dev_info, 0, sizeof(dev_info));
 	rte_eth_dev_info_get(res->port_id, &dev_info);
 	if (dev_info.reta_size == 0 || res->size != dev_info.reta_size ||
-		res->size > ETH_RSS_RETA_SIZE_512) {
+	    res->size > ETH_RSS_RETA_SIZE_512) {
 		RTE_LOG(ERR, CMDLINE1, "Invalid redirection table size: %u\n",
-				res->size);
+			res->size);
 		return;
 	}
 
 	memset(reta_conf, 0, sizeof(reta_conf));
 	if (showport_parse_reta_config(reta_conf, res->size,
-								   res->list_of_items) < 0) {
+				       res->list_of_items) < 0) {
 		RTE_LOG(ERR, CMDLINE1, "Invalid string: %s for reta masks\n",
-				res->list_of_items);
+			res->list_of_items);
 		return;
 	}
 	port_rss_reta_info(res->port_id, reta_conf, res->size);
 }
 
 cmdline_parse_token_string_t cmd_showport_reta_show =
-TOKEN_STRING_INITIALIZER(struct cmd_showport_reta, show, "show");
+    TOKEN_STRING_INITIALIZER(struct cmd_showport_reta, show, "show");
 cmdline_parse_token_string_t cmd_showport_reta_port =
-TOKEN_STRING_INITIALIZER(struct cmd_showport_reta, port, "port");
+    TOKEN_STRING_INITIALIZER(struct cmd_showport_reta, port, "port");
 cmdline_parse_token_num_t cmd_showport_reta_port_id =
-TOKEN_NUM_INITIALIZER(struct cmd_showport_reta, port_id, UINT8);
+    TOKEN_NUM_INITIALIZER(struct cmd_showport_reta, port_id, UINT8);
 cmdline_parse_token_string_t cmd_showport_reta_rss =
-TOKEN_STRING_INITIALIZER(struct cmd_showport_reta, rss, "rss");
+    TOKEN_STRING_INITIALIZER(struct cmd_showport_reta, rss, "rss");
 cmdline_parse_token_string_t cmd_showport_reta_reta =
-TOKEN_STRING_INITIALIZER(struct cmd_showport_reta, reta, "reta");
+    TOKEN_STRING_INITIALIZER(struct cmd_showport_reta, reta, "reta");
 cmdline_parse_token_num_t cmd_showport_reta_size =
-TOKEN_NUM_INITIALIZER(struct cmd_showport_reta, size, UINT16);
+    TOKEN_NUM_INITIALIZER(struct cmd_showport_reta, size, UINT16);
 cmdline_parse_token_string_t cmd_showport_reta_list_of_items =
-TOKEN_STRING_INITIALIZER(struct cmd_showport_reta,
-						 list_of_items, NULL);
+    TOKEN_STRING_INITIALIZER(struct cmd_showport_reta, list_of_items, NULL);
 
 cmdline_parse_inst_t cmd_showport_reta = {
-	.f = cmd_showport_reta_parsed,
-	.data = NULL,
-	.help_str = "show port X rss reta (size) (mask0,mask1,...)",
-	.tokens = {
-			   (void *) &cmd_showport_reta_show,
-			   (void *) &cmd_showport_reta_port,
-			   (void *) &cmd_showport_reta_port_id,
-			   (void *) &cmd_showport_reta_rss,
-			   (void *) &cmd_showport_reta_reta,
-			   (void *) &cmd_showport_reta_size,
-			   (void *) &cmd_showport_reta_list_of_items,
-			   NULL,
-			   },
+    .f = cmd_showport_reta_parsed,
+    .data = NULL,
+    .help_str = "show port X rss reta (size) (mask0,mask1,...)",
+    .tokens =
+	{
+	 (void *)&cmd_showport_reta_show, (void *)&cmd_showport_reta_port,
+	 (void *)&cmd_showport_reta_port_id, (void *)&cmd_showport_reta_rss,
+	 (void *)&cmd_showport_reta_reta, (void *)&cmd_showport_reta_size,
+	 (void *)&cmd_showport_reta_list_of_items, NULL,
+	},
 };
-
 
 //----- CMD LPM_LKP
 
@@ -691,9 +668,9 @@ struct cmd_obj_lpm_lkp_result {
 	cmdline_ipaddr_t ip;
 };
 
-static void cmd_obj_lpm_lkp_parsed(void *parsed_result,
-								   struct cmdline *cl,
-								   __rte_unused void *data)
+static void
+cmd_obj_lpm_lkp_parsed(void *parsed_result, struct cmdline *cl,
+		       __rte_unused void *data)
 {
 	struct cmd_obj_lpm_lkp_result *res = parsed_result;
 	uint8_t next_hop;
@@ -701,51 +678,52 @@ static void cmd_obj_lpm_lkp_parsed(void *parsed_result,
 	char buf[INET6_ADDRSTRLEN];
 
 	if (res->ip.family == AF_INET) {
-		i = rte_lpm_lookup(ipv4_rdpdk_lookup_struct
-						   [RTE_PER_LCORE(g_socket_id)],
-						   rte_be_to_cpu_32(res->ip.addr.ipv4.s_addr),
-						   &next_hop);
+		i = rte_lpm_lookup(
+		    ipv4_rdpdk_lookup_struct[RTE_PER_LCORE(g_socket_id)],
+		    rte_be_to_cpu_32(res->ip.addr.ipv4.s_addr), &next_hop);
 		if (i < 0) {
 			cmdline_printf(cl, "not found\n");
 		} else {
 			struct in_addr *addr =
-				&neighbor4_struct[RTE_PER_LCORE(g_socket_id)]->
-				entries.t4[next_hop].addr;
-			cmdline_printf(cl, "present, next_hop %s\n",
-						   inet_ntop(AF_INET, addr, buf,
-									 INET6_ADDRSTRLEN));
+			    &neighbor4_struct[RTE_PER_LCORE(g_socket_id)]
+				 ->entries.t4[next_hop]
+				 .addr;
+			cmdline_printf(
+			    cl, "present, next_hop %s\n",
+			    inet_ntop(AF_INET, addr, buf, INET6_ADDRSTRLEN));
 		}
 	} else if (res->ip.family == AF_INET6) {
-		i = rte_lpm6_lookup(ipv6_rdpdk_lookup_struct
-							[RTE_PER_LCORE(g_socket_id)],
-							res->ip.addr.ipv6.s6_addr, &next_hop);
+		i = rte_lpm6_lookup(
+		    ipv6_rdpdk_lookup_struct[RTE_PER_LCORE(g_socket_id)],
+		    res->ip.addr.ipv6.s6_addr, &next_hop);
 		if (i < 0) {
 			cmdline_printf(cl, "not found\n");
 		} else {
 			struct in6_addr *addr =
-				&neighbor6_struct[RTE_PER_LCORE(g_socket_id)]->
-				entries.t6[next_hop].addr;
-			cmdline_printf(cl, "present, next_hop %s\n",
-						   inet_ntop(AF_INET6, addr, buf,
-									 INET6_ADDRSTRLEN));
+			    &neighbor6_struct[RTE_PER_LCORE(g_socket_id)]
+				 ->entries.t6[next_hop]
+				 .addr;
+			cmdline_printf(
+			    cl, "present, next_hop %s\n",
+			    inet_ntop(AF_INET6, addr, buf, INET6_ADDRSTRLEN));
 		}
 	}
 }
 
 cmdline_parse_token_string_t cmd_obj_action_lpm_lkp =
-TOKEN_STRING_INITIALIZER(struct cmd_obj_lpm_lkp_result, action, "lpm_lkp");
+    TOKEN_STRING_INITIALIZER(struct cmd_obj_lpm_lkp_result, action, "lpm_lkp");
 cmdline_parse_token_ipaddr_t cmd_obj_lpm_ip =
-TOKEN_IPADDR_INITIALIZER(struct cmd_obj_lpm_lkp_result, ip);
+    TOKEN_IPADDR_INITIALIZER(struct cmd_obj_lpm_lkp_result, ip);
 
 cmdline_parse_inst_t cmd_obj_lpm_lkp = {
-	.f = cmd_obj_lpm_lkp_parsed,	/* function to call */
-	.data = NULL,				/* 2nd arg of func */
-	.help_str = "Do a lookup in lpm table (ip)",
-	.tokens = {					/* token list, NULL terminated */
-			   (void *) &cmd_obj_action_lpm_lkp,
-			   (void *) &cmd_obj_lpm_ip,
-			   NULL,
-			   },
+    .f = cmd_obj_lpm_lkp_parsed, /* function to call */
+    .data = NULL,		 /* 2nd arg of func */
+    .help_str = "Do a lookup in lpm table (ip)",
+    .tokens =
+	{
+	 /* token list, NULL terminated */
+	 (void *)&cmd_obj_action_lpm_lkp, (void *)&cmd_obj_lpm_ip, NULL,
+	},
 };
 
 //----- CMD ACL_ADD
@@ -756,9 +734,9 @@ struct cmd_obj_acl_add_result {
 	cmdline_fixed_string_t path;
 };
 
-static void cmd_obj_acl_add_parsed(void *parsed_result,
-								   struct cmdline *cl,
-								   __rte_unused void *data)
+static void
+cmd_obj_acl_add_parsed(void *parsed_result, struct cmdline *cl,
+		       __rte_unused void *data)
 {
 	struct cmd_obj_acl_add_result *res = parsed_result;
 	int is_ipv4;
@@ -775,23 +753,22 @@ static void cmd_obj_acl_add_parsed(void *parsed_result,
 }
 
 cmdline_parse_token_string_t cmd_obj_action_acl_add =
-TOKEN_STRING_INITIALIZER(struct cmd_obj_acl_add_result, action, "acl_add");
+    TOKEN_STRING_INITIALIZER(struct cmd_obj_acl_add_result, action, "acl_add");
 cmdline_parse_token_string_t cmd_obj_acl_proto =
-TOKEN_STRING_INITIALIZER(struct cmd_obj_acl_add_result, proto,
-						 "ipv4#ipv6");
+    TOKEN_STRING_INITIALIZER(struct cmd_obj_acl_add_result, proto, "ipv4#ipv6");
 cmdline_parse_token_string_t cmd_obj_acl_path =
-TOKEN_STRING_INITIALIZER(struct cmd_obj_acl_add_result, path, NULL);
+    TOKEN_STRING_INITIALIZER(struct cmd_obj_acl_add_result, path, NULL);
 
 cmdline_parse_inst_t cmd_obj_acl_add = {
-	.f = cmd_obj_acl_add_parsed,	/* function to call */
-	.data = NULL,				/* 2nd arg of func */
-	.help_str = "Add an acl (aclfile path, ip version)",
-	.tokens = {					/* token list, NULL terminated */
-			   (void *) &cmd_obj_action_acl_add,
-			   (void *) &cmd_obj_acl_proto,
-			   (void *) &cmd_obj_acl_path,
-			   NULL,
-			   },
+    .f = cmd_obj_acl_add_parsed, /* function to call */
+    .data = NULL,		 /* 2nd arg of func */
+    .help_str = "Add an acl (aclfile path, ip version)",
+    .tokens =
+	{
+	 /* token list, NULL terminated */
+	 (void *)&cmd_obj_action_acl_add, (void *)&cmd_obj_acl_proto,
+	 (void *)&cmd_obj_acl_path, NULL,
+	},
 };
 
 //----- CMD STATS
@@ -802,54 +779,54 @@ struct cmd_stats_result {
 	uint8_t delay;
 };
 
-static void cmd_stats_parsed(void *parsed_result,
-							 struct cmdline *cl, void *data)
+static void
+cmd_stats_parsed(void *parsed_result, struct cmdline *cl, void *data)
 {
-	struct cmd_stats_result *res =
-		(struct cmd_stats_result *) parsed_result;
-	rdpdk_stats_display(cl, (intptr_t) data, res->delay);
+	struct cmd_stats_result *res = (struct cmd_stats_result *)parsed_result;
+	rdpdk_stats_display(cl, (intptr_t)data, res->delay);
 }
 
 cmdline_parse_token_string_t cmd_stats_stats =
-TOKEN_STRING_INITIALIZER(struct cmd_stats_result, stats, "stats");
+    TOKEN_STRING_INITIALIZER(struct cmd_stats_result, stats, "stats");
 cmdline_parse_token_string_t cmd_stats_stats_json =
-TOKEN_STRING_INITIALIZER(struct cmd_stats_result, option, "-j#json");
+    TOKEN_STRING_INITIALIZER(struct cmd_stats_result, option, "-j#json");
 cmdline_parse_token_string_t cmd_stats_stats_csv =
-TOKEN_STRING_INITIALIZER(struct cmd_stats_result, option, "-c#csv");
+    TOKEN_STRING_INITIALIZER(struct cmd_stats_result, option, "-c#csv");
 cmdline_parse_token_num_t cmd_stats_stats_delay =
-TOKEN_NUM_INITIALIZER(struct cmd_stats_result, delay, UINT8);
+    TOKEN_NUM_INITIALIZER(struct cmd_stats_result, delay, UINT8);
 
 cmdline_parse_inst_t cmd_stats = {
-	.f = cmd_stats_parsed,		/* function to call */
-	.data = NULL,				/* 2nd arg of func */
-	.help_str = "show stats",
-	.tokens = {					/* token list, NULL terminated */
-			   (void *) &cmd_stats_stats,
-			   NULL,
-			   },
+    .f = cmd_stats_parsed, /* function to call */
+    .data = NULL,	  /* 2nd arg of func */
+    .help_str = "show stats",
+    .tokens =
+	{
+	 /* token list, NULL terminated */
+	 (void *)&cmd_stats_stats, NULL,
+	},
 };
 
 cmdline_parse_inst_t cmd_stats_json = {
-	.f = cmd_stats_parsed,		/* function to call */
-	.data = (void *) 1,			/* 2nd arg of func */
-	.help_str = "show stats",
-	.tokens = {					/* token list, NULL terminated */
-			   (void *) &cmd_stats_stats,
-			   (void *) &cmd_stats_stats_json,
-			   NULL,
-			   },
+    .f = cmd_stats_parsed, /* function to call */
+    .data = (void *)1,     /* 2nd arg of func */
+    .help_str = "show stats",
+    .tokens =
+	{
+	 /* token list, NULL terminated */
+	 (void *)&cmd_stats_stats, (void *)&cmd_stats_stats_json, NULL,
+	},
 };
 
 cmdline_parse_inst_t cmd_stats_csv = {
-	.f = cmd_stats_parsed,		/* function to call */
-	.data = (void *) 2,			/* 2nd arg of func */
-	.help_str = "show stats",
-	.tokens = {					/* token list, NULL terminated */
-			   (void *) &cmd_stats_stats,
-			   (void *) &cmd_stats_stats_csv,
-			   (void *) &cmd_stats_stats_delay,
-			   NULL,
-			   },
+    .f = cmd_stats_parsed, /* function to call */
+    .data = (void *)2,     /* 2nd arg of func */
+    .help_str = "show stats",
+    .tokens =
+	{
+	 /* token list, NULL terminated */
+	 (void *)&cmd_stats_stats, (void *)&cmd_stats_stats_csv,
+	 (void *)&cmd_stats_stats_delay, NULL,
+	},
 };
 
 //----- CMD NEIGH
@@ -858,10 +835,9 @@ struct cmd_neigh_result {
 	cmdline_fixed_string_t proto;
 };
 
-static void cmd_neigh_parsed( __attribute__ ((unused))
-							 void *parsed_result,
-							 struct cmdline *cl, __attribute__ ((unused))
-							 void *data)
+static void
+cmd_neigh_parsed(__attribute__((unused)) void *parsed_result,
+		 struct cmdline *cl, __attribute__((unused)) void *data)
 {
 	struct cmd_obj_acl_add_result *res = parsed_result;
 	int is_ipv4;
@@ -878,17 +854,19 @@ static void cmd_neigh_parsed( __attribute__ ((unused))
 		for (i = 0; i < NEI_NUM_ENTRIES; i++) {
 			entry = &(t->entries.t4[i]);
 			if (entry->neighbor.in_use) {
-				ether_format_addr(buf_eth, sizeof(buf_eth),
-								  &entry->neighbor.nexthop_hwaddr);
-				cmdline_printf(cl,
-							   "hw addr(%s) addr(%s) action %d state %d vlan %d port %d\n",
-							   buf_eth, inet_ntop(AF_INET, &entry->addr,
-												  buf_ip,
-												  INET6_ADDRSTRLEN),
-							   entry->neighbor.action,
-							   entry->neighbor.state,
-							   entry->neighbor.vlan_id,
-							   entry->neighbor.port_id);
+				ether_format_addr(
+				    buf_eth, sizeof(buf_eth),
+				    &entry->neighbor.nexthop_hwaddr);
+				cmdline_printf(
+				    cl, "hw addr(%s) addr(%s) action %d state "
+					"%d vlan %d port %d\n",
+				    buf_eth,
+				    inet_ntop(AF_INET, &entry->addr, buf_ip,
+					      INET6_ADDRSTRLEN),
+				    entry->neighbor.action,
+				    entry->neighbor.state,
+				    entry->neighbor.vlan_id,
+				    entry->neighbor.port_id);
 			}
 		}
 	} else {
@@ -898,38 +876,38 @@ static void cmd_neigh_parsed( __attribute__ ((unused))
 		for (i = 0; i < NEI_NUM_ENTRIES; i++) {
 			entry = &(t->entries.t6[i]);
 			if (entry->neighbor.in_use) {
-				ether_format_addr(buf_eth, sizeof(buf_eth),
-								  &entry->neighbor.nexthop_hwaddr);
-				cmdline_printf(cl,
-							   "hw addr(%s) addr(%s) action %d state %d vlan %d port %d\n",
-							   buf_eth, inet_ntop(AF_INET6, &entry->addr,
-												  buf_ip,
-												  INET6_ADDRSTRLEN),
-							   entry->neighbor.action,
-							   entry->neighbor.state,
-							   entry->neighbor.vlan_id,
-							   entry->neighbor.port_id);
+				ether_format_addr(
+				    buf_eth, sizeof(buf_eth),
+				    &entry->neighbor.nexthop_hwaddr);
+				cmdline_printf(
+				    cl, "hw addr(%s) addr(%s) action %d state "
+					"%d vlan %d port %d\n",
+				    buf_eth,
+				    inet_ntop(AF_INET6, &entry->addr, buf_ip,
+					      INET6_ADDRSTRLEN),
+				    entry->neighbor.action,
+				    entry->neighbor.state,
+				    entry->neighbor.vlan_id,
+				    entry->neighbor.port_id);
 			}
 		}
-
 	}
 }
 
 cmdline_parse_token_string_t cmd_neigh_neigh =
-TOKEN_STRING_INITIALIZER(struct cmd_neigh_result, neigh, "neigh");
+    TOKEN_STRING_INITIALIZER(struct cmd_neigh_result, neigh, "neigh");
 cmdline_parse_token_string_t cmd_neigh_proto =
-TOKEN_STRING_INITIALIZER(struct cmd_neigh_result, proto,
-						 "ipv4#ipv6");
+    TOKEN_STRING_INITIALIZER(struct cmd_neigh_result, proto, "ipv4#ipv6");
 
 cmdline_parse_inst_t cmd_neigh = {
-	.f = cmd_neigh_parsed,		/* function to call */
-	.data = NULL,				/* 2nd arg of func */
-	.help_str = "neigh ipv4#ipv6",
-	.tokens = {					/* token list, NULL terminated */
-			   (void *) &cmd_neigh_neigh,
-			   (void *) &cmd_neigh_proto,
-			   NULL,
-			   },
+    .f = cmd_neigh_parsed, /* function to call */
+    .data = NULL,	  /* 2nd arg of func */
+    .help_str = "neigh ipv4#ipv6",
+    .tokens =
+	{
+	 /* token list, NULL terminated */
+	 (void *)&cmd_neigh_neigh, (void *)&cmd_neigh_proto, NULL,
+	},
 };
 
 //----- CMD HELP
@@ -938,57 +916,56 @@ struct cmd_help_result {
 	cmdline_fixed_string_t help;
 };
 
-static void cmd_help_parsed( __attribute__ ((unused))
-							void *parsed_result,
-							struct cmdline *cl, __attribute__ ((unused))
-							void *data)
+static void
+cmd_help_parsed(__attribute__((unused)) void *parsed_result, struct cmdline *cl,
+		__attribute__((unused)) void *data)
 {
-	cmdline_printf(cl,
-				   "commands:\n"
-				   "- acl_add ipv4|ipv6 file_path\n"
-				   "- stats\n"
-				   "- neigh ipv4|ipv6\n"
-				   "- acl_add IP CIDR PROTONUM PORT\n"
-				   "- lpm_lkp IP[/DEPTH]\n" "- stats\n" "- help\n\n");
+	cmdline_printf(cl, "commands:\n"
+			   "- acl_add ipv4|ipv6 file_path\n"
+			   "- stats\n"
+			   "- neigh ipv4|ipv6\n"
+			   "- acl_add IP CIDR PROTONUM PORT\n"
+			   "- lpm_lkp IP[/DEPTH]\n"
+			   "- stats\n"
+			   "- help\n\n");
 }
 
 cmdline_parse_token_string_t cmd_help_help =
-TOKEN_STRING_INITIALIZER(struct cmd_help_result, help, "help");
+    TOKEN_STRING_INITIALIZER(struct cmd_help_result, help, "help");
 
 cmdline_parse_inst_t cmd_help = {
-	.f = cmd_help_parsed,		/* function to call */
-	.data = NULL,				/* 2nd arg of func */
-	.help_str = "show help",
-	.tokens = {					/* token list, NULL terminated */
-			   (void *) &cmd_help_help,
-			   NULL,
-			   },
+    .f = cmd_help_parsed, /* function to call */
+    .data = NULL,	 /* 2nd arg of func */
+    .help_str = "show help",
+    .tokens =
+	{
+	 /* token list, NULL terminated */
+	 (void *)&cmd_help_help, NULL,
+	},
 };
 
 //----- !CMD HELP
 
 cmdline_parse_ctx_t main_ctx[] = {
-	(cmdline_parse_inst_t *) & cmd_obj_acl_add,
-	(cmdline_parse_inst_t *) & cmd_obj_lpm_lkp,
-	(cmdline_parse_inst_t *) & cmd_stats,
-	(cmdline_parse_inst_t *) & cmd_loglevel,
-	(cmdline_parse_inst_t *) & cmd_logtype,
-	(cmdline_parse_inst_t *) & cmd_neigh,
-	(cmdline_parse_inst_t *) & cmd_stats_json,
-	(cmdline_parse_inst_t *) & cmd_stats_csv,
-	(cmdline_parse_inst_t *) & cmd_showport,
-	(cmdline_parse_inst_t *) & cmd_showport_json,
-	(cmdline_parse_inst_t *) & cmd_config_rss,
-	(cmdline_parse_inst_t *) & cmd_config_rss_reta,
-	(cmdline_parse_inst_t *) & cmd_showport_reta,
-	(cmdline_parse_inst_t *) & cmd_showport_rss_hash,
-	(cmdline_parse_inst_t *) & cmd_showport_rss_hash_key,
-	(cmdline_parse_inst_t *) & cmd_config_rss_hash_key,
-	(cmdline_parse_inst_t *) & cmd_help,
-	NULL,
+    (cmdline_parse_inst_t *)&cmd_obj_acl_add,
+    (cmdline_parse_inst_t *)&cmd_obj_lpm_lkp,
+    (cmdline_parse_inst_t *)&cmd_stats, (cmdline_parse_inst_t *)&cmd_loglevel,
+    (cmdline_parse_inst_t *)&cmd_logtype, (cmdline_parse_inst_t *)&cmd_neigh,
+    (cmdline_parse_inst_t *)&cmd_stats_json,
+    (cmdline_parse_inst_t *)&cmd_stats_csv,
+    (cmdline_parse_inst_t *)&cmd_showport,
+    (cmdline_parse_inst_t *)&cmd_showport_json,
+    (cmdline_parse_inst_t *)&cmd_config_rss,
+    (cmdline_parse_inst_t *)&cmd_config_rss_reta,
+    (cmdline_parse_inst_t *)&cmd_showport_reta,
+    (cmdline_parse_inst_t *)&cmd_showport_rss_hash,
+    (cmdline_parse_inst_t *)&cmd_showport_rss_hash_key,
+    (cmdline_parse_inst_t *)&cmd_config_rss_hash_key,
+    (cmdline_parse_inst_t *)&cmd_help, NULL,
 };
 
-static int create_unixsock(const char *path)
+static int
+create_unixsock(const char *path)
 {
 	int sock;
 	struct sockaddr_un local;
@@ -1004,7 +981,7 @@ static int create_unixsock(const char *path)
 	unlink(local.sun_path);
 	len = strlen(local.sun_path) + sizeof(local.sun_family);
 
-	if (bind(sock, (struct sockaddr *) &local, len) == -1) {
+	if (bind(sock, (struct sockaddr *)&local, len) == -1) {
 		perror("failed to bind cmdline unixsock");
 		rte_exit(EXIT_FAILURE, "create_unixsock failure");
 	}
@@ -1017,14 +994,14 @@ static int create_unixsock(const char *path)
 	return sock;
 }
 
-static struct cmdline *cmdline_unixsock_new(cmdline_parse_ctx_t * ctx,
-											const char *prompt, int sock)
+static struct cmdline *
+cmdline_unixsock_new(cmdline_parse_ctx_t *ctx, const char *prompt, int sock)
 {
 	return (cmdline_new(ctx, prompt, sock, sock));
 }
 
-
-static void *cmdline_new_unixsock(int sock)
+static void *
+cmdline_new_unixsock(int sock)
 {
 	struct cmdline *cl;
 
@@ -1036,7 +1013,8 @@ static void *cmdline_new_unixsock(int sock)
 	return cl;
 }
 
-int rdpdk_cmdline_init(const char *path, uint32_t socket_id)
+int
+rdpdk_cmdline_init(const char *path, uint32_t socket_id)
 {
 	int fd;
 	char buf[128];
@@ -1063,23 +1041,25 @@ int rdpdk_cmdline_init(const char *path, uint32_t socket_id)
 	cmdline_thread_unixsock[socket_id] = fd;
 
 	memset(&cmdline_clients[socket_id], 0,
-		   sizeof(cmdline_clients[socket_id]));
+	       sizeof(cmdline_clients[socket_id]));
 	return fd;
 }
 
-static int rdpdk_cmdline_free(void *cmdline)
+static int
+rdpdk_cmdline_free(void *cmdline)
 {
 	struct cmdline *cl = cmdline;
-	//cmdline_thread_loop = 0;
+	// cmdline_thread_loop = 0;
 
 	cmdline_quit(cl);
 	cmdline_free(cl);
 	return 0;
 }
 
-int rdpdk_cmdline_terminate(int sock, const char *path)
+int
+rdpdk_cmdline_terminate(int sock, const char *path)
 {
-	int ret = 0;				//here for silence write warning
+	int ret = 0; // here for silence write warning
 	char buf[128];
 
 	if (pthread_join(cmdline_tid[sock], NULL)) {
@@ -1094,18 +1074,20 @@ int rdpdk_cmdline_terminate(int sock, const char *path)
 	return ret;
 }
 
-int rdpdk_cmdline_stop(int sock)
+int
+rdpdk_cmdline_stop(int sock)
 {
 	cmdline_thread_loop[sock] = 0;
 	return 0;
 }
 
-static int cmdline_clients_get(int sock)
+static int
+cmdline_clients_get(int sock)
 {
 	int j;
 	for (j = 0; j < CMDLINE_MAX_CLIENTS; j++) {
-		if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][j].cl
-			&& cmdline_clients[RTE_PER_LCORE(g_socket_id)][j].cl->s_in ==
+		if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][j].cl &&
+		    cmdline_clients[RTE_PER_LCORE(g_socket_id)][j].cl->s_in ==
 			sock) {
 			return j;
 		}
@@ -1114,22 +1096,24 @@ static int cmdline_clients_get(int sock)
 	return -1;
 }
 
-static void cmdline_clients_close(int id)
+static void
+cmdline_clients_close(int id)
 {
 	rdpdk_cmdline_free(cmdline_clients[RTE_PER_LCORE(g_socket_id)][id].cl);
 	close(cmdline_clients[RTE_PER_LCORE(g_socket_id)][id].cl->s_out);
 	memset(&cmdline_clients[RTE_PER_LCORE(g_socket_id)][id], 0,
-		   sizeof(struct client_data_t));
+	       sizeof(struct client_data_t));
 	RTE_LOG(INFO, CMDLINE1, "Client id %d disconnected \n", id);
 }
 
-static void *cmdline_run(void *data)
+static void *
+cmdline_run(void *data)
 {
-	struct pollfd fds[CMDLINE_MAX_CLIENTS + 1];	// +1 for the listenning sock
-	RTE_PER_LCORE(g_socket_id) = (intptr_t) data;
+	struct pollfd
+	    fds[CMDLINE_MAX_CLIENTS + 1]; // +1 for the listenning sock
+	RTE_PER_LCORE(g_socket_id) = (intptr_t)data;
 	int nfds = 1;
 	int i, j, ret = 0;
-
 
 	fds[0].events = POLLIN;
 	fds[0].fd = cmdline_thread_unixsock[RTE_PER_LCORE(g_socket_id)];
@@ -1144,18 +1128,19 @@ static void *cmdline_run(void *data)
 			res = accept(fds[0].fd, NULL, NULL);
 
 			for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
-				if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl ==
-					NULL) {
-					cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl =
-						cmdline_new_unixsock(res);
+				if (cmdline_clients[RTE_PER_LCORE(
+					g_socket_id)][i].cl == NULL) {
+					cmdline_clients[RTE_PER_LCORE(
+					    g_socket_id)][i].cl =
+					    cmdline_new_unixsock(res);
 					break;
 				}
 			}
 
 			if (i == CMDLINE_MAX_CLIENTS) {
 #define CMDLINE_MCLI_MSG "Max client reached... \n"
-				ret =
-					write(res, CMDLINE_MCLI_MSG, sizeof(CMDLINE_MCLI_MSG));
+				ret = write(res, CMDLINE_MCLI_MSG,
+					    sizeof(CMDLINE_MCLI_MSG));
 				close(res);
 			}
 		}
@@ -1166,18 +1151,19 @@ static void *cmdline_run(void *data)
 
 				j = cmdline_clients_get(fds[i].fd);
 				ret = read(fds[i].fd, buf, sizeof(buf));
-				//read error, closing conn
+				// read error, closing conn
 				if (ret <= 0) {
 					cmdline_clients_close(j);
 					continue;
 				}
-				//read error, closing conn
-				ret =
-					cmdline_in(cmdline_clients[RTE_PER_LCORE(g_socket_id)]
-							   [j].cl, buf, ret);
-				if (ret < 0
-					&& cmdline_clients[RTE_PER_LCORE(g_socket_id)][j].
-					cl->rdl.status == RDLINE_EXITED) {
+				// read error, closing conn
+				ret = cmdline_in(cmdline_clients[RTE_PER_LCORE(
+						     g_socket_id)][j].cl,
+						 buf, ret);
+				if (ret < 0 &&
+				    cmdline_clients[RTE_PER_LCORE(
+					g_socket_id)][j].cl->rdl.status ==
+					RDLINE_EXITED) {
 					cmdline_clients_close(j);
 				}
 			}
@@ -1186,25 +1172,27 @@ static void *cmdline_run(void *data)
 		nfds = 1;
 		for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
 			if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl) {
-				if (cmdline_clients[RTE_PER_LCORE(g_socket_id)]
-					[i].csv_delay) {
+				if (cmdline_clients[RTE_PER_LCORE(
+					g_socket_id)][i].csv_delay) {
 					if ((time(NULL) -
-						 cmdline_clients[RTE_PER_LCORE(g_socket_id)]
-						 [i].delay_timer) >=
-						cmdline_clients[RTE_PER_LCORE(g_socket_id)]
-						[i].csv_delay) {
-						rdpdk_stats_display(cmdline_clients
-											[RTE_PER_LCORE(g_socket_id)]
-											[i].cl, 2,
-											cmdline_clients[RTE_PER_LCORE
-															(g_socket_id)]
-											[i].csv_delay);
+					     cmdline_clients[RTE_PER_LCORE(
+						 g_socket_id)][i]
+						 .delay_timer) >=
+					    cmdline_clients[RTE_PER_LCORE(
+						g_socket_id)][i].csv_delay) {
+						rdpdk_stats_display(
+						    cmdline_clients
+							[RTE_PER_LCORE(
+							    g_socket_id)][i].cl,
+						    2, cmdline_clients
+							   [RTE_PER_LCORE(
+							       g_socket_id)][i]
+							       .csv_delay);
 					}
 				}
 
-				fds[nfds].fd =
-					cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].
-					cl->s_in;
+				fds[nfds].fd = cmdline_clients[RTE_PER_LCORE(
+				    g_socket_id)][i].cl->s_in;
 				fds[nfds].events = POLLIN;
 				nfds++;
 			}
@@ -1215,37 +1203,37 @@ static void *cmdline_run(void *data)
 		if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl) {
 #define CMDLINE_QUIT_MSG "RDPDK closing...\n"
 			ret =
-				write(cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].
-					  cl->s_out, CMDLINE_QUIT_MSG,
-					  sizeof(CMDLINE_QUIT_MSG));
+			    write(cmdline_clients[RTE_PER_LCORE(g_socket_id)][i]
+				      .cl->s_out,
+				  CMDLINE_QUIT_MSG, sizeof(CMDLINE_QUIT_MSG));
 
-			rdpdk_cmdline_free(cmdline_clients[RTE_PER_LCORE(g_socket_id)]
-							   [i].cl);
+			rdpdk_cmdline_free(
+			    cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl);
 
-			shutdown(cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].
-					 cl->s_out, SHUT_RDWR);
-			close(cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].
-				  cl->s_out);
+			shutdown(cmdline_clients[RTE_PER_LCORE(g_socket_id)][i]
+				     .cl->s_out,
+				 SHUT_RDWR);
+			close(cmdline_clients[RTE_PER_LCORE(g_socket_id)][i]
+				  .cl->s_out);
 
-			memset(&cmdline_clients[RTE_PER_LCORE(g_socket_id)][i], 0,
-				   sizeof(struct client_data_t));
+			memset(&cmdline_clients[RTE_PER_LCORE(g_socket_id)][i],
+			       0, sizeof(struct client_data_t));
 		}
 	}
 
 	return 0;
 }
 
-
-pthread_t rdpdk_cmdline_launch(int sock, cpu_set_t * cpuset)
+pthread_t
+rdpdk_cmdline_launch(int sock, cpu_set_t *cpuset)
 {
 	char thread_name[16];
 	int ret;
 
 	cmdline_thread_loop[sock] = 1;
 
-	ret =
-		pthread_create(&cmdline_tid[sock], NULL, cmdline_run,
-					   (void *) (intptr_t) sock);
+	ret = pthread_create(&cmdline_tid[sock], NULL, cmdline_run,
+			     (void *)(intptr_t)sock);
 	if (ret != 0) {
 		perror("failed to create cmdline thread");
 		rte_exit(EXIT_FAILURE, "failed to launch cmdline thread");
@@ -1254,14 +1242,14 @@ pthread_t rdpdk_cmdline_launch(int sock, cpu_set_t * cpuset)
 	snprintf(thread_name, 16, "cmdline-%d", sock);
 	pthread_setname_np(cmdline_tid[sock], thread_name);
 
-	ret =
-		pthread_setaffinity_np(cmdline_tid[sock], sizeof(cpu_set_t),
-							   cpuset);
+	ret = pthread_setaffinity_np(cmdline_tid[sock], sizeof(cpu_set_t),
+				     cpuset);
 	if (ret != 0) {
 		perror("control pthread_setaffinity_np: ");
-		rte_exit(EXIT_FAILURE,
-				 "control pthread_setaffinity_np returned error: err=%d,",
-				 ret);
+		rte_exit(
+		    EXIT_FAILURE,
+		    "control pthread_setaffinity_np returned error: err=%d,",
+		    ret);
 	}
 
 	return cmdline_tid[sock];

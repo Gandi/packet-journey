@@ -30,12 +30,12 @@
 #define RTE_LOGTYPE_CMDLINE7 RTE_LOGTYPE_USER7
 
 #define NB_SOCKETS 4
-#define FWDSTEP	4
-#define MAX_PKT_BURST     32
-#define MAX_PACKET_SZ     2048
+#define FWDSTEP 4
+#define MAX_PKT_BURST 32
+#define MAX_PACKET_SZ 2048
 
 /* Used to mark destination port as 'invalid'. */
-#define	BAD_PORT	((uint16_t)-1)
+#define BAD_PORT ((uint16_t)-1)
 
 struct lcore_stats {
 	/* total packet processed recently */

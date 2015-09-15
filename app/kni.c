@@ -81,20 +81,21 @@
 #include "config.h"
 
 /* Total octets in ethernet header */
-#define KNI_ENET_HEADER_SIZE    14
+#define KNI_ENET_HEADER_SIZE 14
 
 /* Total octets in the FCS */
-#define KNI_ENET_FCS_SIZE       4
+#define KNI_ENET_FCS_SIZE 4
 
 struct kni_port_params *kni_port_params_array[RTE_MAX_ETHPORTS];
-uint8_t kni_port_rdy[RTE_MAX_ETHPORTS] = { 0 };
+uint8_t kni_port_rdy[RTE_MAX_ETHPORTS] = {0};
 
 static int kni_change_mtu(uint8_t port_id, unsigned new_mtu);
 static int kni_config_network_interface(uint8_t port_id, uint8_t if_up);
 
 static rte_atomic32_t kni_stop = RTE_ATOMIC32_INIT(0);
 
-void kni_burst_free_mbufs(struct rte_mbuf **pkts, unsigned num)
+void
+kni_burst_free_mbufs(struct rte_mbuf **pkts, unsigned num)
 {
 	unsigned i;
 
@@ -107,7 +108,8 @@ void kni_burst_free_mbufs(struct rte_mbuf **pkts, unsigned num)
 	}
 }
 
-void kni_stop_loop(void)
+void
+kni_stop_loop(void)
 {
 	rte_atomic32_inc(&kni_stop);
 }
@@ -115,7 +117,8 @@ void kni_stop_loop(void)
 /**
  * Interface to dequeue mbufs from tx_q and burst tx
  */
-static void kni_egress(struct kni_port_params *p, uint32_t lcore_id)
+static void
+kni_egress(struct kni_port_params *p, uint32_t lcore_id)
 {
 	uint8_t i, port_id;
 	unsigned nb_tx, num;
@@ -137,9 +140,8 @@ static void kni_egress(struct kni_port_params *p, uint32_t lcore_id)
 			return;
 		}
 		/* Burst tx to eth */
-		nb_tx =
-			rte_eth_tx_burst(port_id, queue_num, pkts_burst,
-							 (uint16_t) num);
+		nb_tx = rte_eth_tx_burst(port_id, queue_num, pkts_burst,
+					 (uint16_t)num);
 		rte_kni_handle_request(p->kni[i]);
 		stats[lcore_id].nb_kni_rx += num;
 		stats[lcore_id].nb_tx += nb_tx;
@@ -151,7 +153,8 @@ static void kni_egress(struct kni_port_params *p, uint32_t lcore_id)
 	}
 }
 
-int kni_main_loop(__rte_unused void *arg)
+int
+kni_main_loop(__rte_unused void *arg)
 {
 	uint8_t i, nb_ports = rte_eth_dev_count();
 	int32_t f_stop;
@@ -184,7 +187,8 @@ int kni_main_loop(__rte_unused void *arg)
 
 /* Parse the arguments given in the command line of the application */
 /* Initialize KNI subsystem */
-void init_kni(void)
+void
+init_kni(void)
 {
 	unsigned int num_of_kni_ports = 0, i;
 	struct kni_port_params **params = kni_port_params_array;
@@ -193,9 +197,9 @@ void init_kni(void)
 	for (i = 0; i < RTE_MAX_ETHPORTS; i++) {
 		if (kni_port_params_array[i]) {
 			RTE_LOG(INFO, KNI, "number of kni lcore %d\n",
-					params[i]->nb_lcore_k);
+				params[i]->nb_lcore_k);
 			num_of_kni_ports +=
-				(params[i]->nb_lcore_k ? params[i]->nb_lcore_k : 1);
+			    (params[i]->nb_lcore_k ? params[i]->nb_lcore_k : 1);
 		}
 	}
 
@@ -206,7 +210,8 @@ void init_kni(void)
 }
 
 /* Callback for request of changing MTU */
-static int kni_change_mtu(uint8_t port_id, unsigned new_mtu)
+static int
+kni_change_mtu(uint8_t port_id, unsigned new_mtu)
 {
 	int ret;
 	uint16_t nb_rx_queue;
@@ -218,7 +223,7 @@ static int kni_change_mtu(uint8_t port_id, unsigned new_mtu)
 	}
 
 	RTE_LOG(INFO, KNI, "-----------------Change MTU of port %d to %u\n",
-			port_id, new_mtu);
+		port_id, new_mtu);
 
 	/* Stop specific port */
 	rte_eth_dev_stop(port_id);
@@ -231,14 +236,13 @@ static int kni_change_mtu(uint8_t port_id, unsigned new_mtu)
 		conf.rxmode.jumbo_frame = 0;
 
 	/* mtu + length of header + length of FCS = max pkt length */
-	conf.rxmode.max_rx_pkt_len = new_mtu + KNI_ENET_HEADER_SIZE +
-		KNI_ENET_FCS_SIZE;
+	conf.rxmode.max_rx_pkt_len =
+	    new_mtu + KNI_ENET_HEADER_SIZE + KNI_ENET_FCS_SIZE;
 
 	nb_rx_queue = get_port_n_rx_queues(port_id);
-	//XXX nb_rx_queue +1 for the kni
+	// XXX nb_rx_queue +1 for the kni
 	ret =
-		rte_eth_dev_configure(port_id, nb_rx_queue, nb_rx_queue + 1,
-							  &conf);
+	    rte_eth_dev_configure(port_id, nb_rx_queue, nb_rx_queue + 1, &conf);
 	if (ret < 0) {
 		RTE_LOG(ERR, KNI, "Fail to reconfigure port %d\n", port_id);
 		return ret;
@@ -255,7 +259,8 @@ static int kni_change_mtu(uint8_t port_id, unsigned new_mtu)
 }
 
 /* Callback for request of configuring network interface up/down */
-static int kni_config_network_interface(uint8_t port_id, uint8_t if_up)
+static int
+kni_config_network_interface(uint8_t port_id, uint8_t if_up)
 {
 	int ret = 0;
 
@@ -265,14 +270,14 @@ static int kni_config_network_interface(uint8_t port_id, uint8_t if_up)
 		return -EINVAL;
 	}
 
-	RTE_LOG(INFO, KNI, "Configure network interface of %d %s\n",
-			port_id, if_up ? "up" : "down");
+	RTE_LOG(INFO, KNI, "Configure network interface of %d %s\n", port_id,
+		if_up ? "up" : "down");
 
-	if (if_up != 0) {			/* Configure network interface up */
+	if (if_up != 0) { /* Configure network interface up */
 		rte_eth_dev_stop(port_id);
 		ret = rte_eth_dev_start(port_id);
 		kni_port_rdy[port_id]++;
-	} else						/* Configure network interface down */
+	} else /* Configure network interface down */
 		rte_eth_dev_stop(port_id);
 
 	if (ret < 0)
@@ -282,7 +287,8 @@ static int kni_config_network_interface(uint8_t port_id, uint8_t if_up)
 	return ret;
 }
 
-int kni_alloc(uint8_t port_id, struct rte_mempool *pktmbuf_pool)
+int
+kni_alloc(uint8_t port_id, struct rte_mempool *pktmbuf_pool)
 {
 	uint8_t i;
 	struct rte_kni *kni;
@@ -292,19 +298,21 @@ int kni_alloc(uint8_t port_id, struct rte_mempool *pktmbuf_pool)
 	if (port_id >= RTE_MAX_ETHPORTS || !params[port_id])
 		return -1;
 
-	params[port_id]->nb_kni = params[port_id]->nb_lcore_k ?
-		params[port_id]->nb_lcore_k : 1;
+	params[port_id]->nb_kni =
+	    params[port_id]->nb_lcore_k ? params[port_id]->nb_lcore_k : 1;
 
 	for (i = 0; i < params[port_id]->nb_kni; i++) {
 		/* Clear conf at first */
 		memset(&conf, 0, sizeof(conf));
 		if (params[port_id]->nb_lcore_k > 1) {
-			snprintf(conf.name, RTE_KNI_NAMESIZE, "dpdk%u_%u", port_id, i);
+			snprintf(conf.name, RTE_KNI_NAMESIZE, "dpdk%u_%u",
+				 port_id, i);
 			conf.core_id = params[port_id]->lcore_k[i];
 			conf.force_bind = 1;
 		} else
-			snprintf(conf.name, RTE_KNI_NAMESIZE, "dpdk%u", port_id);
-		conf.group_id = (uint16_t) port_id;
+			snprintf(conf.name, RTE_KNI_NAMESIZE, "dpdk%u",
+				 port_id);
+		conf.group_id = (uint16_t)port_id;
 		conf.mbuf_size = MAX_PACKET_SZ;
 		/*
 		 * The first KNI device associated to a port
@@ -331,14 +339,16 @@ int kni_alloc(uint8_t port_id, struct rte_mempool *pktmbuf_pool)
 
 		if (!kni)
 			rte_exit(EXIT_FAILURE, "Fail to create kni for "
-					 "port: %d\n", port_id);
+					       "port: %d\n",
+				 port_id);
 		params[port_id]->kni[i] = kni;
 	}
 
 	return 0;
 }
 
-int kni_free_kni(uint8_t port_id)
+int
+kni_free_kni(uint8_t port_id)
 {
 	uint8_t i;
 	struct kni_port_params **p = kni_port_params_array;

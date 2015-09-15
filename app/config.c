@@ -24,62 +24,72 @@ uint16_t nb_lcore_params;
 
 /* mask of enabled ports */
 uint32_t enabled_port_mask = 0;
-int promiscuous_on = 0;	/**< Ports set in promiscuous mode off by default. */
+int promiscuous_on = 0; /**< Ports set in promiscuous mode off by default. */
 int numa_on = 1;	/**< NUMA is enabled by default. */
 const char *callback_setup = NULL;
 const char *unixsock_path = "/tmp/rdpdk.sock";
 
 struct rte_eth_conf port_conf = {
-	.rxmode = {
-			   .mq_mode = ETH_MQ_RX_RSS,
-			   .max_rx_pkt_len = ETHER_MAX_LEN,
-			   .split_hdr_size = 0,
-			   .header_split = 0,
-							 /**< Header Split disabled */
+    .rxmode =
+	{
+	 .mq_mode = ETH_MQ_RX_RSS,
+	 .max_rx_pkt_len = ETHER_MAX_LEN,
+	 .split_hdr_size = 0,
+	 .header_split = 0,
+/**< Header Split disabled */
 #ifdef RDPDK_QEMU
-			   .hw_ip_checksum = 0,
-							 /**< IP checksum offload enabled */
+	 .hw_ip_checksum = 0,
+/**< IP checksum offload enabled */
 #else
-			   .hw_ip_checksum = 1,
-							 /**< IP checksum offload enabled */
+	 .hw_ip_checksum = 1,
+/**< IP checksum offload enabled */
 #endif
-			   .hw_vlan_strip = 1,
-			   .hw_vlan_filter = 0,
-							 /**< VLAN filtering disabled */
-			   .jumbo_frame = 0,
-							 /**< Jumbo Frame Support disabled */
-			   .hw_strip_crc = 0,
-							 /**< CRC stripped by hardware */
-			   },
-	.rx_adv_conf = {
-					.rss_conf = {
-								 .rss_key = NULL,
-								 .rss_hf = ETH_RSS_PROTO_MASK,
-								 },
-					},
-	.txmode = {
-			   .mq_mode = ETH_MQ_TX_NONE,
-			   },
+	 .hw_vlan_strip = 1,
+	 .hw_vlan_filter = 0,
+	 /**< VLAN filtering disabled */
+	 .jumbo_frame = 0,
+	 /**< Jumbo Frame Support disabled */
+	 .hw_strip_crc = 0,
+	 /**< CRC stripped by hardware */
+	},
+    .rx_adv_conf =
+	{
+	 .rss_conf =
+	     {
+	      .rss_key = NULL, .rss_hf = ETH_RSS_PROTO_MASK,
+	     },
+	},
+    .txmode =
+	{
+	 .mq_mode = ETH_MQ_TX_NONE,
+	},
 };
 
 /* display usage */
-void print_usage(const char *prgname)
+void
+print_usage(const char *prgname)
 {
-	RTE_LOG(ERR, RDPDK1, "%s [EAL options]\n"
-			"  [--config (port,queue,lcore)[,(port,queue,lcore]]\n"
-			"  [--kniconfig (port,lcore_tx,lcore_kthread)]\n"
-			"  [--enable-jumbo [--max-pkt-len PKTLEN (64-9000)]]\n"
-			"  [--promiscuous : enable promiscuous mode]\n"
-			"  [--unixsock PATH: override cmdline unixsock path (default: /tmp/rdpdk.sock)]\n"
-			"  [--configfile PATH: use a configfile for params]\n"
-			"  [--no-numa: disable numa awareness]\n"
-			"  [--scalar: Use scalar function to do lookupn acl tables]\n"
-			"  --portmask PORTMASK: hexadecimal bitmask of ports to configure\n"
-			"  --callback-setup: script called when ifaces are set up\n"
-			"  --rule_ipv4=FILE \n" "  --rule_ipv6=FILE \n", prgname);
+	RTE_LOG(
+	    ERR, RDPDK1,
+	    "%s [EAL options]\n"
+	    "  [--config (port,queue,lcore)[,(port,queue,lcore]]\n"
+	    "  [--kniconfig (port,lcore_tx,lcore_kthread)]\n"
+	    "  [--enable-jumbo [--max-pkt-len PKTLEN (64-9000)]]\n"
+	    "  [--promiscuous : enable promiscuous mode]\n"
+	    "  [--unixsock PATH: override cmdline unixsock path (default: "
+	    "/tmp/rdpdk.sock)]\n"
+	    "  [--configfile PATH: use a configfile for params]\n"
+	    "  [--no-numa: disable numa awareness]\n"
+	    "  [--scalar: Use scalar function to do lookupn acl tables]\n"
+	    "  --portmask PORTMASK: hexadecimal bitmask of ports to configure\n"
+	    "  --callback-setup: script called when ifaces are set up\n"
+	    "  --rule_ipv4=FILE \n"
+	    "  --rule_ipv6=FILE \n",
+	    prgname);
 }
 
-static int parse_max_pkt_len(const char *pktlen)
+static int
+parse_max_pkt_len(const char *pktlen)
 {
 	char *end = NULL;
 	unsigned long len;
@@ -95,7 +105,8 @@ static int parse_max_pkt_len(const char *pktlen)
 	return len;
 }
 
-static int parse_portmask(const char *portmask)
+static int
+parse_portmask(const char *portmask)
 {
 	char *end = NULL;
 	unsigned long pm;
@@ -111,7 +122,8 @@ static int parse_portmask(const char *portmask)
 	return pm;
 }
 
-static void print_kni_config(void)
+static void
+print_kni_config(void)
 {
 	uint32_t i, j;
 	struct kni_port_params **p = kni_port_params_array;
@@ -123,11 +135,12 @@ static void print_kni_config(void)
 		RTE_LOG(DEBUG, KNI, "Tx lcore ID: %u\n", p[i]->lcore_tx);
 		for (j = 0; j < p[i]->nb_lcore_k; j++)
 			RTE_LOG(DEBUG, KNI, "Kernel thread lcore ID: %u\n",
-					p[i]->lcore_k[j]);
+				p[i]->lcore_k[j]);
 	}
 }
 
-static int kni_parse_config(const char *arg)
+static int
+kni_parse_config(const char *arg)
 {
 	const char *p, *p0 = arg;
 	char s[256], *end;
@@ -144,7 +157,7 @@ static int kni_parse_config(const char *arg)
 
 	memset(&kni_port_params_array, 0, sizeof(kni_port_params_array));
 	while (((p = strchr(p0, '(')) != NULL) &&
-		   nb_kni_port_params < RTE_MAX_ETHPORTS) {
+	       nb_kni_port_params < RTE_MAX_ETHPORTS) {
 		p++;
 		if ((p0 = strchr(p, ')')) == NULL)
 			goto fail;
@@ -163,52 +176,53 @@ static int kni_parse_config(const char *arg)
 			errno = 0;
 			int_fld[i] = strtoul(str_fld[i], &end, 0);
 			if (errno != 0 || end == str_fld[i]) {
-				RTE_LOG(ERR, KNI, "Invalid config parameters\n");
+				RTE_LOG(ERR, KNI,
+					"Invalid config parameters\n");
 				goto fail;
 			}
 		}
 
-		port_id = (uint8_t) int_fld[FLD_PORT];
+		port_id = (uint8_t)int_fld[FLD_PORT];
 		if (port_id >= RTE_MAX_ETHPORTS) {
 			RTE_LOG(ERR, KNI,
-					"Port ID %d could not exceed the maximum %d\n",
-					port_id, RTE_MAX_ETHPORTS);
+				"Port ID %d could not exceed the maximum %d\n",
+				port_id, RTE_MAX_ETHPORTS);
 			goto fail;
 		}
 		if (kni_port_params_array[port_id]) {
-			RTE_LOG(ERR, KNI, "Port %d has been configured\n", port_id);
+			RTE_LOG(ERR, KNI, "Port %d has been configured\n",
+				port_id);
 			goto fail;
 		}
 		kni_port_params_array[port_id] =
-			(struct kni_port_params *) rte_zmalloc("KNI_port_params",
-												   sizeof(struct
-														  kni_port_params),
-												   RTE_CACHE_LINE_SIZE);
+		    (struct kni_port_params *)rte_zmalloc(
+			"KNI_port_params", sizeof(struct kni_port_params),
+			RTE_CACHE_LINE_SIZE);
 		kni_port_params_array[port_id]->port_id = port_id;
 
 		kni_port_params_array[port_id]->tx_queue_id =
-			get_port_n_rx_queues(port_id);
+		    get_port_n_rx_queues(port_id);
 
 		kni_port_params_array[port_id]->lcore_tx =
-			(uint8_t) int_fld[FLD_LCORE_TX];
+		    (uint8_t)int_fld[FLD_LCORE_TX];
 		if (kni_port_params_array[port_id]->lcore_tx >= RTE_MAX_LCORE) {
 			RTE_LOG(ERR, KNI, "lcore_tx %u ID could not "
-					"exceed the maximum %u\n",
-					kni_port_params_array[port_id]->lcore_tx,
-					(unsigned) RTE_MAX_LCORE);
+					  "exceed the maximum %u\n",
+				kni_port_params_array[port_id]->lcore_tx,
+				(unsigned)RTE_MAX_LCORE);
 			goto fail;
 		}
 		i = FLD_LCORE_TX + 1;
 		for (j = 0; i < nb_token && j < KNI_MAX_KTHREAD; i++, j++)
 			kni_port_params_array[port_id]->lcore_k[j] =
-				(uint8_t) int_fld[i];
+			    (uint8_t)int_fld[i];
 		kni_port_params_array[port_id]->nb_lcore_k = j;
 	}
 	print_kni_config();
 
 	return 0;
 
-  fail:
+fail:
 	for (i = 0; i < RTE_MAX_ETHPORTS; i++) {
 		if (kni_port_params_array[i]) {
 			rte_free(kni_port_params_array[i]);
@@ -219,7 +233,8 @@ static int kni_parse_config(const char *arg)
 	return -1;
 }
 
-static int kni_parse_config_from_file(uint8_t port_id, char *q_arg)
+static int
+kni_parse_config_from_file(uint8_t port_id, char *q_arg)
 {
 	char *end;
 	enum fieldnames {
@@ -246,38 +261,37 @@ static int kni_parse_config_from_file(uint8_t port_id, char *q_arg)
 	}
 
 	if (port_id >= RTE_MAX_ETHPORTS) {
-		RTE_LOG(ERR, KNI, "Port ID %d could not exceed the maximum %d\n",
-				port_id, RTE_MAX_ETHPORTS);
+		RTE_LOG(ERR, KNI,
+			"Port ID %d could not exceed the maximum %d\n", port_id,
+			RTE_MAX_ETHPORTS);
 		goto fail;
 	}
 	if (kni_port_params_array[port_id]) {
 		RTE_LOG(ERR, KNI, "Port %d has been configured\n", port_id);
 		goto fail;
 	}
-	kni_port_params_array[port_id] =
-		(struct kni_port_params *) rte_zmalloc("KNI_port_params",
-											   sizeof(struct
-													  kni_port_params),
-											   RTE_CACHE_LINE_SIZE);
+	kni_port_params_array[port_id] = (struct kni_port_params *)rte_zmalloc(
+	    "KNI_port_params", sizeof(struct kni_port_params),
+	    RTE_CACHE_LINE_SIZE);
 	kni_port_params_array[port_id]->port_id = port_id;
 
-	kni_port_params_array[port_id]->lcore_tx =
-		(uint8_t) int_fld[FLD_LCORE];
+	kni_port_params_array[port_id]->lcore_tx = (uint8_t)int_fld[FLD_LCORE];
 	if (kni_port_params_array[port_id]->lcore_tx >= RTE_MAX_LCORE) {
 		RTE_LOG(ERR, KNI, "lcore_tx %u ID could not "
-				"exceed the maximum %u\n",
-				kni_port_params_array[port_id]->lcore_tx,
-				(unsigned) RTE_MAX_LCORE);
+				  "exceed the maximum %u\n",
+			kni_port_params_array[port_id]->lcore_tx,
+			(unsigned)RTE_MAX_LCORE);
 		goto fail;
 	}
 	i = FLD_LCORE + 1;
 	for (j = 0; i < nb_token && j < KNI_MAX_KTHREAD; i++, j++)
-		kni_port_params_array[port_id]->lcore_k[j] = (uint8_t) int_fld[i];
+		kni_port_params_array[port_id]->lcore_k[j] =
+		    (uint8_t)int_fld[i];
 	kni_port_params_array[port_id]->nb_lcore_k = j;
 
 	return 0;
 
-  fail:
+fail:
 	if (kni_port_params_array[port_id]) {
 		rte_free(kni_port_params_array[port_id]);
 		kni_port_params_array[port_id] = NULL;
@@ -286,7 +300,8 @@ static int kni_parse_config_from_file(uint8_t port_id, char *q_arg)
 	return -1;
 }
 
-static int kni_validate_parameters(uint32_t portmask)
+static int
+kni_validate_parameters(uint32_t portmask)
 {
 	uint32_t i;
 
@@ -297,34 +312,30 @@ static int kni_validate_parameters(uint32_t portmask)
 
 	for (i = 0; i < RTE_MAX_ETHPORTS; i++) {
 		if (((portmask & (1 << i)) && !kni_port_params_array[i]) ||
-			(!(portmask & (1 << i)) && kni_port_params_array[i]))
-			rte_exit(EXIT_FAILURE, "portmask is not consistent "
-					 "to port ids specified in --config\n");
-		if (kni_port_params_array[i] && !rte_lcore_is_enabled((unsigned)
-															  (kni_port_params_array[i]->lcore_tx)))
+		    (!(portmask & (1 << i)) && kni_port_params_array[i]))
 			rte_exit(EXIT_FAILURE,
-					 "lcore id %u for "
-					 "port %d transmitting not enabled\n",
-					 kni_port_params_array[i]->lcore_tx,
-					 kni_port_params_array[i]->port_id);
-
+				 "portmask is not consistent "
+				 "to port ids specified in --config\n");
+		if (kni_port_params_array[i] &&
+		    !rte_lcore_is_enabled(
+			(unsigned)(kni_port_params_array[i]->lcore_tx)))
+			rte_exit(EXIT_FAILURE,
+				 "lcore id %u for "
+				 "port %d transmitting not enabled\n",
+				 kni_port_params_array[i]->lcore_tx,
+				 kni_port_params_array[i]->port_id);
 	}
 
 	return 0;
 }
 
-
-static int parse_config(const char *q_arg)
+static int
+parse_config(const char *q_arg)
 {
 	char s[256];
 	const char *p, *p0 = q_arg;
 	char *end;
-	enum fieldnames {
-		FLD_PORT = 0,
-		FLD_QUEUE,
-		FLD_LCORE,
-		_NUM_FLD
-	};
+	enum fieldnames { FLD_PORT = 0, FLD_QUEUE, FLD_LCORE, _NUM_FLD };
 	unsigned long int_fld[_NUM_FLD];
 	char *str_fld[_NUM_FLD];
 	int i;
@@ -342,7 +353,8 @@ static int parse_config(const char *q_arg)
 			return -1;
 
 		snprintf(s, sizeof(s), "%.*s", size, p);
-		if (rte_strsplit(s, sizeof(s), str_fld, _NUM_FLD, ',') != _NUM_FLD)
+		if (rte_strsplit(s, sizeof(s), str_fld, _NUM_FLD, ',') !=
+		    _NUM_FLD)
 			return -1;
 		for (i = 0; i < _NUM_FLD; i++) {
 			errno = 0;
@@ -352,65 +364,61 @@ static int parse_config(const char *q_arg)
 		}
 		if (nb_lcore_params >= MAX_LCORE_PARAMS) {
 			RTE_LOG(ERR, RDPDK1,
-					"exceeded max number of lcore params: %hu\n",
-					nb_lcore_params);
+				"exceeded max number of lcore params: %hu\n",
+				nb_lcore_params);
 			return -1;
 		}
 		lcore_params_array[nb_lcore_params].port_id =
-			(uint8_t) int_fld[FLD_PORT];
+		    (uint8_t)int_fld[FLD_PORT];
 		lcore_params_array[nb_lcore_params].queue_id =
-			(uint8_t) int_fld[FLD_QUEUE];
+		    (uint8_t)int_fld[FLD_QUEUE];
 		lcore_params_array[nb_lcore_params].lcore_id =
-			(uint8_t) int_fld[FLD_LCORE];
+		    (uint8_t)int_fld[FLD_LCORE];
 		++nb_lcore_params;
 	}
 	lcore_params = lcore_params_array;
 	return 0;
 }
 
-static int parse_config_from_file(uint8_t port_id, char *q_arg)
+static int
+parse_config_from_file(uint8_t port_id, char *q_arg)
 {
 	char *end;
-	enum fieldnames {
-		FLD_QUEUE = 0,
-		FLD_LCORE,
-		_NUM_FLD
-	};
+	enum fieldnames { FLD_QUEUE = 0, FLD_LCORE, _NUM_FLD };
 	unsigned long int_fld[_NUM_FLD];
 	char *str_fld[_NUM_FLD];
 	char *str_tuples[MAX_LCORE_PARAMS];
 	int i, j, nb_tuples;
 
-	nb_tuples =
-		rte_strsplit(q_arg, strlen(q_arg), str_tuples, MAX_LCORE_PARAMS,
-					 ' ');
+	nb_tuples = rte_strsplit(q_arg, strlen(q_arg), str_tuples,
+				 MAX_LCORE_PARAMS, ' ');
 
 	for (j = 0; j < nb_tuples; j++) {
-		if (rte_strsplit
-			(str_tuples[j], strlen(str_tuples[j]), str_fld, _NUM_FLD,
-			 ',') != _NUM_FLD) {
+		if (rte_strsplit(str_tuples[j], strlen(str_tuples[j]), str_fld,
+				 _NUM_FLD, ',') != _NUM_FLD) {
 			return -1;
 		}
 
 		for (i = 0; i < _NUM_FLD; i++) {
 			errno = 0;
 			int_fld[i] = strtoul(str_fld[i], &end, 0);
-			if (errno != 0 || end == str_fld[i] || int_fld[i] > 255) {
+			if (errno != 0 || end == str_fld[i] ||
+			    int_fld[i] > 255) {
 				return -1;
 			}
 		}
 
 		if (nb_lcore_params >= MAX_LCORE_PARAMS) {
 			RTE_LOG(ERR, RDPDK1,
-					"exceeded max number of lcore params: %hu\n",
-					nb_lcore_params);
+				"exceeded max number of lcore params: %hu\n",
+				nb_lcore_params);
 			return -1;
 		}
 		lcore_params_array[nb_lcore_params].port_id = port_id;
 		lcore_params_array[nb_lcore_params].queue_id =
-			(uint8_t) int_fld[FLD_QUEUE];
+		    (uint8_t)int_fld[FLD_QUEUE];
 		lcore_params_array[nb_lcore_params].lcore_id =
-			(uint8_t) int_fld[FLD_LCORE];
+		    (uint8_t)int_fld[FLD_LCORE];
 		++nb_lcore_params;
 	}
 
@@ -418,7 +426,8 @@ static int parse_config_from_file(uint8_t port_id, char *q_arg)
 	return 0;
 }
 
-static int install_cfgfile(const char *file_name, char *prgname)
+static int
+install_cfgfile(const char *file_name, char *prgname)
 {
 	struct rte_cfgfile *file;
 	uint32_t n_ports, i, ret;
@@ -434,14 +443,13 @@ static int install_cfgfile(const char *file_name, char *prgname)
 		return -1;
 	}
 
-	n_ports =
-		(uint32_t) rte_cfgfile_num_sections(file, "port",
-											sizeof("port") - 1);
+	n_ports = (uint32_t)rte_cfgfile_num_sections(file, "port",
+						     sizeof("port") - 1);
 
 	if (n_ports >= RTE_MAX_ETHPORTS) {
 		rte_exit(EXIT_FAILURE,
-				 "Ports %d could not exceed the maximum %d\n", n_ports,
-				 RTE_MAX_ETHPORTS);
+			 "Ports %d could not exceed the maximum %d\n", n_ports,
+			 RTE_MAX_ETHPORTS);
 		return -1;
 	}
 
@@ -453,8 +461,9 @@ static int install_cfgfile(const char *file_name, char *prgname)
 		snprintf(section_name, sizeof(section_name), "port %u", i);
 		if (!rte_cfgfile_has_section(file, section_name)) {
 			rte_exit(EXIT_FAILURE,
-					 "Config file parse error: port IDs are not "
-					 "sequential (port %u missing)\n", i);
+				 "Config file parse error: port IDs are not "
+				 "sequential (port %u missing)\n",
+				 i);
 			return -1;
 		}
 
@@ -462,16 +471,19 @@ static int install_cfgfile(const char *file_name, char *prgname)
 
 		entry = rte_cfgfile_get_entry(file, section_name, "eal queues");
 		if (!entry) {
-			rte_exit(EXIT_FAILURE,
-					 "Config file parse error: EAL queues for port %u "
-					 "not defined\n", i);
+			rte_exit(
+			    EXIT_FAILURE,
+			    "Config file parse error: EAL queues for port %u "
+			    "not defined\n",
+			    i);
 			return -1;
 		}
 
 		ptr = strdup(entry);
 		if (!ptr) {
-			rte_exit(EXIT_FAILURE,
-					 "Config file parse error: Could not allocate memory for strdup\n");
+			rte_exit(EXIT_FAILURE, "Config file parse error: Could "
+					       "not allocate memory for "
+					       "strdup\n");
 			return -1;
 		}
 		ret = parse_config_from_file(i, ptr);
@@ -485,16 +497,18 @@ static int install_cfgfile(const char *file_name, char *prgname)
 
 		entry = rte_cfgfile_get_entry(file, section_name, "kni");
 		if (!entry) {
-			rte_exit(EXIT_FAILURE,
-					 "Config file parse error: KNI core queues for port %u "
-					 "not defined\n", i);
+			rte_exit(EXIT_FAILURE, "Config file parse error: KNI "
+					       "core queues for port %u "
+					       "not defined\n",
+				 i);
 			return -1;
 		}
 
 		ptr = strdup(entry);
 		if (!ptr) {
-			rte_exit(EXIT_FAILURE,
-					 "Config file parse error: Could not allocate memory for strdup\n");
+			rte_exit(EXIT_FAILURE, "Config file parse error: Could "
+					       "not allocate memory for "
+					       "strdup\n");
 			return -1;
 		}
 		ret = kni_parse_config_from_file(i, ptr);
@@ -507,38 +521,33 @@ static int install_cfgfile(const char *file_name, char *prgname)
 		}
 	}
 
-	entry =
-		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
-							  CMD_LINE_OPT_UNIXSOCK);
+	entry = rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
+				      CMD_LINE_OPT_UNIXSOCK);
 	if (entry) {
 		unixsock_path = strdup(entry);
 	}
 
-	entry =
-		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
-							  CMD_LINE_OPT_CALLBACK_SETUP);
+	entry = rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
+				      CMD_LINE_OPT_CALLBACK_SETUP);
 	if (entry) {
 		callback_setup = strdup(entry);
 	}
 
-	entry =
-		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
-							  CMD_LINE_OPT_RULE_IPV4);
+	entry = rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
+				      CMD_LINE_OPT_RULE_IPV4);
 	if (entry) {
 		acl_parm_config.rule_ipv4_name = strdup(entry);
 	}
 
-	entry =
-		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
-							  CMD_LINE_OPT_RULE_IPV6);
+	entry = rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
+				      CMD_LINE_OPT_RULE_IPV6);
 	if (entry) {
 		acl_parm_config.rule_ipv6_name = strdup(entry);
 	}
 
 	/*      optional    */
 	entry =
-		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
-							  CMD_LINE_OPT_PROMISC);
+	    rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_PROMISC);
 	if (entry) {
 		if (strtoul(entry, NULL, 0)) {
 			RTE_LOG(INFO, RDPDK1, "Promiscuous mode selected\n");
@@ -547,8 +556,7 @@ static int install_cfgfile(const char *file_name, char *prgname)
 	}
 
 	entry =
-		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
-							  CMD_LINE_OPT_NO_NUMA);
+	    rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_NO_NUMA);
 	if (entry) {
 		if (strtoul(entry, NULL, 0)) {
 			RTE_LOG(INFO, RDPDK1, "numa is disabled \n");
@@ -557,30 +565,29 @@ static int install_cfgfile(const char *file_name, char *prgname)
 	}
 
 	entry =
-		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_SCALAR);
+	    rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_SCALAR);
 	if (entry) {
 		if (strtoul(entry, NULL, 0)) {
 			acl_parm_config.scalar = 1;
 		}
 	}
 
-	entry =
-		rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
-							  CMD_LINE_OPT_ENABLE_JUMBO);
+	entry = rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
+				      CMD_LINE_OPT_ENABLE_JUMBO);
 	if (entry) {
 
 		if (strtoul(entry, NULL, 0)) {
-			RTE_LOG(INFO, RDPDK1,
-					"jumbo frame is enabled - disabling simple TX path\n");
+			RTE_LOG(INFO, RDPDK1, "jumbo frame is enabled - "
+					      "disabling simple TX path\n");
 			port_conf.rxmode.jumbo_frame = 1;
 
-			entry =
-				rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
-									  CMD_LINE_OPT_MAXPKT_LEN);
+			entry = rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
+						      CMD_LINE_OPT_MAXPKT_LEN);
 			if (entry) {
 				ret = parse_max_pkt_len(entry);
 				if ((ret < 64) || (ret > MAX_JUMBO_PKT_LEN)) {
-					RTE_LOG(ERR, RDPDK1, "invalid packet length\n");
+					RTE_LOG(ERR, RDPDK1,
+						"invalid packet length\n");
 					print_usage(prgname);
 					return -1;
 				}
@@ -588,8 +595,8 @@ static int install_cfgfile(const char *file_name, char *prgname)
 			}
 
 			RTE_LOG(INFO, RDPDK1,
-					"set jumbo frame max packet length to %u\n",
-					(unsigned int) port_conf.rxmode.max_rx_pkt_len);
+				"set jumbo frame max packet length to %u\n",
+				(unsigned int)port_conf.rxmode.max_rx_pkt_len);
 		}
 	}
 
@@ -603,27 +610,26 @@ static int install_cfgfile(const char *file_name, char *prgname)
 }
 
 /* Parse the argument given in the command line of the application */
-int parse_args(int argc, char **argv)
+int
+parse_args(int argc, char **argv)
 {
 	int opt, ret;
 	char **argvopt;
 	int option_index;
 	char *prgname = argv[0];
-	static struct option lgopts[] = {
-		{CMD_LINE_OPT_CONFIG, 1, 0, 0},
-		{CMD_LINE_OPT_KNICONFIG, 1, 0, 0},
-		{CMD_LINE_OPT_CALLBACK_SETUP, 1, 0, 0},
-		{CMD_LINE_OPT_UNIXSOCK, 1, 0, 0},
-		{CMD_LINE_OPT_RULE_IPV4, 1, 0, 0},
-		{CMD_LINE_OPT_RULE_IPV6, 1, 0, 0},
-		{CMD_LINE_OPT_SCALAR, 0, 0, 0},
-		{CMD_LINE_OPT_PROMISC, 0, 0, 0},
-		{CMD_LINE_OPT_NO_NUMA, 0, 0, 0},
-		{CMD_LINE_OPT_ENABLE_JUMBO, 0, 0, 0},
-		{CMD_LINE_OPT_PORTMASK, 1, 0, 0},
-		{CMD_LINE_OPT_CONFIGFILE, 1, 0, 0},
-		{NULL, 0, 0, 0}
-	};
+	static struct option lgopts[] = {{CMD_LINE_OPT_CONFIG, 1, 0, 0},
+					 {CMD_LINE_OPT_KNICONFIG, 1, 0, 0},
+					 {CMD_LINE_OPT_CALLBACK_SETUP, 1, 0, 0},
+					 {CMD_LINE_OPT_UNIXSOCK, 1, 0, 0},
+					 {CMD_LINE_OPT_RULE_IPV4, 1, 0, 0},
+					 {CMD_LINE_OPT_RULE_IPV6, 1, 0, 0},
+					 {CMD_LINE_OPT_SCALAR, 0, 0, 0},
+					 {CMD_LINE_OPT_PROMISC, 0, 0, 0},
+					 {CMD_LINE_OPT_NO_NUMA, 0, 0, 0},
+					 {CMD_LINE_OPT_ENABLE_JUMBO, 0, 0, 0},
+					 {CMD_LINE_OPT_PORTMASK, 1, 0, 0},
+					 {CMD_LINE_OPT_CONFIGFILE, 1, 0, 0},
+					 {NULL, 0, 0, 0}};
 
 	/* init EAL */
 	ret = rte_eal_init(argc, argv);
@@ -633,117 +639,131 @@ int parse_args(int argc, char **argv)
 	argv += ret;
 
 	for (opt = 1; opt < argc; opt++) {
-		if (strcmp(argv[opt], "--configfile") == 0
-			&& argv[opt + 1] != NULL) {
+		if (strcmp(argv[opt], "--configfile") == 0 &&
+		    argv[opt + 1] != NULL) {
 			return install_cfgfile(argv[opt + 1], prgname);
 		}
 	}
 
 	argvopt = argv;
 
-	while ((opt = getopt_long(argc, argvopt, "",
-							  lgopts, &option_index)) != EOF) {
+	while ((opt = getopt_long(argc, argvopt, "", lgopts, &option_index)) !=
+	       EOF) {
 
 		switch (opt) {
-			/* long options */
+		/* long options */
 		case 0:
 			if (!strncmp(lgopts[option_index].name,
-						 CMD_LINE_OPT_KNICONFIG,
-						 sizeof(CMD_LINE_OPT_KNICONFIG))) {
+				     CMD_LINE_OPT_KNICONFIG,
+				     sizeof(CMD_LINE_OPT_KNICONFIG))) {
 				ret = kni_parse_config(optarg);
 				if (ret) {
-					RTE_LOG(ERR, RDPDK1, "Invalid config\n");
+					RTE_LOG(ERR, RDPDK1,
+						"Invalid config\n");
 					print_usage(prgname);
 					return -1;
 				}
 			}
 
-			if (!strncmp(lgopts[option_index].name, CMD_LINE_OPT_CONFIG,
-						 sizeof(CMD_LINE_OPT_CONFIG))) {
+			if (!strncmp(lgopts[option_index].name,
+				     CMD_LINE_OPT_CONFIG,
+				     sizeof(CMD_LINE_OPT_CONFIG))) {
 				ret = parse_config(optarg);
 				if (ret) {
-					RTE_LOG(ERR, RDPDK1, "invalid config\n");
+					RTE_LOG(ERR, RDPDK1,
+						"invalid config\n");
 					print_usage(prgname);
 					return -1;
 				}
 			}
 
-			if (!strncmp(lgopts[option_index].name, CMD_LINE_OPT_PORTMASK,
-						 sizeof(CMD_LINE_OPT_PORTMASK))) {
+			if (!strncmp(lgopts[option_index].name,
+				     CMD_LINE_OPT_PORTMASK,
+				     sizeof(CMD_LINE_OPT_PORTMASK))) {
 				enabled_port_mask = parse_portmask(optarg);
 				if (enabled_port_mask == 0) {
-					RTE_LOG(ERR, RDPDK1, "invalid portmask\n");
+					RTE_LOG(ERR, RDPDK1,
+						"invalid portmask\n");
 					print_usage(prgname);
 					return -1;
 				}
 			}
 
-			if (!strncmp
-				(lgopts[option_index].name, CMD_LINE_OPT_UNIXSOCK,
-				 sizeof(CMD_LINE_OPT_UNIXSOCK))) {
+			if (!strncmp(lgopts[option_index].name,
+				     CMD_LINE_OPT_UNIXSOCK,
+				     sizeof(CMD_LINE_OPT_UNIXSOCK))) {
 				unixsock_path = optarg;
 			}
 
-			if (!strncmp
-				(lgopts[option_index].name, CMD_LINE_OPT_CALLBACK_SETUP,
-				 sizeof(CMD_LINE_OPT_CALLBACK_SETUP))) {
+			if (!strncmp(lgopts[option_index].name,
+				     CMD_LINE_OPT_CALLBACK_SETUP,
+				     sizeof(CMD_LINE_OPT_CALLBACK_SETUP))) {
 				callback_setup = optarg;
 			}
 
-			if (!strncmp(lgopts[option_index].name, CMD_LINE_OPT_PROMISC,
-						 sizeof(CMD_LINE_OPT_NO_NUMA))) {
+			if (!strncmp(lgopts[option_index].name,
+				     CMD_LINE_OPT_PROMISC,
+				     sizeof(CMD_LINE_OPT_NO_NUMA))) {
 				promiscuous_on = 1;
 			}
 
-			if (!strncmp(lgopts[option_index].name, CMD_LINE_OPT_NO_NUMA,
-						 sizeof(CMD_LINE_OPT_NO_NUMA))) {
+			if (!strncmp(lgopts[option_index].name,
+				     CMD_LINE_OPT_NO_NUMA,
+				     sizeof(CMD_LINE_OPT_NO_NUMA))) {
 				RTE_LOG(INFO, RDPDK1, "numa is disabled \n");
 				numa_on = 0;
 			}
 
 			if (!strncmp(lgopts[option_index].name,
-						 CMD_LINE_OPT_RULE_IPV4,
-						 sizeof(CMD_LINE_OPT_RULE_IPV4))) {
+				     CMD_LINE_OPT_RULE_IPV4,
+				     sizeof(CMD_LINE_OPT_RULE_IPV4))) {
 				acl_parm_config.rule_ipv4_name = optarg;
 			}
 
 			if (!strncmp(lgopts[option_index].name,
-						 CMD_LINE_OPT_RULE_IPV6,
-						 sizeof(CMD_LINE_OPT_RULE_IPV6))) {
+				     CMD_LINE_OPT_RULE_IPV6,
+				     sizeof(CMD_LINE_OPT_RULE_IPV6))) {
 				acl_parm_config.rule_ipv6_name = optarg;
 			}
 
 			if (!strncmp(lgopts[option_index].name,
-						 CMD_LINE_OPT_SCALAR,
-						 sizeof(CMD_LINE_OPT_SCALAR))) {
+				     CMD_LINE_OPT_SCALAR,
+				     sizeof(CMD_LINE_OPT_SCALAR))) {
 				acl_parm_config.scalar = 1;
 			}
 
-			if (!strncmp
-				(lgopts[option_index].name, CMD_LINE_OPT_ENABLE_JUMBO,
-				 sizeof(CMD_LINE_OPT_ENABLE_JUMBO))) {
-				struct option lenopts =
-					{ CMD_LINE_OPT_MAXPKT_LEN, required_argument, 0, 0 };
+			if (!strncmp(lgopts[option_index].name,
+				     CMD_LINE_OPT_ENABLE_JUMBO,
+				     sizeof(CMD_LINE_OPT_ENABLE_JUMBO))) {
+				struct option lenopts = {
+				    CMD_LINE_OPT_MAXPKT_LEN, required_argument,
+				    0, 0};
 
-				RTE_LOG(INFO, RDPDK1,
-						"jumbo frame is enabled - disabling simple TX path\n");
+				RTE_LOG(INFO, RDPDK1, "jumbo frame is enabled "
+						      "- disabling simple TX "
+						      "path\n");
 				port_conf.rxmode.jumbo_frame = 1;
 
-				/* if no max-pkt-len set, use the default value ETHER_MAX_LEN */
-				if (0 ==
-					getopt_long(argc, argvopt, "", &lenopts,
-								&option_index)) {
+				/* if no max-pkt-len set, use the default value
+				 * ETHER_MAX_LEN */
+				if (0 == getopt_long(argc, argvopt, "",
+						     &lenopts, &option_index)) {
 					ret = parse_max_pkt_len(optarg);
-					if ((ret < 64) || (ret > MAX_JUMBO_PKT_LEN)) {
-						RTE_LOG(ERR, RDPDK1, "invalid packet length\n");
+					if ((ret < 64) ||
+					    (ret > MAX_JUMBO_PKT_LEN)) {
+						RTE_LOG(
+						    ERR, RDPDK1,
+						    "invalid packet length\n");
 						print_usage(prgname);
 						return -1;
 					}
 					port_conf.rxmode.max_rx_pkt_len = ret;
 				}
-				RTE_LOG(INFO, RDPDK1,
-						"set jumbo frame max packet length to %u\n",
-						(unsigned int) port_conf.rxmode.max_rx_pkt_len);
+				RTE_LOG(
+				    INFO, RDPDK1,
+				    "set jumbo frame max packet length to %u\n",
+				    (unsigned int)
+					port_conf.rxmode.max_rx_pkt_len);
 			}
 			break;
 
@@ -762,6 +782,6 @@ int parse_args(int argc, char **argv)
 		rte_exit(EXIT_FAILURE, "Invalid parameters\n");
 	}
 	ret = optind - 1;
-	optind = 0;					/* reset getopt lib */
+	optind = 0; /* reset getopt lib */
 	return ret;
 }
