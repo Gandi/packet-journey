@@ -656,6 +656,9 @@ processx4_step_checkneighbor(struct lcore_conf *qconf,
 
 			if (likely(i == 0))
 				continue;
+
+			//FIXME add rate-limit here
+
 			for (k = 0; k < nb_kni; k++) {
 				int l = 0;
 				for (; l < i; ++l)

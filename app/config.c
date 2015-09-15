@@ -186,6 +186,9 @@ static int kni_parse_config(const char *arg)
 												   RTE_CACHE_LINE_SIZE);
 		kni_port_params_array[port_id]->port_id = port_id;
 
+		kni_port_params_array[port_id]->tx_queue_id =
+			get_port_n_rx_queues(port_id);
+
 		kni_port_params_array[port_id]->lcore_tx =
 			(uint8_t) int_fld[FLD_LCORE_TX];
 		if (kni_port_params_array[port_id]->lcore_tx >= RTE_MAX_LCORE) {

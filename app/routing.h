@@ -12,5 +12,4 @@ extern neighbor_struct_t *neighbor6_struct[NB_SOCKETS];
 extern struct rte_eth_conf port_conf;
 
 extern struct rte_eth_conf port_conf;
-uint8_t get_port_n_rx_queues(uint8_t port);
 #endif

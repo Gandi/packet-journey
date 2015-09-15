@@ -14,6 +14,7 @@ void kni_stop_loop(void);
  */
 struct kni_port_params {
 	uint8_t port_id;			/* Port ID */
+	uint8_t tx_queue_id;
 	unsigned lcore_tx;			/* lcore ID for TX */
 	uint32_t nb_lcore_k;		/* Number of lcores for KNI multi kernel threads */
 	uint32_t nb_kni;			/* Number of KNI devices to be created */

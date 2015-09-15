@@ -28,8 +28,6 @@ static void print_ethaddr(struct cmdline *cl, const char *name,
 }
 
 //TODO check that port_id is valid
-//TODO permit to choose on which fd we print
-//TODO make it more easily parseable
 
 void rdpdk_stats_display(struct cmdline *cl, int option, int delay)
 {

@@ -3,6 +3,7 @@
 
 void print_usage(const char *prgname);
 int parse_args(int argc, char **argv);
+uint8_t get_port_n_rx_queues(uint8_t port);
 
 extern uint16_t nb_lcore_params;
 extern struct lcore_params *lcore_params;

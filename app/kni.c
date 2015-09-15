@@ -128,8 +128,7 @@ static void kni_egress(struct kni_port_params *p, uint32_t lcore_id)
 
 	nb_kni = p->nb_kni;
 	port_id = p->port_id;
-	//TODO we may stock it in kni_params so we won't have to recalcule it each time.
-	queue_num = get_port_n_rx_queues(port_id);
+	queue_num = p->tx_queue_id;
 	for (i = 0; i < nb_kni; i++) {
 		/* Burst rx from kni */
 		num = rte_kni_rx_burst(p->kni[i], pkts_burst, MAX_PKT_BURST);
