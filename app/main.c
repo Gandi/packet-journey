@@ -612,6 +612,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 			      RDPDK_PKT_TYPE(pkt[j]), qconf);                  \
 	if (process) {                                                         \
 		/* no dest neighbor addr available, send it through the kni */ \
+        /* FIXME add rate-limit here */                                  \
 		knimbuf[i++] = pkt[j];                                         \
 		if (j != --nb_rx) {                                            \
 			/* we have more packets, deplace last one and its info \
@@ -648,8 +649,6 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 	switch (nb_rx % FWDSTEP) {
 		while (j < nb_rx) {
 			i = 0; // reinit i here after the first duck device
-		// iteration
-
 		case 0:
 			PROCESSX4_STEP(0);
 		case 3:
@@ -661,8 +660,6 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 
 			if (likely(i == 0))
 				continue;
-
-			// FIXME add rate-limit here
 
 			for (k = 0; k < nb_kni; k++) {
 				int l = 0;
