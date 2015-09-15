@@ -45,7 +45,7 @@ rdpdk_stats_display(struct cmdline *cl, int option, int delay)
 	total_packets_kni_rx = 0;
 	total_packets_kni_dropped = 0;
 
-	if (option == 1) { // json
+	if (option == CMD_STATS_JSON) { // json
 
 		cmdline_printf(cl, "{\"lcores\": [");
 
@@ -84,7 +84,8 @@ rdpdk_stats_display(struct cmdline *cl, int option, int delay)
 			       total_packets_kni_tx, total_packets_kni_rx,
 			       total_packets_kni_dropped,
 			       total_packets_dropped);
-	} else if (option == 2) { // csv
+
+	} else if (option == CMD_STATS_CSV) { // csv
 
 		_time = time(NULL);
 
@@ -173,6 +174,37 @@ rdpdk_stats_display(struct cmdline *cl, int option, int delay)
 		    total_packets_tx, total_packets_rx, total_packets_kni_tx,
 		    total_packets_kni_rx, total_packets_kni_dropped,
 		    total_packets_dropped);
+		cmdline_printf(
+		    cl,
+		    "\n====================================================\n");
+	}
+}
+
+void
+rdpdk_lpm_stats_display(struct cmdline *cl, int is_ipv4, int option)
+{
+	struct lpm_stats_t *stats;
+
+	stats = is_ipv4 ? &lpm4_stats[RTE_PER_LCORE(g_socket_id)]
+			: &lpm6_stats[RTE_PER_LCORE(g_socket_id)];
+
+	if (option == CMD_LPM_STATS_JSON) {
+		cmdline_printf(cl, "{\"current\": %lu, \"add\": {\"success\": "
+				   "%lu, \"failure\": %lu}, \"del\": "
+				   "{\"success\": %lu, \"failure\": %lu}}\n",
+			       (stats->nb_add_ok - stats->nb_del_ok),
+			       stats->nb_add_ok, stats->nb_add_ko,
+			       stats->nb_del_ok, stats->nb_del_ko);
+	} else {
+		cmdline_printf(
+		    cl, "\nLPM statistics ====================================="
+			"\nCurrent routes: %lu"
+			"\nTotal routes added successfully: %lu"
+			"\nTotal route add failures: %lu"
+			"\nTotal routes deleted successfully: %lu"
+			"\nTotal route delete failures: %lu",
+		    (stats->nb_add_ok - stats->nb_del_ok), stats->nb_add_ok,
+		    stats->nb_add_ko, stats->nb_del_ok, stats->nb_del_ko);
 		cmdline_printf(
 		    cl,
 		    "\n====================================================\n");
