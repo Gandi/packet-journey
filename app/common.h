@@ -58,6 +58,16 @@ struct lcore_stats {
 
 extern struct lcore_stats stats[RTE_MAX_LCORE];
 
+struct lpm_stats_t {
+	uint64_t nb_add_ok;
+	uint64_t nb_add_ko;
+	uint64_t nb_del_ok;
+	uint64_t nb_del_ko;
+};
+
+extern struct lpm_stats_t lpm4_stats[NB_SOCKETS];
+extern struct lpm_stats_t lpm6_stats[NB_SOCKETS];
+
 typedef uint8_t portid_t;
 
 #endif

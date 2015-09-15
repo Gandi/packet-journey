@@ -807,8 +807,8 @@ cmdline_parse_inst_t cmd_stats = {
 };
 
 cmdline_parse_inst_t cmd_stats_json = {
-    .f = cmd_stats_parsed, /* function to call */
-    .data = (void *)1,     /* 2nd arg of func */
+    .f = cmd_stats_parsed,	  /* function to call */
+    .data = (void *)CMD_STATS_JSON, /* 2nd arg of func */
     .help_str = "show stats",
     .tokens =
 	{
@@ -818,14 +818,62 @@ cmdline_parse_inst_t cmd_stats_json = {
 };
 
 cmdline_parse_inst_t cmd_stats_csv = {
-    .f = cmd_stats_parsed, /* function to call */
-    .data = (void *)2,     /* 2nd arg of func */
+    .f = cmd_stats_parsed,	 /* function to call */
+    .data = (void *)CMD_STATS_CSV, /* 2nd arg of func */
     .help_str = "show stats",
     .tokens =
 	{
 	 /* token list, NULL terminated */
 	 (void *)&cmd_stats_stats, (void *)&cmd_stats_stats_csv,
 	 (void *)&cmd_stats_stats_delay, NULL,
+	},
+};
+
+//----- CMD LPM_STATS
+
+struct cmd_lpm_stats_result {
+	cmdline_fixed_string_t stats;
+	cmdline_fixed_string_t proto;
+	cmdline_fixed_string_t option;
+};
+
+static void
+cmd_lpm_stats_parsed(void *parsed_result, struct cmdline *cl, void *data)
+{
+	struct cmd_lpm_stats_result *res = parsed_result;
+	int is_ipv4;
+
+	is_ipv4 = !strcmp(res->proto, "ipv4");
+	rdpdk_lpm_stats_display(cl, is_ipv4, (intptr_t)data);
+}
+
+cmdline_parse_token_string_t cmd_lpm_stats_stats =
+    TOKEN_STRING_INITIALIZER(struct cmd_lpm_stats_result, stats, "lpm_stats");
+cmdline_parse_token_string_t cmd_lpm_stats_proto =
+    TOKEN_STRING_INITIALIZER(struct cmd_lpm_stats_result, proto, "ipv4#ipv6");
+cmdline_parse_token_string_t cmd_lpm_stats_stats_json =
+    TOKEN_STRING_INITIALIZER(struct cmd_lpm_stats_result, option, "-j#json");
+
+cmdline_parse_inst_t cmd_lpm_stats = {
+    .f = cmd_lpm_stats_parsed,     /* function to call */
+    .data = (void *)CMD_LPM_STATS, /* 2nd arg of func */
+    .help_str = "show lpm_stats",
+    .tokens =
+	{
+	 /* token list, NULL terminated */
+	 (void *)&cmd_lpm_stats_stats, (void *)&cmd_lpm_stats_proto, NULL,
+	},
+};
+
+cmdline_parse_inst_t cmd_lpm_stats_json = {
+    .f = cmd_lpm_stats_parsed,		/* function to call */
+    .data = (void *)CMD_LPM_STATS_JSON, /* 2nd arg of func */
+    .help_str = "show lpm_stats",
+    .tokens =
+	{
+	 /* token list, NULL terminated */
+	 (void *)&cmd_lpm_stats_stats, (void *)&cmd_lpm_stats_proto,
+	 (void *)&cmd_lpm_stats_stats_json, NULL,
 	},
 };
 
@@ -961,7 +1009,8 @@ cmdline_parse_ctx_t main_ctx[] = {
     (cmdline_parse_inst_t *)&cmd_showport_rss_hash,
     (cmdline_parse_inst_t *)&cmd_showport_rss_hash_key,
     (cmdline_parse_inst_t *)&cmd_config_rss_hash_key,
-    (cmdline_parse_inst_t *)&cmd_help, NULL,
+    (cmdline_parse_inst_t *)&cmd_help, (cmdline_parse_inst_t *)&cmd_lpm_stats,
+    (cmdline_parse_inst_t *)&cmd_lpm_stats_json, NULL,
 };
 
 static int

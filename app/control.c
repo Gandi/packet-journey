@@ -35,6 +35,9 @@ struct handle_res {
 	int32_t socket_id;
 };
 
+struct lpm_stats_t lpm4_stats[NB_SOCKETS];
+struct lpm_stats_t lpm6_stats[NB_SOCKETS];
+
 static const char *oper_states[] = {"UNKNOWN",	"NOTPRESENT", "DOWN",
 				    "LOWERLAYERDOWN", "TESTING",    "DORMANT",
 				    "UP"};
@@ -102,6 +105,7 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 				rte_be_to_cpu_32(addr->s_addr), depth,
 				nexthop_id);
 		if (s < 0) {
+			lpm4_stats[socket_id].nb_add_ko++;
 			RTE_LOG(ERR, RDPDK_CTRL1, "failed to add a route in "
 						  "lpm during route "
 						  "adding...\n");
@@ -109,6 +113,7 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 		}
 		neighbor4_refcount_incr(neighbor4_struct[socket_id],
 					nexthop_id);
+		lpm4_stats[socket_id].nb_add_ok++;
 	}
 
 	if (action == ROUTE_DELETE) {
@@ -125,12 +130,14 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 		s = rte_lpm_delete(ipv4_rdpdk_lookup_struct[socket_id],
 				   rte_be_to_cpu_32(addr->s_addr), depth);
 		if (s < 0) {
+			lpm4_stats[socket_id].nb_del_ko++;
 			RTE_LOG(ERR, RDPDK_CTRL1,
 				"failed to deletie route...\n");
 			return -1;
 		}
 		neighbor4_refcount_decr(neighbor4_struct[socket_id],
 					nexthop_id);
+		lpm4_stats[socket_id].nb_del_ok++;
 	}
 	RTE_LOG(DEBUG, RDPDK_CTRL1, "route ope success\n");
 	return 0;
@@ -183,6 +190,7 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 		s = rte_lpm6_add(ipv6_rdpdk_lookup_struct[socket_id],
 				 addr->s6_addr, depth, nexthop_id);
 		if (s < 0) {
+			lpm6_stats[socket_id].nb_add_ko++;
 			RTE_LOG(ERR, RDPDK_CTRL1, "failed to add a route in "
 						  "lpm during route "
 						  "adding...\n");
@@ -190,6 +198,7 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 		}
 		neighbor6_refcount_incr(neighbor6_struct[socket_id],
 					nexthop_id);
+		lpm6_stats[socket_id].nb_add_ok++;
 	}
 
 	if (action == ROUTE_DELETE) {
@@ -206,12 +215,14 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 		s = rte_lpm6_delete(ipv6_rdpdk_lookup_struct[socket_id],
 				    addr->s6_addr, depth);
 		if (s < 0) {
+			lpm6_stats[socket_id].nb_del_ko++;
 			RTE_LOG(ERR, RDPDK_CTRL1,
 				"failed to deletie route...\n");
 			return -1;
 		}
 		neighbor6_refcount_decr(neighbor6_struct[socket_id],
 					nexthop_id);
+		lpm6_stats[socket_id].nb_del_ok++;
 	}
 	RTE_LOG(DEBUG, RDPDK_CTRL1, "route ope success\n");
 	return 0;
