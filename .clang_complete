@@ -1,0 +1,1 @@
+-I/home/nikita/devel/dpdk/build/include -I/home/nikita/devel/router-dpdk/app/../lib/libneighbour/ -I/home/nikita/devel/router-dpdk/app/../lib/libnetlink/ -I/home/nikita/devel/router-dpdk/build/app/build/include -I/home/nikita/devel/dpdk/build/include -include /home/nikita/devel/dpdk/build/include/rte_config.h 
