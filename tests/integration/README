@@ -1,6 +1,6 @@
 Copy rdpdk.conf into chroot
 touch /tmp/abc then
-/mnt/build/build/app/build/rdpdk  --log-level 8 -l 0,1,2,3 -n 1 -- --configfile /etc/rdpdk/rdpdk.conf
+/mnt/build/build/app/build/rdpdk  --log-level 8 -l 0,1,2,3 -n 1 -- --configfile /mnt/build/conf/rdpdk.conf
 gdb /mnt/build/build/app/build/rdpdk /tmp/core
 
 debug:

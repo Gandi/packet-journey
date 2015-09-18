@@ -26,6 +26,7 @@ uint16_t nb_lcore_params;
 uint32_t enabled_port_mask = 0;
 int promiscuous_on = 0; /**< Ports set in promiscuous mode off by default. */
 int numa_on = 1;	/**< NUMA is enabled by default. */
+uint32_t kni_rate_limit = UINT32_MAX;
 const char *callback_setup = NULL;
 const char *unixsock_path = "/tmp/rdpdk.sock";
 
@@ -81,6 +82,8 @@ print_usage(const char *prgname)
 	    "  [--configfile PATH: use a configfile for params]\n"
 	    "  [--no-numa: disable numa awareness]\n"
 	    "  [--scalar: Use scalar function to do lookupn acl tables]\n"
+	    "  [--kni_rate_limit RATELIMIT: rate limit the packets sent to the "
+	    "kni]\n"
 	    "  --portmask PORTMASK: hexadecimal bitmask of ports to configure\n"
 	    "  --callback-setup: script called when ifaces are set up\n"
 	    "  --rule_ipv4=FILE \n"
@@ -534,6 +537,14 @@ install_cfgfile(const char *file_name, char *prgname)
 	}
 
 	entry = rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
+				      CMD_LINE_OPT_KNI_RATE_LIMIT);
+	if (entry) {
+		if ((ret = strtoul(entry, NULL, 0)) > 0) {
+			kni_rate_limit = ret;
+		}
+	}
+
+	entry = rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
 				      CMD_LINE_OPT_RULE_IPV4);
 	if (entry) {
 		acl_parm_config.rule_ipv4_name = strdup(entry);
@@ -600,8 +611,6 @@ install_cfgfile(const char *file_name, char *prgname)
 		}
 	}
 
-	/*                  */
-
 	print_kni_config();
 
 	rte_cfgfile_close(file);
@@ -617,6 +626,7 @@ parse_args(int argc, char **argv)
 	char **argvopt;
 	int option_index;
 	char *prgname = argv[0];
+	char *end;
 	static struct option lgopts[] = {{CMD_LINE_OPT_CONFIG, 1, 0, 0},
 					 {CMD_LINE_OPT_KNICONFIG, 1, 0, 0},
 					 {CMD_LINE_OPT_CALLBACK_SETUP, 1, 0, 0},
@@ -712,6 +722,12 @@ parse_args(int argc, char **argv)
 				     sizeof(CMD_LINE_OPT_NO_NUMA))) {
 				RTE_LOG(INFO, RDPDK1, "numa is disabled \n");
 				numa_on = 0;
+			}
+
+			if (!strncmp(lgopts[option_index].name,
+				     CMD_LINE_OPT_KNI_RATE_LIMIT,
+				     sizeof(CMD_LINE_OPT_KNI_RATE_LIMIT))) {
+				kni_rate_limit = strtoul(optarg, &end, 10);
 			}
 
 			if (!strncmp(lgopts[option_index].name,
