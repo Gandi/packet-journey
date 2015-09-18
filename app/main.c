@@ -120,6 +120,7 @@ struct control_params_t control_handle[NB_SOCKETS];
 #define ETHER_TYPE_BE_IPv4 0x0008
 #define ETHER_TYPE_BE_IPv6 0xDD86
 #define ETHER_TYPE_BE_VLAN 0x0081
+#define ETHER_TYPE_BE_ARP  0x0608
 
 #ifdef RTE_NEXT_ABI
 #define RDPDK_TEST_IPV4_HDR(m) RTE_ETH_IS_IPV4_HDR((m)->packet_type)
@@ -164,7 +165,13 @@ __wrap_virtio_recv_mergeable_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 #else
 			rx_pkts[i]->ol_flags |= PKT_RX_IPV6_HDR;
 #endif
-		}
+		} else if ((rte_pktmbuf_mtod(rx_pkts[i],
+					     struct ether_hdr *)->ether_type) ==
+			   ETHER_TYPE_BE_ARP) {
+#ifdef RTE_NEXT_ABI
+			rx_pkts[i]->packet_type |= RTE_PTYPE_L2_ETHER_ARP;
+#endif
+        }
 	}
 
 	return res;
@@ -608,7 +615,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 		    process, pkt[j]->ol_flags,                                 \
 		    rte_pktmbuf_mtod(pkt[j], struct ether_hdr *)->ether_type); \
 	}                                                                      \
-	process += ip_process((struct ether_hdr *)pkt[j] + 1, &dst_port[j],    \
+	process += ip_process(rte_pktmbuf_mtod(pkt[j], struct ether_hdr *), &dst_port[j],    \
 			      RDPDK_PKT_TYPE(pkt[j]), qconf);                  \
 	if (process) {                                                         \
 		/* no dest neighbor addr available, send it through the kni */ \
