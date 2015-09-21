@@ -10,6 +10,7 @@ extern struct lcore_params *lcore_params;
 extern uint32_t enabled_port_mask;
 extern int promiscuous_on;
 extern int numa_on;
+extern uint32_t kni_rate_limit;
 extern const char *callback_setup;
 extern const char *unixsock_path;
 extern struct rte_eth_conf port_conf;
@@ -33,6 +34,7 @@ struct lcore_params {
 #define CMD_LINE_OPT_MAXPKT_LEN "max-pkt-len"
 #define CMD_LINE_OPT_PORTMASK "portmask"
 #define CMD_LINE_OPT_CONFIGFILE "configfile"
+#define CMD_LINE_OPT_KNI_RATE_LIMIT "kni_rate_limit"
 
 #define FILE_MAIN_CONFIG "rdpdk"
 

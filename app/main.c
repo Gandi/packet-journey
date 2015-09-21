@@ -94,6 +94,16 @@
 #include "acl.h"
 #include "config.h"
 
+/**
+ * ICMPv6 Header
+ */
+struct icmpv6_hdr {
+	uint8_t icmp_type;   /* ICMPv6 packet type. */
+	uint8_t icmp_code;   /* ICMPv6 packet code. */
+	uint16_t icmp_cksum; /* ICMPv6 packet checksum. */
+	uint32_t icmp_body;  /* ICMPv6 packet body. */
+} __attribute__((__packed__));
+
 lookup_struct_t *ipv4_rdpdk_lookup_struct[NB_SOCKETS];
 lookup6_struct_t *ipv6_rdpdk_lookup_struct[NB_SOCKETS];
 neighbor_struct_t *neighbor4_struct[NB_SOCKETS];
@@ -125,9 +135,13 @@ struct control_params_t control_handle[NB_SOCKETS];
 #ifdef RTE_NEXT_ABI
 #define RDPDK_TEST_IPV4_HDR(m) RTE_ETH_IS_IPV4_HDR((m)->packet_type)
 #define RDPDK_TEST_IPV6_HDR(m) RTE_ETH_IS_IPV6_HDR((m)->packet_type)
+#define RDPDK_TEST_ARP_HDR(m) ((m)->packet_type & RTE_PTYPE_L2_ETHER_ARP)
 #else
 #define RDPDK_TEST_IPV4_HDR(m) (m)->ol_flags &PKT_RX_IPV4_HDR
 #define RDPDK_TEST_IPV6_HDR(m) (m)->ol_flags &PKT_RX_IPV6_HDR
+#define RDPDK_TEST_ARP_HDR(m)                                                  \
+	((rte_pktmbuf_mtod((m), struct ether_hdr *)->ether_type) &             \
+	 ETHER_TYPE_BE_ARP)
 #endif
 
 #ifdef RDPDK_QEMU
@@ -267,6 +281,7 @@ struct lcore_conf {
 	neighbor_struct_t *neighbor6_struct;
 	struct rte_acl_ctx *acx_ipv4;
 	struct rte_acl_ctx *acx_ipv6;
+	uint32_t rate_limit_cur;
 } __rte_cache_aligned;
 
 struct lcore_stats stats[RTE_MAX_LCORE];
@@ -500,6 +515,55 @@ process_step2(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	return 0;
 }
 
+static __m128i mask_tcp_179;
+
+static inline int
+rate_limit_step(struct lcore_conf *qconf, struct rte_mbuf *pkt)
+{
+	__m128i data;
+
+	if (RDPDK_TEST_IPV4_HDR(pkt)) {
+		// not limit tcp 179 (bgp)
+		uint8_t *hdr = rte_pktmbuf_mtod_offset(
+		    pkt, uint8_t *,
+		    sizeof(struct ether_hdr) +
+			offsetof(struct ipv4_hdr, time_to_live));
+		data = _mm_loadu_si128((__m128i *)(hdr));
+		data = _mm_andnot_si128(data, mask_tcp_179);
+		if (_mm_testz_si128(data, data)) {
+			// don't rate-limit bgp
+			return 0;
+		}
+	} else if (RDPDK_TEST_IPV6_HDR(pkt)) {
+		struct ipv6_hdr *ip6_hdr = rte_pktmbuf_mtod_offset(
+		    pkt, struct ipv6_hdr *, sizeof(struct ether_hdr));
+
+		if (ip6_hdr->proto == 0x3a) {
+			struct icmpv6_hdr *icmp6_hdr =
+			    (struct icmpv6_hdr *)(ip6_hdr + 1);
+			if (icmp6_hdr->icmp_type == 0x85 ||
+			    icmp6_hdr->icmp_type == 0x86 ||
+			    icmp6_hdr->icmp_type == 0x87 ||
+			    icmp6_hdr->icmp_type == 0x88 ||
+			    icmp6_hdr->icmp_type == 0x89) {
+				return 0;
+			}
+		} else if (ip6_hdr->proto == 6) {
+			struct tcp_hdr *ip6_tcp_hdr =
+			    (struct tcp_hdr *)(ip6_hdr + 1);
+			if (ip6_tcp_hdr->dst_port == 0xb300) {
+				return 0;
+			}
+		}
+	} else {
+		// dont't limit arp
+		if (RDPDK_TEST_ARP_HDR(pkt)) {
+			return 0;
+		}
+	}
+	return ++qconf->rate_limit_cur > kni_rate_limit;
+}
+
 /*
  * Read packet_type and destination IPV4 addresses from 4 mbufs.
  */
@@ -618,8 +682,13 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 	process += process == 0 ? ip_process(rte_pktmbuf_mtod_offset(pkt[j], struct ether_hdr *, sizeof(struct ether_hdr)),    \
 			      &dst_port[j], RDPDK_PKT_TYPE(pkt[j]), qconf) : 0;    \
 	if (process) {                                                         \
+		/* test if we need to rate-limit that packet before sending it \
+		 * to kni */                                                   \
+		if (!rate_limit_step(qconf, pkt[j]))                           \
+			knimbuf[i++] = pkt[j];                                 \
+		else                                                           \
+			rte_pktmbuf_free(pkt[j]);                              \
 		/* no dest neighbor addr available, send it through the kni */ \
-		knimbuf[i++] = pkt[j];                                         \
 		if (j != --nb_rx) {                                            \
 			/* we have more packets, deplace last one and its info \
 			 */                                                    \
@@ -1083,12 +1152,13 @@ main_loop(__rte_unused void *dummy)
 {
 	struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
 	uint32_t lcore_id;
-	uint64_t prev_tsc, diff_tsc, cur_tsc;
+	uint64_t prev_tsc, diff_tsc, cur_tsc, rate_tsc = 0;
 	int i, j, nb_rx;
 	uint8_t portid = 0, queueid;
 	struct lcore_conf *qconf;
 	const uint64_t drain_tsc =
 	    (rte_get_tsc_hz() + US_PER_S - 1) / US_PER_S * BURST_TX_DRAIN_US;
+	const uint64_t ticks_per_s = rte_get_tsc_hz();
 	int32_t k;
 	int32_t f_stop;
 	uint16_t dlp;
@@ -1142,6 +1212,12 @@ main_loop(__rte_unused void *dummy)
 				send_burst(qconf, qconf->tx_mbufs[portid].len,
 					   portid);
 				qconf->tx_mbufs[portid].len = 0;
+			}
+
+			uint64_t sec = cur_tsc / ticks_per_s;
+			if (sec > rate_tsc) {
+				rate_tsc = sec;
+				qconf->rate_limit_cur = 0;
 			}
 
 			prev_tsc = cur_tsc;
@@ -2047,6 +2123,10 @@ main(int argc, char **argv)
 		rdpdk_cmdline_init(unixsock_path, 0);
 		rdpdk_cmdline_launch(0, &cpuset);
 	}
+
+	/* set a mask for tcp dst_port 179, the mask is applied to body starting
+	 * at ttl field */
+	mask_tcp_179 = _mm_setr_epi32(0x00000600, 0, 0, 0xb3000000);
 
 	/* launch per-lcore init on every lcore */
 	RTE_LCORE_FOREACH_SLAVE(lcore_id)
