@@ -1,3 +1,15 @@
+rdpdk (0.1.14) unstable; urgency=low
+
+  * fix ipv6 hop_limit bug and add rate-limiting to the kni.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Tue, 22 Sep 2015 01:08:29 +0200
+
+rdpdk (0.1.13) unstable; urgency=low
+
+  * fix a bug is acl and ttl decrement.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Mon, 14 Sep 2015 16:08:29 +0200
+
 rdpdk (0.1.12) unstable; urgency=low
 
   * fix ipv6 local route bug.
