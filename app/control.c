@@ -455,10 +455,10 @@ addr6(__rte_unused addr_action_t action, int32_t port_id, struct in6_addr *addr,
 	control_add_ipv6_local_entry(addr, addr, 128, port_id, socket_id);
 
 	// multicast ipv6
-	struct in6_addr invalid_ip6;
-	invalid_ip6.s6_addr[0] = 0xff;
-	invalid_ip6.s6_addr[1] = 0x02;
-	control_add_ipv6_local_entry(&invalid_ip6, &invalid_ip6, 16, port_id, socket_id);
+	struct in6_addr mc_linklocal = IN6ADDR_ANY_INIT;
+	mc_linklocal.s6_addr[0] = 0xff;
+	mc_linklocal.s6_addr[1] = 0x02;
+	control_add_ipv6_local_entry(&mc_linklocal, &mc_linklocal, 16, port_id, socket_id);
 
 	return 0;
 }
