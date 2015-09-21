@@ -120,7 +120,7 @@ struct control_params_t control_handle[NB_SOCKETS];
 #define ETHER_TYPE_BE_IPv4 0x0008
 #define ETHER_TYPE_BE_IPv6 0xDD86
 #define ETHER_TYPE_BE_VLAN 0x0081
-#define ETHER_TYPE_BE_ARP  0x0608
+#define ETHER_TYPE_BE_ARP 0x0608
 
 #ifdef RTE_NEXT_ABI
 #define RDPDK_TEST_IPV4_HDR(m) RTE_ETH_IS_IPV4_HDR((m)->packet_type)
@@ -171,7 +171,7 @@ __wrap_virtio_recv_mergeable_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 #ifdef RTE_NEXT_ABI
 			rx_pkts[i]->packet_type |= RTE_PTYPE_L2_ETHER_ARP;
 #endif
-        }
+		}
 	}
 
 	return res;
@@ -615,11 +615,11 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 		    process, pkt[j]->ol_flags,                                 \
 		    rte_pktmbuf_mtod(pkt[j], struct ether_hdr *)->ether_type); \
 	}                                                                      \
-	process += ip_process(rte_pktmbuf_mtod(pkt[j], struct ether_hdr *), &dst_port[j],    \
-			      RDPDK_PKT_TYPE(pkt[j]), qconf);                  \
+	process += ip_process(rte_pktmbuf_mtod(pkt[j], struct ether_hdr *),    \
+			      &dst_port[j], RDPDK_PKT_TYPE(pkt[j]), qconf);    \
 	if (process) {                                                         \
 		/* no dest neighbor addr available, send it through the kni */ \
-        /* FIXME add rate-limit here */                                  \
+		/* FIXME add rate-limit here */                                \
 		knimbuf[i++] = pkt[j];                                         \
 		if (j != --nb_rx) {                                            \
 			/* we have more packets, deplace last one and its info \

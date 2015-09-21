@@ -968,14 +968,25 @@ static void
 cmd_help_parsed(__attribute__((unused)) void *parsed_result, struct cmdline *cl,
 		__attribute__((unused)) void *data)
 {
-	cmdline_printf(cl, "commands:\n"
-			   "- acl_add ipv4|ipv6 file_path\n"
-			   "- stats\n"
-			   "- neigh ipv4|ipv6\n"
-			   "- acl_add IP CIDR PROTONUM PORT\n"
-			   "- lpm_lkp IP[/DEPTH]\n"
-			   "- stats\n"
-			   "- help\n\n");
+	cmdline_printf(
+	    cl, "commands:\n"
+		"- acl_add ipv4|ipv6 file_path\n"
+		"- stats [-j , -c sec]\n"
+		"- { show | clear } port { info | stats | xstats } port_id\n"
+		"- show port X rss-hash key\n"
+		"- port config all rss { all | ip | tcp | udp | sctp | ether | "
+		"none }\n"
+		"- port config X rss-hash-key 104 hexa digits\n"
+		"- port config X rss reta (hash,queue)[,(hash,queue)]\n"
+		"- show port X rss reta (size) (mask0,mask1,...)\n"
+		"- neigh ipv4|ipv6\n"
+		"- acl_add { ipv4 | ipv6 } file_path\n"
+		"- lpm_lkp IP[/DEPTH]\n"
+		"- lpm_stats {ipv4 | ipv6}\n"
+		"- loglevel level\n"
+		"- logtype type_id { 0 | 1 }\n"
+
+		"- help\n\n");
 }
 
 cmdline_parse_token_string_t cmd_help_help =
