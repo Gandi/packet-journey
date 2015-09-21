@@ -50,6 +50,10 @@ struct lcore_stats {
 	uint64_t nb_dropped;
 	/* total packet dropped recently by kni */
 	uint64_t nb_kni_dropped;
+	/* total packet dropped recently by acl */
+	uint64_t nb_acl_dropped;
+	/* total packet dropped recently by rate_liming */
+	uint64_t nb_ratel_dropped;
 	/* total iterations looped recently */
 	uint64_t nb_iteration_looped;
 	/* port id, for now we have only one */

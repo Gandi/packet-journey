@@ -18,6 +18,50 @@
 #include "stats.h"
 #include "cmdline.h"
 
+#define STATS_JSON_PRE "{\"lcores\": ["
+#define STATS_JSON_LCORE                                                       \
+	"{\"time\": %lu, \"lcore\": %u, \"portid\": %lu, \"loop\": "           \
+	"%lu, \"tx\": %lu, \"rx\": %lu, \"kni_tx\": "                          \
+	"%lu, \"kni_rx\": %lu, \"drop\": %lu, "                                \
+	"\"kni_drop\": %lu, \"acl_drop\": %lu, \"rate_drop\": %lu}, "
+#define STATS_JSON_MID "{}"
+#define STATS_JSON_TOTAL                                                       \
+	"], \"total\": {\"tx\": %lu, \"rx\": %lu, "                            \
+	"\"kni_tx\": %lu, \"kni_rx\": %lu, "                                   \
+	"\"drop\": %lu, \"kni_drop\": %lu, "                                   \
+	"\"acl_drop\": %lu, \"rate_drop\": %lu}}\n"
+
+#define STATS_CSV_PRE ""
+#define STATS_CSV_LCORE "%lu %u,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n"
+#define STATS_CSV_MID ""
+#define STATS_CSV_TOTAL ""
+
+#define STATS_HUM_PRE "Lcore statistics ===================================="
+#define STATS_HUM_LCORE                                                        \
+	"\nTime %lu: lcore %u portid %lu "                                     \
+	"---------------"                                                      \
+	"\nLoop iteration: %lu"                                                \
+	"\nPackets sent: %lu"                                                  \
+	"\nPackets received: %lu"                                              \
+	"\nPackets kni sent: %lu"                                              \
+	"\nPackets kni received: %lu"                                          \
+	"\nPackets dropped: %lu"                                               \
+	"\nPackets kni dropped: %lu"                                           \
+	"\nPackets acl dropped: %lu"                                           \
+	"\nPackets ratel dropped: %lu"
+#define STATS_HUM_MID ""
+#define STATS_HUM_TOTAL                                                        \
+	"\nAggregate statistics ==============================="               \
+	"\nTotal packets sent: %lu"                                            \
+	"\nTotal packets received: %lu"                                        \
+	"\nTotal packets kni sent: %lu"                                        \
+	"\nTotal packets kni received: %lu"                                    \
+	"\nTotal packets dropped: %lu"                                         \
+	"\nTotal packets kni dropped: %lu"                                     \
+	"\nTotal packets acl dropped: %lu"                                     \
+	"\nTotal packets ratel dropped: %lu"                                   \
+	"\n====================================================\n"
+
 static void
 print_ethaddr(struct cmdline *cl, const char *name,
 	      const struct ether_addr *eth_addr)
@@ -29,14 +73,19 @@ print_ethaddr(struct cmdline *cl, const char *name,
 
 // TODO check that port_id is valid
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+
 void
 rdpdk_stats_display(struct cmdline *cl, int option, int delay)
 {
 	uint64_t total_packets_dropped, total_packets_tx, total_packets_rx;
 	uint64_t total_packets_kni_tx, total_packets_kni_rx,
 	    total_packets_kni_dropped;
+	uint64_t total_packets_ratel_dropped, total_packets_acl_dropped;
 	unsigned lcoreid;
 	time_t _time;
+	const char *fmt_pre, *fmt_lcore, *fmt_mid, *fmt_total;
 
 	total_packets_dropped = 0;
 	total_packets_tx = 0;
@@ -44,141 +93,74 @@ rdpdk_stats_display(struct cmdline *cl, int option, int delay)
 	total_packets_kni_tx = 0;
 	total_packets_kni_rx = 0;
 	total_packets_kni_dropped = 0;
+	total_packets_acl_dropped = 0;
+	total_packets_ratel_dropped = 0;
 
 	if (option == CMD_STATS_JSON) { // json
-
-		cmdline_printf(cl, "{\"lcores\": [");
-
-		for (lcoreid = 0; lcoreid < RTE_MAX_LCORE; lcoreid++) {
-			if (!rte_lcore_is_enabled(lcoreid))
-				continue;
-
-			cmdline_printf(
-			    cl, "{\"lcore\": %u, \"portid\": %lu, \"loop\": "
-				"%lu, \"tx\": %lu, \"rx\": %lu, \"kni_tx\": "
-				"%lu, \"kni_rx\": %lu, \"kni_drop\": %lu, "
-				"\"drop\": %lu}, ",
-			    lcoreid, stats[lcoreid].port_id,
-			    stats[lcoreid].nb_iteration_looped,
-			    stats[lcoreid].nb_tx, stats[lcoreid].nb_rx,
-			    stats[lcoreid].nb_kni_tx, stats[lcoreid].nb_kni_rx,
-			    stats[lcoreid].nb_kni_dropped,
-			    stats[lcoreid].nb_dropped);
-
-			total_packets_dropped += stats[lcoreid].nb_dropped;
-			total_packets_tx += stats[lcoreid].nb_tx;
-			total_packets_rx += stats[lcoreid].nb_rx;
-			total_packets_kni_tx += stats[lcoreid].nb_kni_tx;
-			total_packets_kni_rx += stats[lcoreid].nb_kni_rx;
-			total_packets_kni_dropped +=
-			    stats[lcoreid].nb_kni_dropped;
-		}
-
-		// add a null object to end the array
-		cmdline_printf(cl, "{}");
-
-		cmdline_printf(cl, "], \"total\": {\"tx\": %lu, \"rx\": %lu, "
-				   "\"kni_tx\": %lu, \"kni_rx\": %lu, "
-				   "\"kni_drop\": %lu, \"drop\": %lu}}\n",
-			       total_packets_tx, total_packets_rx,
-			       total_packets_kni_tx, total_packets_kni_rx,
-			       total_packets_kni_dropped,
-			       total_packets_dropped);
-
+		fmt_pre = STATS_JSON_PRE;
+		fmt_lcore = STATS_JSON_LCORE;
+		fmt_mid = STATS_JSON_MID;
+		fmt_total = STATS_JSON_TOTAL;
 	} else if (option == CMD_STATS_CSV) { // csv
-
-		_time = time(NULL);
-
-		for (lcoreid = 0; lcoreid < CMDLINE_MAX_CLIENTS; lcoreid++) {
-			if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][lcoreid]
-				.cl == cl) {
-				cmdline_clients[RTE_PER_LCORE(
-				    g_socket_id)][lcoreid].csv_delay = delay;
-				cmdline_clients[RTE_PER_LCORE(
-				    g_socket_id)][lcoreid].delay_timer = _time;
-				break;
-			}
-		}
-
-		for (lcoreid = 0; lcoreid < RTE_MAX_LCORE; lcoreid++) {
-			if (!rte_lcore_is_enabled(lcoreid))
-				continue;
-
-			cmdline_printf(
-			    cl, "%lu %u,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",
-			    _time, lcoreid, stats[lcoreid].port_id,
-			    stats[lcoreid].nb_iteration_looped,
-			    stats[lcoreid].nb_tx, stats[lcoreid].nb_rx,
-			    stats[lcoreid].nb_kni_tx, stats[lcoreid].nb_kni_rx,
-			    stats[lcoreid].nb_kni_dropped,
-			    stats[lcoreid].nb_dropped);
-
-			total_packets_dropped += stats[lcoreid].nb_dropped;
-			total_packets_tx += stats[lcoreid].nb_tx;
-			total_packets_rx += stats[lcoreid].nb_rx;
-			total_packets_kni_tx += stats[lcoreid].nb_kni_tx;
-			total_packets_kni_rx += stats[lcoreid].nb_kni_rx;
-			total_packets_kni_dropped +=
-			    stats[lcoreid].nb_kni_dropped;
-		}
-
-		cmdline_printf(cl, "%lu -1,-1,-1,%lu,%lu,%lu,%lu,%lu,%lu\n",
-			       _time, total_packets_tx, total_packets_rx,
-			       total_packets_kni_tx, total_packets_kni_rx,
-			       total_packets_kni_dropped,
-			       total_packets_dropped);
-
+		fmt_pre = STATS_CSV_PRE;
+		fmt_lcore = STATS_CSV_LCORE;
+		fmt_mid = STATS_CSV_MID;
+		fmt_total = STATS_CSV_TOTAL;
 	} else {
-
-		cmdline_printf(
-		    cl,
-		    "\nLcore statistics ====================================");
-
-		for (lcoreid = 0; lcoreid < RTE_MAX_LCORE; lcoreid++) {
-			if (!rte_lcore_is_enabled(lcoreid))
-				continue;
-
-			cmdline_printf(
-			    cl, "\nStatistics for lcore %u portid %lu "
-				"---------------"
-				"\nLoop iteration: %lu"
-				"\nPackets sent: %lu"
-				"\nPackets received: %lu"
-				"\nPackets kni sent: %lu"
-				"\nPackets kni received: %lu"
-				"\nPackets kni dropped: %lu"
-				"\nPackets dropped: %lu",
-			    lcoreid, stats[lcoreid].port_id,
-			    stats[lcoreid].nb_iteration_looped,
-			    stats[lcoreid].nb_tx, stats[lcoreid].nb_rx,
-			    stats[lcoreid].nb_kni_tx, stats[lcoreid].nb_kni_rx,
-			    stats[lcoreid].nb_kni_dropped,
-			    stats[lcoreid].nb_dropped);
-
-			total_packets_dropped += stats[lcoreid].nb_dropped;
-			total_packets_tx += stats[lcoreid].nb_tx;
-			total_packets_rx += stats[lcoreid].nb_rx;
-			total_packets_kni_tx += stats[lcoreid].nb_kni_tx;
-			total_packets_kni_rx += stats[lcoreid].nb_kni_rx;
-			total_packets_kni_dropped +=
-			    stats[lcoreid].nb_kni_dropped;
-		}
-		cmdline_printf(
-		    cl, "\nAggregate statistics ==============================="
-			"\nTotal packets sent: %lu"
-			"\nTotal packets received: %lu"
-			"\nTotal packets kni sent: %lu"
-			"\nTotal packets kni received: %lu"
-			"\nTotal packets kni dropped: %lu"
-			"\nTotal packets dropped: %lu",
-		    total_packets_tx, total_packets_rx, total_packets_kni_tx,
-		    total_packets_kni_rx, total_packets_kni_dropped,
-		    total_packets_dropped);
-		cmdline_printf(
-		    cl,
-		    "\n====================================================\n");
+		fmt_pre = STATS_HUM_PRE;
+		fmt_lcore = STATS_HUM_LCORE;
+		fmt_mid = STATS_HUM_MID;
+		fmt_total = STATS_HUM_TOTAL;
 	}
+
+	_time = time(NULL);
+
+	for (lcoreid = 0; lcoreid < CMDLINE_MAX_CLIENTS; lcoreid++) {
+		if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][lcoreid].cl ==
+		    cl) {
+			cmdline_clients[RTE_PER_LCORE(g_socket_id)][lcoreid]
+			    .csv_delay = delay;
+			cmdline_clients[RTE_PER_LCORE(g_socket_id)][lcoreid]
+			    .delay_timer = _time;
+			break;
+		}
+	}
+
+	cmdline_printf(cl, "%s", fmt_pre);
+
+	for (lcoreid = 0; lcoreid < RTE_MAX_LCORE; lcoreid++) {
+		if (!rte_lcore_is_enabled(lcoreid))
+			continue;
+
+		cmdline_printf(
+		    cl, fmt_lcore, _time, lcoreid, stats[lcoreid].port_id,
+		    stats[lcoreid].nb_iteration_looped, stats[lcoreid].nb_tx,
+		    stats[lcoreid].nb_rx, stats[lcoreid].nb_kni_tx,
+		    stats[lcoreid].nb_kni_rx, stats[lcoreid].nb_dropped,
+		    stats[lcoreid].nb_kni_dropped,
+		    stats[lcoreid].nb_acl_dropped,
+		    stats[lcoreid].nb_ratel_dropped);
+
+		total_packets_dropped += stats[lcoreid].nb_dropped;
+		total_packets_tx += stats[lcoreid].nb_tx;
+		total_packets_rx += stats[lcoreid].nb_rx;
+		total_packets_kni_tx += stats[lcoreid].nb_kni_tx;
+		total_packets_kni_rx += stats[lcoreid].nb_kni_rx;
+		total_packets_kni_dropped += stats[lcoreid].nb_kni_dropped;
+		total_packets_acl_dropped += stats[lcoreid].nb_acl_dropped;
+		total_packets_ratel_dropped += stats[lcoreid].nb_ratel_dropped;
+	}
+
+	// add a null object to end the array
+	cmdline_printf(cl, "%s", fmt_mid);
+
+	cmdline_printf(cl, fmt_total, total_packets_tx, total_packets_rx,
+		       total_packets_kni_tx, total_packets_kni_rx,
+		       total_packets_dropped, total_packets_kni_dropped,
+		       total_packets_acl_dropped, total_packets_ratel_dropped);
 }
+
+#pragma GCC diagnostic pop
 
 void
 rdpdk_lpm_stats_display(struct cmdline *cl, int is_ipv4, int option)

@@ -1001,8 +1001,9 @@ prepare_acl_parameter(struct rte_mbuf **pkts_in, struct acl_search_t *acl,
  * Put back unfiltered packets in pkt_burst without overwriting non IP packets.
  */
 static inline int
-filter_packets(struct rte_mbuf **pkts, struct acl_search_t *acl_search,
-	       int nb_rx, struct rte_acl_ctx *acl4, struct rte_acl_ctx *acl6)
+filter_packets(uint32_t lcore_id, struct rte_mbuf **pkts,
+	       struct acl_search_t *acl_search, int nb_rx,
+	       struct rte_acl_ctx *acl4, struct rte_acl_ctx *acl6)
 {
 	uint32_t *res;
 	struct rte_mbuf **acl_pkts;
@@ -1026,6 +1027,7 @@ filter_packets(struct rte_mbuf **pkts, struct acl_search_t *acl_search,
 #ifdef L3FWDACL_DEBUG
 			dump_acl4_rule(acl_pkts[i], res[i]);
 #endif
+			stats[lcore_id].nb_acl_dropped++;
 			rte_pktmbuf_free(acl_pkts[i]);
 		} else {
 			// add back the unfiltered packet in pkts but don't
@@ -1052,6 +1054,7 @@ filter_packets(struct rte_mbuf **pkts, struct acl_search_t *acl_search,
 #ifdef L3FWDACL_DEBUG
 			dump_acl6_rule(acl_pkts[i], res[i]);
 #endif
+			stats[lcore_id].nb_acl_dropped++;
 			rte_pktmbuf_free(acl_pkts[i]);
 		} else {
 			// add back the unfiltered packet in pkts but don't
@@ -1080,7 +1083,7 @@ static int
 main_loop(__rte_unused void *dummy)
 {
 	struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
-	unsigned lcore_id;
+	uint32_t lcore_id;
 	uint64_t prev_tsc, diff_tsc, cur_tsc;
 	int i, j, nb_rx;
 	uint8_t portid = 0, queueid;
@@ -1185,9 +1188,9 @@ main_loop(__rte_unused void *dummy)
 					    acl_search.num_ipv6,
 					    DEFAULT_MAX_CATEGORIES);
 				}
-				nb_rx = filter_packets(pkts_burst, &acl_search,
-						       nb_rx, qconf->acx_ipv4,
-						       qconf->acx_ipv6);
+				nb_rx = filter_packets(
+				    lcore_id, pkts_burst, &acl_search, nb_rx,
+				    qconf->acx_ipv4, qconf->acx_ipv6);
 			}
 			if (unlikely(nb_rx == 0))
 				continue;
