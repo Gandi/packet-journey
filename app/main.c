@@ -679,8 +679,13 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 		    process, pkt[j]->ol_flags,                                 \
 		    rte_pktmbuf_mtod(pkt[j], struct ether_hdr *)->ether_type); \
 	}                                                                      \
-	process += process == 0 ? ip_process(rte_pktmbuf_mtod_offset(pkt[j], struct ether_hdr *, sizeof(struct ether_hdr)),    \
-			      &dst_port[j], RDPDK_PKT_TYPE(pkt[j]), qconf) : 0;    \
+	process +=                                                             \
+	    process == 0                                                       \
+		? ip_process(                                                  \
+		      rte_pktmbuf_mtod_offset(pkt[j], struct ether_hdr *,      \
+					      sizeof(struct ether_hdr)),       \
+		      &dst_port[j], RDPDK_PKT_TYPE(pkt[j]), qconf)             \
+		: 0;                                                           \
 	if (process) {                                                         \
 		/* test if we need to rate-limit that packet before sending it \
 		 * to kni */                                                   \

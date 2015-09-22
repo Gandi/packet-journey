@@ -281,13 +281,24 @@ neighbor4(neighbor_action_t action, __s32 port_id, struct in_addr *addr,
 				ibuf);
 			return -1;
 		}
-		RTE_LOG(DEBUG, RDPDK_CTRL1,
-			"adding ipv4 neighbor with port %s vlan_id %d...\n",
-			ibuf, kni_vlan);
 
 		s = neighbor4_lookup_nexthop(neighbor4_struct[socket_id], addr,
 					     &nexthop_id);
 		if (s < 0) {
+			if (flags != NUD_NONE && flags != NUD_NOARP &&
+			    flags != NUD_STALE) {
+				RTE_LOG(ERR, RDPDK_CTRL1,
+					"failed to change state in neighbor4 "
+					"table (state %d)...\n",
+					flags);
+				return -1;
+			}
+
+			RTE_LOG(DEBUG, RDPDK_CTRL1,
+				"adding ipv4 neighbor with port %s "
+				"vlan_id %d...\n",
+				ibuf, kni_vlan);
+
 			s = neighbor4_add_nexthop(neighbor4_struct[socket_id],
 						  addr, &nexthop_id,
 						  NEI_ACTION_FWD);
@@ -298,8 +309,9 @@ neighbor4(neighbor_action_t action, __s32 port_id, struct in_addr *addr,
 				return -1;
 			}
 		}
-		RTE_LOG(DEBUG, RDPDK_CTRL1, "add neighbor4 with port_id %d\n",
-			port_id);
+		RTE_LOG(DEBUG, RDPDK_CTRL1,
+			"set neighbor4 with port_id %d state %d\n", port_id,
+			flags);
 		neighbor4_set_lladdr_port(neighbor4_struct[socket_id],
 					  nexthop_id, &ports_eth_addr[port_id],
 					  lladdr, port_id, kni_vlan);
@@ -307,6 +319,14 @@ neighbor4(neighbor_action_t action, __s32 port_id, struct in_addr *addr,
 				    flags);
 	}
 	if (action == NEIGHBOR_DELETE) {
+		if (flags != NUD_FAILED && flags != NUD_STALE) {
+			RTE_LOG(
+			    DEBUG, RDPDK_CTRL1,
+			    "neighbor4 delete ope failed, bad NUD state: %d \n",
+			    flags);
+			return -1;
+		}
+
 		RTE_LOG(DEBUG, RDPDK_CTRL1, "deleting ipv4 neighbor...\n");
 		s = neighbor4_lookup_nexthop(neighbor4_struct[socket_id], addr,
 					     &nexthop_id);
@@ -376,13 +396,24 @@ neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
 				ibuf);
 			return -1;
 		}
-		RTE_LOG(DEBUG, RDPDK_CTRL1,
-			"adding ipv6 neighbor with port_id %d vlan_id %d...\n",
-			port_id, kni_vlan);
 
 		s = neighbor6_lookup_nexthop(neighbor6_struct[socket_id], addr,
 					     &nexthop_id);
 		if (s < 0) {
+			if (flags != NUD_NONE && flags != NUD_NOARP &&
+			    flags != NUD_STALE) {
+				RTE_LOG(ERR, RDPDK_CTRL1,
+					"failed to change state in neighbor6 "
+					"table (state %d)...\n",
+					flags);
+				return -1;
+			}
+
+			RTE_LOG(DEBUG, RDPDK_CTRL1,
+				"adding ipv6 neighbor with port_id %d "
+				"vlan_id %d...\n",
+				port_id, kni_vlan);
+
 			s = neighbor6_add_nexthop(neighbor6_struct[socket_id],
 						  addr, &nexthop_id,
 						  NEI_ACTION_FWD);
@@ -393,8 +424,9 @@ neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
 				return -1;
 			}
 		}
-		RTE_LOG(DEBUG, RDPDK_CTRL1, "add neighbor4 with port_id %d\n",
-			port_id);
+		RTE_LOG(DEBUG, RDPDK_CTRL1,
+			"set neighbor6 with port_id %d state %d \n", port_id,
+			flags);
 		neighbor6_set_lladdr_port(neighbor6_struct[socket_id],
 					  nexthop_id, &ports_eth_addr[port_id],
 					  lladdr, port_id, kni_vlan);
@@ -402,6 +434,14 @@ neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
 				    flags);
 	}
 	if (action == NEIGHBOR_DELETE) {
+		if (flags != NUD_FAILED && flags != NUD_STALE) {
+			RTE_LOG(
+			    DEBUG, RDPDK_CTRL1,
+			    "neighbor6 delete ope failed, bad NUD state: %d \n",
+			    flags);
+			return -1;
+		}
+
 		RTE_LOG(DEBUG, RDPDK_CTRL1, "deleting ipv6 neighbor...\n");
 		s = neighbor6_lookup_nexthop(neighbor6_struct[socket_id], addr,
 					     &nexthop_id);
@@ -458,7 +498,8 @@ addr6(__rte_unused addr_action_t action, int32_t port_id, struct in6_addr *addr,
 	struct in6_addr mc_linklocal = IN6ADDR_ANY_INIT;
 	mc_linklocal.s6_addr[0] = 0xff;
 	mc_linklocal.s6_addr[1] = 0x02;
-	control_add_ipv6_local_entry(&mc_linklocal, &mc_linklocal, 16, port_id, socket_id);
+	control_add_ipv6_local_entry(&mc_linklocal, &mc_linklocal, 16, port_id,
+				     socket_id);
 
 	return 0;
 }
