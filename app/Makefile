@@ -19,7 +19,7 @@ CFLAGS += -I$(RTE_SDK)/$(RTE_TARGET)/include
 CFLAGS += -I$(RTE_SRCDIR)/../lib/libneighbour/
 CFLAGS += -I$(RTE_SRCDIR)/../lib/libnetlink/
 
-DEPDIRS-y += lib/libnetlink lib/libneighbour
+DEPDIR-y += lib/libnetlink lib/libneighbour
 
 LDFLAGS += -lc -lpthread -ldl
 LDFLAGS += -L$(BASE_OUTPUT)/lib/libneighbour/$(RTE_TARGET)/lib -L$(BASE_OUTPUT)/lib/libnetlink/$(RTE_TARGET)/lib -lneighbour -lnetlink
