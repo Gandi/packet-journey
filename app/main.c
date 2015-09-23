@@ -167,23 +167,23 @@ __wrap_virtio_recv_mergeable_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 				      struct ether_hdr *)->ether_type) ==
 		    ETHER_TYPE_BE_IPv4) {
 #ifdef RTE_NEXT_ABI
-			rx_pkts[i]->packet_type |= RDPDK_IPV4_MASK;
+			rx_pkts[i]->packet_type = RDPDK_IPV4_MASK;
 #else
-			rx_pkts[i]->ol_flags |= PKT_RX_IPV4_HDR;
+			rx_pkts[i]->ol_flags = PKT_RX_IPV4_HDR;
 #endif
 		} else if ((rte_pktmbuf_mtod(rx_pkts[i],
 					     struct ether_hdr *)->ether_type) ==
 			   ETHER_TYPE_BE_IPv6) {
 #ifdef RTE_NEXT_ABI
-			rx_pkts[i]->packet_type |= RDPDK_IPV6_MASK;
+			rx_pkts[i]->packet_type = RDPDK_IPV6_MASK;
 #else
-			rx_pkts[i]->ol_flags |= PKT_RX_IPV6_HDR;
+			rx_pkts[i]->ol_flags = PKT_RX_IPV6_HDR;
 #endif
 		} else if ((rte_pktmbuf_mtod(rx_pkts[i],
 					     struct ether_hdr *)->ether_type) ==
 			   ETHER_TYPE_BE_ARP) {
 #ifdef RTE_NEXT_ABI
-			rx_pkts[i]->packet_type |= RTE_PTYPE_L2_ETHER_ARP;
+			rx_pkts[i]->packet_type = RTE_PTYPE_L2_ETHER_ARP;
 #endif
 		}
 	}
