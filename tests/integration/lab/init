@@ -39,9 +39,6 @@ done
 
 rsyslogd
 
-sysctl -w net.ipv6.conf.all.disable_ipv6=1   
-sysctl -w net.ipv6.conf.default.disable_ipv6=1   
-sysctl -w net.ipv6.conf.lo.disable_ipv6=1
 sysctl -w net.ipv6.conf.all.forwarding=1
 sysctl -w net.ipv4.ip_forward=1
 
@@ -83,14 +80,12 @@ EOF
 case $uts in
 r1)
   echo R1
-  ip link add link eth0 name eth0.0 type vlan id 0
-  ip a add 1.0.0.0/31 dev eth0.0
-  sysctl -w net/ipv6/conf/eth0.0/disable_ipv6=0
-  ip a add 2001:1::0/127 dev eth0.0
-  ip link set eth0.0 up
+  ip link add link eth0 name eth0.2000 type vlan id 2000
+  ip a add 1.0.0.0/31 dev eth0.2000
+  ip a add 2001:1::0/127 dev eth0.2000
+  ip link set eth0.2000 up
 
   ip a add 1.0.1.254/24 dev dummy0
-  sysctl -w net/ipv6/conf/dummy0/disable_ipv6=0
   ip a add 2001:2::1/48 dev dummy0
   ip link set dummy0 up
   ethtool -L eth0 combined 4
@@ -219,14 +214,12 @@ EOF
   ;;
 r3)
   echo R3
-  ip link add link eth0 name eth0.0 type vlan id 0
-  ip a add 1.0.0.2/31 dev eth0.0
-  sysctl -w net/ipv6/conf/eth0.0/disable_ipv6=0
-  ip a add 2001:1::2/127 dev eth0.0
-  ip link set eth0.0 up
+  ip link add link eth0 name eth0.2000 type vlan id 2000
+  ip a add 1.0.0.2/31 dev eth0.2000
+  ip a add 2001:1::2/127 dev eth0.2000
+  ip link set eth0.2000 up
 
   ip a add 1.0.2.254/24 dev dummy0
-  sysctl -w net/ipv6/conf/dummy0/disable_ipv6=0
   ip a add 2001:3::1/48 dev dummy0
   ip link set dummy0 up
   ethtool -L eth0 combined 4
