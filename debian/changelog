@@ -1,3 +1,9 @@
+rdpdk (0.1.16) unstable; urgency=low
+
+  * Fix kni config from file.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Tue, 29 Sep 2015 13:19:29 +0200
+
 rdpdk (0.1.15) unstable; urgency=low
 
   * check NUD states in netlink callbacks and add an ipv6 multicast link-local route.
