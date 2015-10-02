@@ -32,7 +32,7 @@
 	"\"acl_drop\": %lu, \"rate_drop\": %lu}}\n"
 
 #define STATS_CSV_PRE ""
-#define STATS_CSV_LCORE "%lu %u,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n"
+#define STATS_CSV_LCORE "%lu,%u,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n"
 #define STATS_CSV_MID ""
 #define STATS_CSV_TOTAL ""
 
