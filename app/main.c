@@ -1888,10 +1888,11 @@ signal_handler(int signum, __rte_unused siginfo_t *si,
 	int sock;
 
 	/* When we receive a RTMIN or SIGINT signal, stop kni processing */
-	if (signum == SIGRTMIN || signum == SIGINT) {
+       if (signum == SIGRTMIN || signum == SIGINT || signum == SIGQUIT ||
+           signum == SIGTERM) {
 		RTE_LOG(INFO, RDPDK1,
-			"SIG is received, and the KNI processing is "
-			"going to stop\n");
+			"SIG %d is received, and the KNI processing is "
+			"going to stop\n", signum);
 		kni_stop_loop();
 		rte_atomic32_inc(&main_loop_stop);
 
@@ -1904,7 +1905,7 @@ signal_handler(int signum, __rte_unused siginfo_t *si,
 	} else if (signum == SIGCHLD) {
 		int pid, status;
 		if ((pid = wait(&status)) > 0) {
-			RTE_LOG(DEBUG, RDPDK1, "SIGCHLD received, reaped child "
+			RTE_LOG(INFO, RDPDK1, "SIGCHLD received, reaped child "
 					       "pid: %d status %d\n",
 				pid, WEXITSTATUS(status));
 		}
@@ -1928,6 +1929,12 @@ main(int argc, char **argv)
 	sigemptyset(&sa.sa_mask);
 	sa.sa_sigaction = signal_handler;
 	if (sigaction(SIGINT, &sa, NULL) == -1) {
+		rte_exit(EXIT_FAILURE, "failed to set sigaction");
+	}
+	if (sigaction(SIGTERM, &sa, NULL) == -1) {
+		rte_exit(EXIT_FAILURE, "failed to set sigaction");
+	}
+	if (sigaction(SIGQUIT, &sa, NULL) == -1) {
 		rte_exit(EXIT_FAILURE, "failed to set sigaction");
 	}
 	if (sigaction(SIGCHLD, &sa, NULL) == -1) {
@@ -2172,10 +2179,6 @@ main(int argc, char **argv)
 	}
 	RTE_LOG(INFO, RDPDK1, "rte_eal_wait_lcore finished\n");
 
-	// prevent process from killing itself
-	if (sigaction(SIGTERM, &sa, NULL) == -1) {
-		rte_exit(EXIT_FAILURE, "failed to set sigaction");
-	}
 	// childs will be handled here
 	if (signal(SIGCHLD, SIG_DFL) == SIG_ERR) {
 		rte_exit(EXIT_FAILURE, "failed to set sigaction");
