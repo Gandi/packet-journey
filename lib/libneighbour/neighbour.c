@@ -133,14 +133,14 @@ neighbor6_set_port(struct nei_table *t, uint8_t nexthop_id,
 	return 0;
 }
 
-void neighbor6_delete(struct nei_table *t, uint8_t nexthop_id)
+int neighbor6_delete(struct nei_table *t, uint8_t nexthop_id)
 {
 	struct nei_entry6 *entry;
 
 	entry = &t->entries.t6[nexthop_id];
 
 	if (entry->neighbor.in_use == 0)
-		return;
+		return 1;
 
 	if (entry->neighbor.refcnt > 0) {
 		entry->neighbor.valid = 0;
@@ -148,7 +148,8 @@ void neighbor6_delete(struct nei_table *t, uint8_t nexthop_id)
 		neighbor6_free(entry);
 	}
 
-	return;
+    //FIXME not thread safe, need locking
+	return entry->neighbor.refcnt;
 }
 
 
@@ -280,14 +281,14 @@ neighbor4_set_port(struct nei_table *t, uint8_t nexthop_id,
 	return 0;
 }
 
-void neighbor4_delete(struct nei_table *t, uint8_t nexthop_id)
+int neighbor4_delete(struct nei_table *t, uint8_t nexthop_id)
 {
 	struct nei_entry4 *entry;
 
 	entry = &t->entries.t4[nexthop_id];
 
 	if (entry->neighbor.in_use == 0)
-		return;
+		return 1;
 
 	if (entry->neighbor.refcnt > 0) {
 		entry->neighbor.valid = 0;
@@ -295,7 +296,8 @@ void neighbor4_delete(struct nei_table *t, uint8_t nexthop_id)
 		neighbor4_free(entry);
 	}
 
-	return;
+    //FIXME not thread safe, need locking
+	return entry->neighbor.refcnt;
 }
 
 struct nei_table *nei_create(int socketid)
