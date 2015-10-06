@@ -60,7 +60,7 @@ int neighbor4_set_lladdr_port(struct nei_table *, uint8_t,
 int neighbor4_set_state(struct nei_table *, uint8_t, uint8_t flags);
 int neighbor4_set_port(struct nei_table *t, uint8_t nexthop_id,
 					   int32_t port_id);
-void neighbor4_delete(struct nei_table *, uint8_t);
+int neighbor4_delete(struct nei_table *, uint8_t);
 
 int neighbor6_lookup_nexthop(struct nei_table *, struct in6_addr *nexthop,
 							 uint8_t * nexthop_id);
@@ -75,7 +75,7 @@ int neighbor6_set_lladdr_port(struct nei_table *, uint8_t,
 int neighbor6_set_state(struct nei_table *, uint8_t, uint8_t flags);
 int neighbor6_set_port(struct nei_table *t, uint8_t nexthop_id,
 					   int32_t port_id);
-void neighbor6_delete(struct nei_table *, uint8_t);
+int neighbor6_delete(struct nei_table *, uint8_t);
 
 
 struct nei_table *nei_create(int socketid);
