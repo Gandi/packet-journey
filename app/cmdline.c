@@ -58,7 +58,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #define _GNU_SOURCE
 #include <pthread.h>
 #include <stdio.h>
@@ -164,7 +163,7 @@ cmdline_parse_inst_t cmd_loglevel = {
     .help_str = "loglevel level",
     .tokens =
 	{
-	 (void *)&cmd_loglevel_loglevel, (void *)&cmd_loglevel_level, NULL,
+	    (void *)&cmd_loglevel_loglevel, (void *) & cmd_loglevel_level, NULL,
 	},
 };
 
@@ -196,8 +195,8 @@ cmdline_parse_inst_t cmd_logtype = {
     .help_str = "logtype type enable",
     .tokens =
 	{
-	 (void *)&cmd_logtype_logtype, (void *)&cmd_logtype_type,
-	 (void *)&cmd_logtype_enable, NULL,
+	    (void *)&cmd_logtype_logtype, (void *) & cmd_logtype_type,
+	    (void *) & cmd_logtype_enable, NULL,
 	},
 };
 
@@ -244,8 +243,8 @@ cmdline_parse_inst_t cmd_showport = {
     .help_str = "show|clear port info|stats|xstats X (X = port number)",
     .tokens =
 	{
-	 (void *)&cmd_showport_show, (void *)&cmd_showport_port,
-	 (void *)&cmd_showport_what, (void *)&cmd_showport_portnum, NULL,
+	    (void *)&cmd_showport_show, (void *) & cmd_showport_port,
+	    (void *) & cmd_showport_what, (void *) & cmd_showport_portnum, NULL,
 	},
 };
 
@@ -255,9 +254,9 @@ cmdline_parse_inst_t cmd_showport_json = {
     .help_str = "show|clear port info|stats|xstats X (X = port number)",
     .tokens =
 	{
-	 (void *)&cmd_showport_show, (void *)&cmd_showport_port,
-	 (void *)&cmd_showport_what, (void *)&cmd_showport_portnum,
-	 (void *)&cmd_showport_option, NULL,
+	    (void *)&cmd_showport_show, (void *) & cmd_showport_port,
+	    (void *) & cmd_showport_what, (void *) & cmd_showport_portnum,
+	    (void *) & cmd_showport_option, NULL,
 	},
 };
 
@@ -301,10 +300,10 @@ cmdline_parse_inst_t cmd_showport_rss_hash = {
     .help_str = "show port X rss-hash (X = port number)\n",
     .tokens =
 	{
-	 (void *)&cmd_showport_rss_hash_show,
-	 (void *)&cmd_showport_rss_hash_port,
-	 (void *)&cmd_showport_rss_hash_port_id,
-	 (void *)&cmd_showport_rss_hash_rss_hash, NULL,
+	    (void *)&cmd_showport_rss_hash_show,
+	    (void *) & cmd_showport_rss_hash_port,
+	    (void *) & cmd_showport_rss_hash_port_id,
+	    (void *) & cmd_showport_rss_hash_rss_hash, NULL,
 	},
 };
 
@@ -314,11 +313,11 @@ cmdline_parse_inst_t cmd_showport_rss_hash_key = {
     .help_str = "show port X rss-hash key (X = port number)\n",
     .tokens =
 	{
-	 (void *)&cmd_showport_rss_hash_show,
-	 (void *)&cmd_showport_rss_hash_port,
-	 (void *)&cmd_showport_rss_hash_port_id,
-	 (void *)&cmd_showport_rss_hash_rss_hash,
-	 (void *)&cmd_showport_rss_hash_rss_key, NULL,
+	    (void *)&cmd_showport_rss_hash_show,
+	    (void *) & cmd_showport_rss_hash_port,
+	    (void *) & cmd_showport_rss_hash_port_id,
+	    (void *) & cmd_showport_rss_hash_rss_hash,
+	    (void *) & cmd_showport_rss_hash_rss_key, NULL,
 	},
 };
 
@@ -381,9 +380,9 @@ cmdline_parse_inst_t cmd_config_rss = {
     .help_str = "port config all rss all|ip|tcp|udp|sctp|ether|none",
     .tokens =
 	{
-	 (void *)&cmd_config_rss_port, (void *)&cmd_config_rss_keyword,
-	 (void *)&cmd_config_rss_all, (void *)&cmd_config_rss_name,
-	 (void *)&cmd_config_rss_value, NULL,
+	    (void *)&cmd_config_rss_port, (void *) & cmd_config_rss_keyword,
+	    (void *) & cmd_config_rss_all, (void *) & cmd_config_rss_name,
+	    (void *) & cmd_config_rss_value, NULL,
 	},
 };
 
@@ -473,11 +472,11 @@ cmdline_parse_inst_t cmd_config_rss_hash_key = {
     .help_str = "port config X rss-hash-key 104 hexa digits",
     .tokens =
 	{
-	 (void *)&cmd_config_rss_hash_key_port,
-	 (void *)&cmd_config_rss_hash_key_config,
-	 (void *)&cmd_config_rss_hash_key_port_id,
-	 (void *)&cmd_config_rss_hash_key_rss_hash_key,
-	 (void *)&cmd_config_rss_hash_key_value, NULL,
+	    (void *)&cmd_config_rss_hash_key_port,
+	    (void *) & cmd_config_rss_hash_key_config,
+	    (void *) & cmd_config_rss_hash_key_port_id,
+	    (void *) & cmd_config_rss_hash_key_rss_hash_key,
+	    (void *) & cmd_config_rss_hash_key_value, NULL,
 	},
 };
 
@@ -606,12 +605,12 @@ cmdline_parse_inst_t cmd_config_rss_reta = {
     .help_str = "port config X rss reta (hash,queue)[,(hash,queue)]",
     .tokens =
 	{
-	 (void *)&cmd_config_rss_reta_port,
-	 (void *)&cmd_config_rss_reta_keyword,
-	 (void *)&cmd_config_rss_reta_port_id,
-	 (void *)&cmd_config_rss_reta_name,
-	 (void *)&cmd_config_rss_reta_list_name,
-	 (void *)&cmd_config_rss_reta_list_of_items, NULL,
+	    (void *)&cmd_config_rss_reta_port,
+	    (void *) & cmd_config_rss_reta_keyword,
+	    (void *) & cmd_config_rss_reta_port_id,
+	    (void *) & cmd_config_rss_reta_name,
+	    (void *) & cmd_config_rss_reta_list_name,
+	    (void *) & cmd_config_rss_reta_list_of_items, NULL,
 	},
 };
 
@@ -715,10 +714,11 @@ cmdline_parse_inst_t cmd_showport_reta = {
     .help_str = "show port X rss reta (size) (mask0,mask1,...)",
     .tokens =
 	{
-	 (void *)&cmd_showport_reta_show, (void *)&cmd_showport_reta_port,
-	 (void *)&cmd_showport_reta_port_id, (void *)&cmd_showport_reta_rss,
-	 (void *)&cmd_showport_reta_reta, (void *)&cmd_showport_reta_size,
-	 (void *)&cmd_showport_reta_list_of_items, NULL,
+	    (void *)&cmd_showport_reta_show, (void *) & cmd_showport_reta_port,
+	    (void *) & cmd_showport_reta_port_id,
+	    (void *) & cmd_showport_reta_rss, (void *) & cmd_showport_reta_reta,
+	    (void *) & cmd_showport_reta_size,
+	    (void *) & cmd_showport_reta_list_of_items, NULL,
 	},
 };
 
@@ -782,8 +782,8 @@ cmdline_parse_inst_t cmd_obj_lpm_lkp = {
     .help_str = "Do a lookup in lpm table (ip)",
     .tokens =
 	{
-	 /* token list, NULL terminated */
-	 (void *)&cmd_obj_action_lpm_lkp, (void *)&cmd_obj_lpm_ip, NULL,
+	    /* token list, NULL terminated */
+	    (void *)&cmd_obj_action_lpm_lkp, (void *) & cmd_obj_lpm_ip, NULL,
 	},
 };
 
@@ -826,9 +826,9 @@ cmdline_parse_inst_t cmd_obj_acl_add = {
     .help_str = "Add an acl (aclfile path, ip version)",
     .tokens =
 	{
-	 /* token list, NULL terminated */
-	 (void *)&cmd_obj_action_acl_add, (void *)&cmd_obj_acl_proto,
-	 (void *)&cmd_obj_acl_path, NULL,
+	    /* token list, NULL terminated */
+	    (void *)&cmd_obj_action_acl_add, (void *) & cmd_obj_acl_proto,
+	    (void *) & cmd_obj_acl_path, NULL,
 	},
 };
 
@@ -862,8 +862,8 @@ cmdline_parse_inst_t cmd_stats = {
     .help_str = "show stats",
     .tokens =
 	{
-	 /* token list, NULL terminated */
-	 (void *)&cmd_stats_stats, NULL,
+	    /* token list, NULL terminated */
+	    (void *)&cmd_stats_stats, NULL,
 	},
 };
 
@@ -873,8 +873,8 @@ cmdline_parse_inst_t cmd_stats_json = {
     .help_str = "show stats",
     .tokens =
 	{
-	 /* token list, NULL terminated */
-	 (void *)&cmd_stats_stats, (void *)&cmd_stats_stats_json, NULL,
+	    /* token list, NULL terminated */
+	    (void *)&cmd_stats_stats, (void *) & cmd_stats_stats_json, NULL,
 	},
 };
 
@@ -884,9 +884,9 @@ cmdline_parse_inst_t cmd_stats_csv = {
     .help_str = "show stats",
     .tokens =
 	{
-	 /* token list, NULL terminated */
-	 (void *)&cmd_stats_stats, (void *)&cmd_stats_stats_csv,
-	 (void *)&cmd_stats_stats_delay, NULL,
+	    /* token list, NULL terminated */
+	    (void *)&cmd_stats_stats, (void *) & cmd_stats_stats_csv,
+	    (void *) & cmd_stats_stats_delay, NULL,
 	},
 };
 
@@ -921,8 +921,8 @@ cmdline_parse_inst_t cmd_lpm_stats = {
     .help_str = "show lpm_stats",
     .tokens =
 	{
-	 /* token list, NULL terminated */
-	 (void *)&cmd_lpm_stats_stats, (void *)&cmd_lpm_stats_proto, NULL,
+	    /* token list, NULL terminated */
+	    (void *)&cmd_lpm_stats_stats, (void *) & cmd_lpm_stats_proto, NULL,
 	},
 };
 
@@ -932,9 +932,9 @@ cmdline_parse_inst_t cmd_lpm_stats_json = {
     .help_str = "show lpm_stats",
     .tokens =
 	{
-	 /* token list, NULL terminated */
-	 (void *)&cmd_lpm_stats_stats, (void *)&cmd_lpm_stats_proto,
-	 (void *)&cmd_lpm_stats_stats_json, NULL,
+	    /* token list, NULL terminated */
+	    (void *)&cmd_lpm_stats_stats, (void *) & cmd_lpm_stats_proto,
+	    (void *) & cmd_lpm_stats_stats_json, NULL,
 	},
 };
 
@@ -1014,8 +1014,8 @@ cmdline_parse_inst_t cmd_neigh = {
     .help_str = "neigh ipv4#ipv6",
     .tokens =
 	{
-	 /* token list, NULL terminated */
-	 (void *)&cmd_neigh_neigh, (void *)&cmd_neigh_proto, NULL,
+	    /* token list, NULL terminated */
+	    (void *)&cmd_neigh_neigh, (void *) & cmd_neigh_proto, NULL,
 	},
 };
 
@@ -1059,8 +1059,8 @@ cmdline_parse_inst_t cmd_help = {
     .help_str = "show help",
     .tokens =
 	{
-	 /* token list, NULL terminated */
-	 (void *)&cmd_help_help, NULL,
+	    /* token list, NULL terminated */
+	    (void *)&cmd_help_help, NULL,
 	},
 };
 
@@ -1069,8 +1069,10 @@ cmdline_parse_inst_t cmd_help = {
 cmdline_parse_ctx_t main_ctx[] = {
     (cmdline_parse_inst_t *)&cmd_obj_acl_add,
     (cmdline_parse_inst_t *)&cmd_obj_lpm_lkp,
-    (cmdline_parse_inst_t *)&cmd_stats, (cmdline_parse_inst_t *)&cmd_loglevel,
-    (cmdline_parse_inst_t *)&cmd_logtype, (cmdline_parse_inst_t *)&cmd_neigh,
+    (cmdline_parse_inst_t *)&cmd_stats,
+    (cmdline_parse_inst_t *)&cmd_loglevel,
+    (cmdline_parse_inst_t *)&cmd_logtype,
+    (cmdline_parse_inst_t *)&cmd_neigh,
     (cmdline_parse_inst_t *)&cmd_stats_json,
     (cmdline_parse_inst_t *)&cmd_stats_csv,
     (cmdline_parse_inst_t *)&cmd_showport,
@@ -1081,8 +1083,10 @@ cmdline_parse_ctx_t main_ctx[] = {
     (cmdline_parse_inst_t *)&cmd_showport_rss_hash,
     (cmdline_parse_inst_t *)&cmd_showport_rss_hash_key,
     (cmdline_parse_inst_t *)&cmd_config_rss_hash_key,
-    (cmdline_parse_inst_t *)&cmd_help, (cmdline_parse_inst_t *)&cmd_lpm_stats,
-    (cmdline_parse_inst_t *)&cmd_lpm_stats_json, NULL,
+    (cmdline_parse_inst_t *)&cmd_help,
+    (cmdline_parse_inst_t *)&cmd_lpm_stats,
+    (cmdline_parse_inst_t *)&cmd_lpm_stats_json,
+    NULL,
 };
 
 static int
@@ -1250,10 +1254,11 @@ cmdline_run(void *data)
 
 			for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
 				if (cmdline_clients[RTE_PER_LCORE(
-					g_socket_id)][i].cl == NULL) {
+					g_socket_id)][i]
+					.cl == NULL) {
 					cmdline_clients[RTE_PER_LCORE(
-					    g_socket_id)][i].cl =
-					    cmdline_new_unixsock(res);
+					    g_socket_id)][i]
+					    .cl = cmdline_new_unixsock(res);
 					break;
 				}
 			}
@@ -1279,12 +1284,13 @@ cmdline_run(void *data)
 				}
 				// read error, closing conn
 				ret = cmdline_in(cmdline_clients[RTE_PER_LCORE(
-						     g_socket_id)][j].cl,
+						     g_socket_id)][j]
+						     .cl,
 						 buf, ret);
 				if (ret < 0 &&
 				    cmdline_clients[RTE_PER_LCORE(
-					g_socket_id)][j].cl->rdl.status ==
-					RDLINE_EXITED) {
+					g_socket_id)][j]
+					    .cl->rdl.status == RDLINE_EXITED) {
 					cmdline_clients_close(j);
 				}
 			}
@@ -1294,17 +1300,20 @@ cmdline_run(void *data)
 		for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
 			if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl) {
 				if (cmdline_clients[RTE_PER_LCORE(
-					g_socket_id)][i].csv_delay) {
+					g_socket_id)][i]
+					.csv_delay) {
 					if ((time(NULL) -
 					     cmdline_clients[RTE_PER_LCORE(
 						 g_socket_id)][i]
 						 .delay_timer) >=
 					    cmdline_clients[RTE_PER_LCORE(
-						g_socket_id)][i].csv_delay) {
+						g_socket_id)][i]
+						.csv_delay) {
 						rdpdk_stats_display(
 						    cmdline_clients
 							[RTE_PER_LCORE(
-							    g_socket_id)][i].cl,
+							    g_socket_id)][i]
+							    .cl,
 						    2, cmdline_clients
 							   [RTE_PER_LCORE(
 							       g_socket_id)][i]
@@ -1313,7 +1322,8 @@ cmdline_run(void *data)
 				}
 
 				fds[nfds].fd = cmdline_clients[RTE_PER_LCORE(
-				    g_socket_id)][i].cl->s_in;
+				    g_socket_id)][i]
+						   .cl->s_in;
 				fds[nfds].events = POLLIN;
 				nfds++;
 			}

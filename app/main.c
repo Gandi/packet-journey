@@ -190,25 +190,22 @@ __wrap_virtio_recv_mergeable_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 	uint16_t i;
 
 	for (i = 0; i < res; i++) {
-		if ((rte_pktmbuf_mtod(rx_pkts[i],
-				      struct ether_hdr *)->ether_type) ==
-		    ETHER_TYPE_BE_IPv4) {
+		if ((rte_pktmbuf_mtod(rx_pkts[i], struct ether_hdr *)
+			 ->ether_type) == ETHER_TYPE_BE_IPv4) {
 #ifdef RTE_NEXT_ABI
 			rx_pkts[i]->packet_type = RDPDK_IPV4_MASK;
 #else
 			rx_pkts[i]->ol_flags = PKT_RX_IPV4_HDR;
 #endif
-		} else if ((rte_pktmbuf_mtod(rx_pkts[i],
-					     struct ether_hdr *)->ether_type) ==
-			   ETHER_TYPE_BE_IPv6) {
+		} else if ((rte_pktmbuf_mtod(rx_pkts[i], struct ether_hdr *)
+				->ether_type) == ETHER_TYPE_BE_IPv6) {
 #ifdef RTE_NEXT_ABI
 			rx_pkts[i]->packet_type = RDPDK_IPV6_MASK;
 #else
 			rx_pkts[i]->ol_flags = PKT_RX_IPV6_HDR;
 #endif
-		} else if ((rte_pktmbuf_mtod(rx_pkts[i],
-					     struct ether_hdr *)->ether_type) ==
-			   ETHER_TYPE_BE_ARP) {
+		} else if ((rte_pktmbuf_mtod(rx_pkts[i], struct ether_hdr *)
+				->ether_type) == ETHER_TYPE_BE_ARP) {
 #ifdef RTE_NEXT_ABI
 			rx_pkts[i]->packet_type = RTE_PTYPE_L2_ETHER_ARP;
 #endif
@@ -345,8 +342,9 @@ send_burst(struct lcore_conf *qconf, uint16_t n, uint8_t port)
 	return 0;
 }
 
-static inline __attribute__((always_inline)) void send_packetsx4(
-    struct lcore_conf *qconf, uint8_t port, struct rte_mbuf *m[], uint32_t num)
+static inline __attribute__((always_inline)) void
+send_packetsx4(struct lcore_conf *qconf, uint8_t port, struct rte_mbuf *m[],
+	       uint32_t num)
 {
 	uint32_t len, j, n;
 
@@ -454,8 +452,7 @@ get_ipv6_dst_port(void *ipv6_hdr, uint8_t portid,
 #define IPV4_MIN_LEN_BE (sizeof(struct ipv4_hdr) << 8)
 
 static inline __attribute__((always_inline)) uint8_t
-    ip_process(void *hdr, uint16_t *dp, uint32_t flags,
-	       struct lcore_conf *qconf)
+ip_process(void *hdr, uint16_t *dp, uint32_t flags, struct lcore_conf *qconf)
 {
 	struct nei_entry *entries;
 
@@ -492,8 +489,8 @@ static inline __attribute__((always_inline)) uint8_t
 }
 
 static inline __attribute__((always_inline)) uint16_t
-    get_dst_port(const struct lcore_conf *qconf, struct rte_mbuf *pkt,
-		 uint32_t dst_ipv4, struct nei_entry *kni_neighbor)
+get_dst_port(const struct lcore_conf *qconf, struct rte_mbuf *pkt,
+	     uint32_t dst_ipv4, struct nei_entry *kni_neighbor)
 {
 	uint8_t next_hop;
 	struct ipv6_hdr *ipv6_hdr;
@@ -919,100 +916,100 @@ port_groupx4(uint16_t pn[FWDSTEP + 1], uint16_t *lp, __m128i dp1, __m128i dp2)
 		uint16_t lpv;  /* add value to the last updated element. */
 	} gptbl[GRPSZ] = {
 	    {
-	     /* 0: a != b, b != c, c != d, d != e */
-	     .pnum = UINT64_C(0x0001000100010001),
-	     .idx = 4,
-	     .lpv = 0,
+		/* 0: a != b, b != c, c != d, d != e */
+		.pnum = UINT64_C(0x0001000100010001),
+		.idx = 4,
+		.lpv = 0,
 	    },
 	    {
-	     /* 1: a == b, b != c, c != d, d != e */
-	     .pnum = UINT64_C(0x0001000100010002),
-	     .idx = 4,
-	     .lpv = 1,
+		/* 1: a == b, b != c, c != d, d != e */
+		.pnum = UINT64_C(0x0001000100010002),
+		.idx = 4,
+		.lpv = 1,
 	    },
 	    {
-	     /* 2: a != b, b == c, c != d, d != e */
-	     .pnum = UINT64_C(0x0001000100020001),
-	     .idx = 4,
-	     .lpv = 0,
+		/* 2: a != b, b == c, c != d, d != e */
+		.pnum = UINT64_C(0x0001000100020001),
+		.idx = 4,
+		.lpv = 0,
 	    },
 	    {
-	     /* 3: a == b, b == c, c != d, d != e */
-	     .pnum = UINT64_C(0x0001000100020003),
-	     .idx = 4,
-	     .lpv = 2,
+		/* 3: a == b, b == c, c != d, d != e */
+		.pnum = UINT64_C(0x0001000100020003),
+		.idx = 4,
+		.lpv = 2,
 	    },
 	    {
-	     /* 4: a != b, b != c, c == d, d != e */
-	     .pnum = UINT64_C(0x0001000200010001),
-	     .idx = 4,
-	     .lpv = 0,
+		/* 4: a != b, b != c, c == d, d != e */
+		.pnum = UINT64_C(0x0001000200010001),
+		.idx = 4,
+		.lpv = 0,
 	    },
 	    {
-	     /* 5: a == b, b != c, c == d, d != e */
-	     .pnum = UINT64_C(0x0001000200010002),
-	     .idx = 4,
-	     .lpv = 1,
+		/* 5: a == b, b != c, c == d, d != e */
+		.pnum = UINT64_C(0x0001000200010002),
+		.idx = 4,
+		.lpv = 1,
 	    },
 	    {
-	     /* 6: a != b, b == c, c == d, d != e */
-	     .pnum = UINT64_C(0x0001000200030001),
-	     .idx = 4,
-	     .lpv = 0,
+		/* 6: a != b, b == c, c == d, d != e */
+		.pnum = UINT64_C(0x0001000200030001),
+		.idx = 4,
+		.lpv = 0,
 	    },
 	    {
-	     /* 7: a == b, b == c, c == d, d != e */
-	     .pnum = UINT64_C(0x0001000200030004),
-	     .idx = 4,
-	     .lpv = 3,
+		/* 7: a == b, b == c, c == d, d != e */
+		.pnum = UINT64_C(0x0001000200030004),
+		.idx = 4,
+		.lpv = 3,
 	    },
 	    {
-	     /* 8: a != b, b != c, c != d, d == e */
-	     .pnum = UINT64_C(0x0002000100010001),
-	     .idx = 3,
-	     .lpv = 0,
+		/* 8: a != b, b != c, c != d, d == e */
+		.pnum = UINT64_C(0x0002000100010001),
+		.idx = 3,
+		.lpv = 0,
 	    },
 	    {
-	     /* 9: a == b, b != c, c != d, d == e */
-	     .pnum = UINT64_C(0x0002000100010002),
-	     .idx = 3,
-	     .lpv = 1,
+		/* 9: a == b, b != c, c != d, d == e */
+		.pnum = UINT64_C(0x0002000100010002),
+		.idx = 3,
+		.lpv = 1,
 	    },
 	    {
-	     /* 0xa: a != b, b == c, c != d, d == e */
-	     .pnum = UINT64_C(0x0002000100020001),
-	     .idx = 3,
-	     .lpv = 0,
+		/* 0xa: a != b, b == c, c != d, d == e */
+		.pnum = UINT64_C(0x0002000100020001),
+		.idx = 3,
+		.lpv = 0,
 	    },
 	    {
-	     /* 0xb: a == b, b == c, c != d, d == e */
-	     .pnum = UINT64_C(0x0002000100020003),
-	     .idx = 3,
-	     .lpv = 2,
+		/* 0xb: a == b, b == c, c != d, d == e */
+		.pnum = UINT64_C(0x0002000100020003),
+		.idx = 3,
+		.lpv = 2,
 	    },
 	    {
-	     /* 0xc: a != b, b != c, c == d, d == e */
-	     .pnum = UINT64_C(0x0002000300010001),
-	     .idx = 2,
-	     .lpv = 0,
+		/* 0xc: a != b, b != c, c == d, d == e */
+		.pnum = UINT64_C(0x0002000300010001),
+		.idx = 2,
+		.lpv = 0,
 	    },
 	    {
-	     /* 0xd: a == b, b != c, c == d, d == e */
-	     .pnum = UINT64_C(0x0002000300010002),
-	     .idx = 2,
-	     .lpv = 1,
+		/* 0xd: a == b, b != c, c == d, d == e */
+		.pnum = UINT64_C(0x0002000300010002),
+		.idx = 2,
+		.lpv = 1,
 	    },
 	    {
-	     /* 0xe: a != b, b == c, c == d, d == e */
-	     .pnum = UINT64_C(0x0002000300040001),
-	     .idx = 1,
-	     .lpv = 0,
+		/* 0xe: a != b, b == c, c == d, d == e */
+		.pnum = UINT64_C(0x0002000300040001),
+		.idx = 1,
+		.lpv = 0,
 	    },
 	    {
-	     /* 0xf: a == b, b == c, c == d, d == e */
-	     .pnum = UINT64_C(0x0002000300040005),
-	     .idx = 0,
-	     .lpv = 4,
+		/* 0xf: a == b, b == c, c == d, d == e */
+		.pnum = UINT64_C(0x0002000300040005),
+		.idx = 0,
+		.lpv = 4,
 	    },
 	};
 
@@ -1364,8 +1361,8 @@ main_loop(__rte_unused void *dummy)
 					 * <d[j-3], d[j-2], d[j-1], d[j], ... >
 					 */
 					dp2 = _mm_loadu_si128(
-					    (__m128i *)&dst_port[j - FWDSTEP +
-								 1]);
+					    (__m128i
+						 *)&dst_port[j - FWDSTEP + 1]);
 					lp = port_groupx4(&pnum[j - FWDSTEP],
 							  lp, dp1, dp2);
 
@@ -1915,11 +1912,12 @@ signal_handler(int signum, __rte_unused siginfo_t *si,
 	int sock;
 
 	/* When we receive a RTMIN or SIGINT signal, stop kni processing */
-       if (signum == SIGRTMIN || signum == SIGINT || signum == SIGQUIT ||
-           signum == SIGTERM) {
+	if (signum == SIGRTMIN || signum == SIGINT || signum == SIGQUIT ||
+	    signum == SIGTERM) {
 		RTE_LOG(INFO, RDPDK1,
 			"SIG %d is received, and the KNI processing is "
-			"going to stop\n", signum);
+			"going to stop\n",
+			signum);
 		kni_stop_loop();
 		rte_atomic32_inc(&main_loop_stop);
 
@@ -1933,7 +1931,7 @@ signal_handler(int signum, __rte_unused siginfo_t *si,
 		int pid, status;
 		if ((pid = wait(&status)) > 0) {
 			RTE_LOG(INFO, RDPDK1, "SIGCHLD received, reaped child "
-					       "pid: %d status %d\n",
+					      "pid: %d status %d\n",
 				pid, WEXITSTATUS(status));
 		}
 	}

@@ -58,7 +58,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -94,36 +93,36 @@ const char *unixsock_path = "/tmp/rdpdk.sock";
 struct rte_eth_conf port_conf = {
     .rxmode =
 	{
-	 .mq_mode = ETH_MQ_RX_RSS,
-	 .max_rx_pkt_len = ETHER_MAX_LEN,
-	 .split_hdr_size = 0,
-	 .header_split = 0,
+	    .mq_mode = ETH_MQ_RX_RSS,
+	    .max_rx_pkt_len = ETHER_MAX_LEN,
+	    .split_hdr_size = 0,
+	    .header_split = 0,
 /**< Header Split disabled */
 #ifdef RDPDK_QEMU
-	 .hw_ip_checksum = 0,
+	    .hw_ip_checksum = 0,
 /**< IP checksum offload enabled */
 #else
-	 .hw_ip_checksum = 1,
+	    .hw_ip_checksum = 1,
 /**< IP checksum offload enabled */
 #endif
-	 .hw_vlan_strip = 1,
-	 .hw_vlan_filter = 0,
-	 /**< VLAN filtering disabled */
-	 .jumbo_frame = 0,
-	 /**< Jumbo Frame Support disabled */
-	 .hw_strip_crc = 0,
-	 /**< CRC stripped by hardware */
+	    .hw_vlan_strip = 1,
+	    .hw_vlan_filter = 0,
+	    /**< VLAN filtering disabled */
+	    .jumbo_frame = 0,
+	    /**< Jumbo Frame Support disabled */
+	    .hw_strip_crc = 0,
+	    /**< CRC stripped by hardware */
 	},
     .rx_adv_conf =
 	{
-	 .rss_conf =
-	     {
-	      .rss_key = NULL, .rss_hf = ETH_RSS_PROTO_MASK,
-	     },
+	    .rss_conf =
+		{
+		    .rss_key = NULL, .rss_hf = ETH_RSS_PROTO_MASK,
+		},
 	},
     .txmode =
 	{
-	 .mq_mode = ETH_MQ_TX_NONE,
+	    .mq_mode = ETH_MQ_TX_NONE,
 	},
 };
 
