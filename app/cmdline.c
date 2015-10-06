@@ -1,5 +1,5 @@
 /*
- * rdpdk - userland router which uses DPDK for its fastpath switching
+ * Packet-journey userland router which uses DPDK for its fastpath switching
  *
  */
 /*
@@ -740,7 +740,7 @@ cmd_obj_lpm_lkp_parsed(void *parsed_result, struct cmdline *cl,
 
 	if (res->ip.family == AF_INET) {
 		i = rte_lpm_lookup(
-		    ipv4_rdpdk_lookup_struct[RTE_PER_LCORE(g_socket_id)],
+		    ipv4_pktj_lookup_struct[RTE_PER_LCORE(g_socket_id)],
 		    rte_be_to_cpu_32(res->ip.addr.ipv4.s_addr), &next_hop);
 		if (i < 0) {
 			cmdline_printf(cl, "not found\n");
@@ -755,7 +755,7 @@ cmd_obj_lpm_lkp_parsed(void *parsed_result, struct cmdline *cl,
 		}
 	} else if (res->ip.family == AF_INET6) {
 		i = rte_lpm6_lookup(
-		    ipv6_rdpdk_lookup_struct[RTE_PER_LCORE(g_socket_id)],
+		    ipv6_pktj_lookup_struct[RTE_PER_LCORE(g_socket_id)],
 		    res->ip.addr.ipv6.s6_addr, &next_hop);
 		if (i < 0) {
 			cmdline_printf(cl, "not found\n");
@@ -844,7 +844,7 @@ static void
 cmd_stats_parsed(void *parsed_result, struct cmdline *cl, void *data)
 {
 	struct cmd_stats_result *res = (struct cmd_stats_result *)parsed_result;
-	rdpdk_stats_display(cl, (intptr_t)data, res->delay);
+	pktj_stats_display(cl, (intptr_t)data, res->delay);
 }
 
 cmdline_parse_token_string_t cmd_stats_stats =
@@ -905,7 +905,7 @@ cmd_lpm_stats_parsed(void *parsed_result, struct cmdline *cl, void *data)
 	int is_ipv4;
 
 	is_ipv4 = !strcmp(res->proto, "ipv4");
-	rdpdk_lpm_stats_display(cl, is_ipv4, (intptr_t)data);
+	pktj_lpm_stats_display(cl, is_ipv4, (intptr_t)data);
 }
 
 cmdline_parse_token_string_t cmd_lpm_stats_stats =
@@ -1130,7 +1130,7 @@ cmdline_new_unixsock(int sock)
 {
 	struct cmdline *cl;
 
-	cl = cmdline_unixsock_new(main_ctx, "rdpdk> ", sock);
+	cl = cmdline_unixsock_new(main_ctx, "pktj> ", sock);
 
 	if (cl == NULL)
 		rte_exit(EXIT_FAILURE, "Cannot create cmdline instance\n");
@@ -1139,7 +1139,7 @@ cmdline_new_unixsock(int sock)
 }
 
 int
-rdpdk_cmdline_init(const char *path, uint32_t socket_id)
+pktj_cmdline_init(const char *path, uint32_t socket_id)
 {
 	int fd;
 	char buf[128];
@@ -1171,7 +1171,7 @@ rdpdk_cmdline_init(const char *path, uint32_t socket_id)
 }
 
 static int
-rdpdk_cmdline_free(void *cmdline)
+pktj_cmdline_free(void *cmdline)
 {
 	struct cmdline *cl = cmdline;
 	// cmdline_thread_loop = 0;
@@ -1182,7 +1182,7 @@ rdpdk_cmdline_free(void *cmdline)
 }
 
 int
-rdpdk_cmdline_terminate(int sock, const char *path)
+pktj_cmdline_terminate(int sock, const char *path)
 {
 	int ret = 0; // here for silence write warning
 	char buf[128];
@@ -1200,7 +1200,7 @@ rdpdk_cmdline_terminate(int sock, const char *path)
 }
 
 int
-rdpdk_cmdline_stop(int sock)
+pktj_cmdline_stop(int sock)
 {
 	cmdline_thread_loop[sock] = 0;
 	return 0;
@@ -1224,7 +1224,7 @@ cmdline_clients_get(int sock)
 static void
 cmdline_clients_close(int id)
 {
-	rdpdk_cmdline_free(cmdline_clients[RTE_PER_LCORE(g_socket_id)][id].cl);
+	pktj_cmdline_free(cmdline_clients[RTE_PER_LCORE(g_socket_id)][id].cl);
 	close(cmdline_clients[RTE_PER_LCORE(g_socket_id)][id].cl->s_out);
 	memset(&cmdline_clients[RTE_PER_LCORE(g_socket_id)][id], 0,
 	       sizeof(struct client_data_t));
@@ -1309,7 +1309,7 @@ cmdline_run(void *data)
 					    cmdline_clients[RTE_PER_LCORE(
 						g_socket_id)][i]
 						.csv_delay) {
-						rdpdk_stats_display(
+						pktj_stats_display(
 						    cmdline_clients
 							[RTE_PER_LCORE(
 							    g_socket_id)][i]
@@ -1332,13 +1332,13 @@ cmdline_run(void *data)
 
 	for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
 		if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl) {
-#define CMDLINE_QUIT_MSG "RDPDK closing...\n"
+#define CMDLINE_QUIT_MSG "PKTJ closing...\n"
 			ret =
 			    write(cmdline_clients[RTE_PER_LCORE(g_socket_id)][i]
 				      .cl->s_out,
 				  CMDLINE_QUIT_MSG, sizeof(CMDLINE_QUIT_MSG));
 
-			rdpdk_cmdline_free(
+			pktj_cmdline_free(
 			    cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl);
 
 			shutdown(cmdline_clients[RTE_PER_LCORE(g_socket_id)][i]
@@ -1356,7 +1356,7 @@ cmdline_run(void *data)
 }
 
 pthread_t
-rdpdk_cmdline_launch(int sock, cpu_set_t *cpuset)
+pktj_cmdline_launch(int sock, cpu_set_t *cpuset)
 {
 	char thread_name[16];
 	int ret;

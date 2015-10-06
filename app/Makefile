@@ -1,7 +1,7 @@
 include $(RTE_SDK)/mk/rte.vars.mk
 
 # binary name
-APP = rdpdk
+APP = pktj
 
 # all source are stored in SRCS-y
 SRCS-y := main.c 
@@ -23,7 +23,7 @@ DEPDIR-y += lib/libnetlink lib/libneighbour
 
 LDFLAGS += -lc -lpthread -ldl
 LDFLAGS += -L$(BASE_OUTPUT)/lib/libneighbour/$(RTE_TARGET)/lib -L$(BASE_OUTPUT)/lib/libnetlink/$(RTE_TARGET)/lib -lneighbour -lnetlink
-ifeq ($(RDPDK_QEMU),1)
+ifeq ($(PKTJ_QEMU),1)
 LDFLAGS += --wrap=virtio_recv_mergeable_pkts
 endif
 

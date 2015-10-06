@@ -1,7 +1,7 @@
-Copy rdpdk.conf into chroot
+Copy pktj.conf into chroot
 touch /tmp/abc
-/mnt/build/build/app/build/rdpdk  --log-level 8 -l 0,1,2,3,4 -n 1 -- --configfile /mnt/build/conf/rdpdk.conf
-gdb /mnt/build/build/app/build/rdpdk /tmp/core
+/mnt/build/build/app/build/pktj  --log-level 8 -l 0,1,2,3,4 -n 1 -- --configfile /mnt/build/conf/pktj.conf
+gdb /mnt/build/build/app/build/pktj /tmp/core
 
 debug:
 build dpdk with something like `make RTE_KERNELDIR=/usr/src/linux-3.18.10-dpdk O=build_kvm EXTRA_CFLAGS="-g -O0"`

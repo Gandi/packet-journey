@@ -2,7 +2,7 @@
 #include <net/if.h>
 #include <libnetlink.h>
 
-#include "rdpdk_common.h"
+#include "pktj_common.h"
 
 #define TEST(predicate, message)\
 	if(!(predicate)) {\
@@ -28,7 +28,7 @@ struct netl_handle *h = NULL;
 static int neighbor4(neighbor_action_t action,
 					 __s32 port_id, struct in_addr *addr,
 					 struct ether_addr *lladdr, __u8 flags,
-					 uint16_t vlanid, rdpdk_unused(void *args))
+					 uint16_t vlanid, pktj_unused(void *args))
 {
 	char action_buf[4];
 	char abuf[256];
@@ -80,7 +80,7 @@ static int neighbor4(neighbor_action_t action,
 static int neighbor6(neighbor_action_t action,
 					 __s32 port_id, struct in6_addr *addr,
 					 struct ether_addr *lladdr, __u8 flags,
-					 uint16_t vlanid, rdpdk_unused(void *args))
+					 uint16_t vlanid, pktj_unused(void *args))
 {
 	char action_buf[4];
 	char abuf[256];
@@ -130,7 +130,7 @@ static int neighbor6(neighbor_action_t action,
 }
 
 static int addr4(addr_action_t action, __s32 port_id, struct in_addr *addr,
-				 __u8 prefixlen, rdpdk_unused(void *args))
+				 __u8 prefixlen, pktj_unused(void *args))
 {
 	char action_buf[4];
 	char abuf[256];
@@ -152,7 +152,7 @@ static int addr4(addr_action_t action, __s32 port_id, struct in_addr *addr,
 
 static int addr6(addr_action_t action, __s32 port_id,
 				 struct in6_addr *addr, __u8 prefixlen,
-				 rdpdk_unused(void *args))
+				 pktj_unused(void *args))
 {
 	char action_buf[4];
 	char abuf[256];
@@ -174,9 +174,9 @@ static int addr6(addr_action_t action, __s32 port_id,
 }
 
 static int
-route6(rdpdk_unused(struct rtmsg *route), route_action_t action,
+route6(pktj_unused(struct rtmsg *route), route_action_t action,
 	   struct in6_addr *addr, uint8_t len, struct in6_addr *nexthop,
-	   rdpdk_unused(void *args))
+	   pktj_unused(void *args))
 {
 	char action_buf[4];
 	char buf[256];
@@ -194,9 +194,9 @@ route6(rdpdk_unused(struct rtmsg *route), route_action_t action,
 }
 
 static int
-route4(rdpdk_unused(struct rtmsg *route), route_action_t action,
+route4(pktj_unused(struct rtmsg *route), route_action_t action,
 	   struct in_addr *addr, uint8_t len, struct in_addr *nexthop,
-	   rdpdk_unused(void *args))
+	   pktj_unused(void *args))
 {
 	char action_buf[4];
 	char buf[256];
@@ -217,7 +217,7 @@ static int
 link(link_action_t action, int ifid,
 	 struct ether_addr *lladdr, int mtu,
 	 const char *name, oper_state_t state, uint16_t vlanid,
-	 rdpdk_unused(void *args))
+	 pktj_unused(void *args))
 {
 	char action_buf[4];
 	char ebuf[32];
@@ -248,7 +248,7 @@ link(link_action_t action, int ifid,
 	return 0;
 }
 
-static int init_handler(rdpdk_unused(void *args))
+static int init_handler(pktj_unused(void *args))
 {
 	printf("START\n");
 	fflush(stdout);
@@ -271,7 +271,7 @@ int main(void)
 {
 	int s;
 	char *argv[7] = { "test", "-l", "0", "-n", "1", "--log-level", "0" };
-	rdpdk_init(7, argv);
+	pktj_init(7, argv);
 
 	h = netl_create();
 	if (h == NULL) {

@@ -1,5 +1,5 @@
 /*
- * rdpdk - userland router which uses DPDK for its fastpath switching
+ * Packet-journey userland router which uses DPDK for its fastpath switching
  *
  */
 /*
@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __RDPDK_ACL_H
-#define __RDPDK_ACL_H
+#ifndef __PKTJ_ACL_H
+#define __PKTJ_ACL_H
 
 #define DEFAULT_MAX_CATEGORIES 1
 #define ACL_DENY_SIGNATURE 0xf0000000

@@ -5,14 +5,14 @@ endif
 
 include $(RTE_SDK)/mk/rte.vars.mk
 
-RDPDK_QEMU = 0
-export RDPDK_QEMU
+PKTJ_QEMU = 0
+export PKTJ_QEMU
 
 O ?= $(RTE_SRCDIR)/build
-ifeq ($(RDPDK_QEMU),1)
-EXTRA_CFLAGS +=  -W -Wall -g3 -gdwarf-2 -O0 -include $(RTE_SDK)/$(RTE_TARGET)/include/rte_config.h -DRDPDK_DEBUG -DRDPDK_QEMU -DL3FWDACL_DEBUG
+ifeq ($(PKTJ_QEMU),1)
+EXTRA_CFLAGS +=  -W -Wall -g3 -gdwarf-2 -O0 -include $(RTE_SDK)/$(RTE_TARGET)/include/rte_config.h -DPKTJ_DEBUG -DPKTJ_QEMU -DL3FWDACL_DEBUG
 else
-EXTRA_CFLAGS +=  -W -Wall -g3 -gdwarf-2 -O3 -include $(RTE_SDK)/$(RTE_TARGET)/include/rte_config.h #-DRDPDK_DEBUG
+EXTRA_CFLAGS +=  -W -Wall -g3 -gdwarf-2 -O3 -include $(RTE_SDK)/$(RTE_TARGET)/include/rte_config.h #-DPKTJ_DEBUG
 endif
 export EXTRA_CFLAGS
 

@@ -1,6 +1,6 @@
 #! /bin/sh
 ### BEGIN INIT INFO
-# Provides:          rdpdk
+# Provides:          pktj
 # Required-Start:    $remote_fs
 # Required-Stop:     $remote_fs
 # Default-Start:     2 3 4 5
@@ -8,23 +8,23 @@
 ### END INIT INFO
 
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC="rdpdk"
-NAME=rdpdk
+DESC="pktj"
+NAME=pktj
 DAEMON=/usr/sbin/$NAME
 SCRIPTNAME=/etc/init.d/$NAME
-PIDFILE=/var/run/rdpdk.pid
+PIDFILE=/var/run/pktj.pid
 
-NSNAME=rdpdk
+NSNAME=pktj
 NSEXEC="/bin/ip netns exec $NSNAME"
 
 EAL_ARGS="--log-level 8 -l 0,1,2,3 -n 1"
-L3FWD_ARGS="-f /etc/rdpdk.conf"
+L3FWD_ARGS="-f /etc/pktj.conf"
 
 # Exit if the package is not installed
 [ -x "$DAEMON" ] || exit 0
 
 # Load default options
-[ -f /etc/default/rdpdk ] && . /etc/default/rdpdk
+[ -f /etc/default/pktj ] && . /etc/default/pktj
 
 # Define LSB log_* functions.
 # Depend on lsb-base (>= 3.0-6) to ensure that this file is present.

@@ -1,5 +1,5 @@
 /*
- * rdpdk - userland router which uses DPDK for its fastpath switching
+ * Packet-journey userland router which uses DPDK for its fastpath switching
  *
  */
 /*
@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __RDPDK_APP_CONTROL_H
-#define __RDPDK_APP_CONTROL_H
+#ifndef __PKTJ_APP_CONTROL_H
+#define __PKTJ_APP_CONTROL_H
 
 void *control_init(int32_t nb_socket);
 int control_main(void *argv);

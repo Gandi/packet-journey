@@ -1,1 +1,1 @@
-gdb --args ./build/app/build/rdpdk -l 1,3,5,7,9 -n 4 -- --portmask 0x1 --config '(0,0,3),(0,1,9)' --kniconfig '(0,5,7)' --rule_ipv4 /dev/null  --rule_ipv6 /dev/null --callback-setup /etc/rdpdk/up-script --promiscuous
+gdb --args ./build/app/build/pktj -l 1,3,5,7,9 -n 4 -- --portmask 0x1 --config '(0,0,3),(0,1,9)' --kniconfig '(0,5,7)' --rule_ipv4 /dev/null  --rule_ipv6 /dev/null --callback-setup /etc/pktj/up-script --promiscuous

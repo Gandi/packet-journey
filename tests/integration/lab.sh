@@ -13,7 +13,7 @@ error() {
     echo "[1;31m[+] $@[0m"
 }
 setup_tmp() {
-    TMP=/tmp/rdpdk/
+    TMP=/tmp/pktj/
     mkdir $TMP
     chmod 777 $TMP
     #trap "rm -rf $TMP" EXIT

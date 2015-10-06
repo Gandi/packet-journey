@@ -1,5 +1,5 @@
 /*
- * rdpdk - userland router which uses DPDK for its fastpath switching
+ * Packet-journey userland router which uses DPDK for its fastpath switching
  *
  */
 /*
@@ -88,7 +88,7 @@ int promiscuous_on = 0; /**< Ports set in promiscuous mode off by default. */
 int numa_on = 1;	/**< NUMA is enabled by default. */
 uint32_t kni_rate_limit = UINT32_MAX;
 const char *callback_setup = NULL;
-const char *unixsock_path = "/tmp/rdpdk.sock";
+const char *unixsock_path = "/tmp/pktj.sock";
 
 struct rte_eth_conf port_conf = {
     .rxmode =
@@ -98,7 +98,7 @@ struct rte_eth_conf port_conf = {
 	    .split_hdr_size = 0,
 	    .header_split = 0,
 /**< Header Split disabled */
-#ifdef RDPDK_QEMU
+#ifdef PKTJ_QEMU
 	    .hw_ip_checksum = 0,
 /**< IP checksum offload enabled */
 #else
@@ -131,14 +131,14 @@ void
 print_usage(const char *prgname)
 {
 	RTE_LOG(
-	    ERR, RDPDK1,
+	    ERR, PKTJ1,
 	    "%s [EAL options]\n"
 	    "  [--config (port,queue,lcore)[,(port,queue,lcore]]\n"
 	    "  [--kniconfig (port,lcore_tx,lcore_kthread)]\n"
 	    "  [--enable-jumbo [--max-pkt-len PKTLEN (64-9000)]]\n"
 	    "  [--promiscuous : enable promiscuous mode]\n"
 	    "  [--unixsock PATH: override cmdline unixsock path (default: "
-	    "/tmp/rdpdk.sock)]\n"
+	    "/tmp/pktj.sock)]\n"
 	    "  [--configfile PATH: use a configfile for params]\n"
 	    "  [--no-numa: disable numa awareness]\n"
 	    "  [--scalar: Use scalar function to do lookupn acl tables]\n"
@@ -429,7 +429,7 @@ parse_config(const char *q_arg)
 				return -1;
 		}
 		if (nb_lcore_params >= MAX_LCORE_PARAMS) {
-			RTE_LOG(ERR, RDPDK1,
+			RTE_LOG(ERR, PKTJ1,
 				"exceeded max number of lcore params: %hu\n",
 				nb_lcore_params);
 			return -1;
@@ -475,7 +475,7 @@ parse_config_from_file(uint8_t port_id, char *q_arg)
 		}
 
 		if (nb_lcore_params >= MAX_LCORE_PARAMS) {
-			RTE_LOG(ERR, RDPDK1,
+			RTE_LOG(ERR, PKTJ1,
 				"exceeded max number of lcore params: %hu\n",
 				nb_lcore_params);
 			return -1;
@@ -556,7 +556,7 @@ install_cfgfile(const char *file_name, char *prgname)
 		free(ptr);
 
 		if (ret) {
-			RTE_LOG(ERR, RDPDK1, "invalid config\n");
+			RTE_LOG(ERR, PKTJ1, "invalid config\n");
 			print_usage(prgname);
 			return -1;
 		}
@@ -581,7 +581,7 @@ install_cfgfile(const char *file_name, char *prgname)
 		free(ptr);
 
 		if (ret) {
-			RTE_LOG(ERR, RDPDK1, "Invalid config\n");
+			RTE_LOG(ERR, PKTJ1, "Invalid config\n");
 			print_usage(prgname);
 			return -1;
 		}
@@ -624,7 +624,7 @@ install_cfgfile(const char *file_name, char *prgname)
 	    rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_PROMISC);
 	if (entry) {
 		if (strtoul(entry, NULL, 0)) {
-			RTE_LOG(INFO, RDPDK1, "Promiscuous mode selected\n");
+			RTE_LOG(INFO, PKTJ1, "Promiscuous mode selected\n");
 			promiscuous_on = 1;
 		}
 	}
@@ -633,7 +633,7 @@ install_cfgfile(const char *file_name, char *prgname)
 	    rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_NO_NUMA);
 	if (entry) {
 		if (strtoul(entry, NULL, 0)) {
-			RTE_LOG(INFO, RDPDK1, "numa is disabled \n");
+			RTE_LOG(INFO, PKTJ1, "numa is disabled \n");
 			numa_on = 0;
 		}
 	}
@@ -651,7 +651,7 @@ install_cfgfile(const char *file_name, char *prgname)
 	if (entry) {
 
 		if (strtoul(entry, NULL, 0)) {
-			RTE_LOG(INFO, RDPDK1, "jumbo frame is enabled - "
+			RTE_LOG(INFO, PKTJ1, "jumbo frame is enabled - "
 					      "disabling simple TX path\n");
 			port_conf.rxmode.jumbo_frame = 1;
 
@@ -660,7 +660,7 @@ install_cfgfile(const char *file_name, char *prgname)
 			if (entry) {
 				ret = parse_max_pkt_len(entry);
 				if ((ret < 64) || (ret > MAX_JUMBO_PKT_LEN)) {
-					RTE_LOG(ERR, RDPDK1,
+					RTE_LOG(ERR, PKTJ1,
 						"invalid packet length\n");
 					print_usage(prgname);
 					return -1;
@@ -668,7 +668,7 @@ install_cfgfile(const char *file_name, char *prgname)
 				port_conf.rxmode.max_rx_pkt_len = ret;
 			}
 
-			RTE_LOG(INFO, RDPDK1,
+			RTE_LOG(INFO, PKTJ1,
 				"set jumbo frame max packet length to %u\n",
 				(unsigned int)port_conf.rxmode.max_rx_pkt_len);
 		}
@@ -731,7 +731,7 @@ parse_args(int argc, char **argv)
 				     sizeof(CMD_LINE_OPT_KNICONFIG))) {
 				ret = kni_parse_config(optarg);
 				if (ret) {
-					RTE_LOG(ERR, RDPDK1,
+					RTE_LOG(ERR, PKTJ1,
 						"Invalid config\n");
 					print_usage(prgname);
 					return -1;
@@ -743,7 +743,7 @@ parse_args(int argc, char **argv)
 				     sizeof(CMD_LINE_OPT_CONFIG))) {
 				ret = parse_config(optarg);
 				if (ret) {
-					RTE_LOG(ERR, RDPDK1,
+					RTE_LOG(ERR, PKTJ1,
 						"invalid config\n");
 					print_usage(prgname);
 					return -1;
@@ -755,7 +755,7 @@ parse_args(int argc, char **argv)
 				     sizeof(CMD_LINE_OPT_PORTMASK))) {
 				enabled_port_mask = parse_portmask(optarg);
 				if (enabled_port_mask == 0) {
-					RTE_LOG(ERR, RDPDK1,
+					RTE_LOG(ERR, PKTJ1,
 						"invalid portmask\n");
 					print_usage(prgname);
 					return -1;
@@ -783,7 +783,7 @@ parse_args(int argc, char **argv)
 			if (!strncmp(lgopts[option_index].name,
 				     CMD_LINE_OPT_NO_NUMA,
 				     sizeof(CMD_LINE_OPT_NO_NUMA))) {
-				RTE_LOG(INFO, RDPDK1, "numa is disabled \n");
+				RTE_LOG(INFO, PKTJ1, "numa is disabled \n");
 				numa_on = 0;
 			}
 
@@ -818,7 +818,7 @@ parse_args(int argc, char **argv)
 				    CMD_LINE_OPT_MAXPKT_LEN, required_argument,
 				    0, 0};
 
-				RTE_LOG(INFO, RDPDK1, "jumbo frame is enabled "
+				RTE_LOG(INFO, PKTJ1, "jumbo frame is enabled "
 						      "- disabling simple TX "
 						      "path\n");
 				port_conf.rxmode.jumbo_frame = 1;
@@ -831,7 +831,7 @@ parse_args(int argc, char **argv)
 					if ((ret < 64) ||
 					    (ret > MAX_JUMBO_PKT_LEN)) {
 						RTE_LOG(
-						    ERR, RDPDK1,
+						    ERR, PKTJ1,
 						    "invalid packet length\n");
 						print_usage(prgname);
 						return -1;
@@ -839,7 +839,7 @@ parse_args(int argc, char **argv)
 					port_conf.rxmode.max_rx_pkt_len = ret;
 				}
 				RTE_LOG(
-				    INFO, RDPDK1,
+				    INFO, PKTJ1,
 				    "set jumbo frame max packet length to %u\n",
 				    (unsigned int)
 					port_conf.rxmode.max_rx_pkt_len);

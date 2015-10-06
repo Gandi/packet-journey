@@ -1,5 +1,5 @@
 /*
- * rdpdk - userland router which uses DPDK for its fastpath switching
+ * Packet-journey userland router which uses DPDK for its fastpath switching
  *
  */
 /*
@@ -105,12 +105,12 @@
 
 /***********************start of ACL part******************************/
 #define MAX_ACL_RULE_NUM 100000
-#define L3FWD_ACL_IPV4_NAME "rdpdk-acl-ipv4"
-#define L3FWD_ACL_IPV6_NAME "rdpdk-acl-ipv6"
+#define L3FWD_ACL_IPV4_NAME "pktj-acl-ipv4"
+#define L3FWD_ACL_IPV6_NAME "pktj-acl-ipv6"
 #define ACL_LEAD_CHAR ('@')
 #define COMMENT_LEAD_CHAR ('#')
-#define RTE_LOGTYPE_RDPDK_ACL RTE_LOGTYPE_USER3
-#define acl_log(format, ...) RTE_LOG(ERR, RDPDK_ACL, format, ##__VA_ARGS__)
+#define RTE_LOGTYPE_PKTJ_ACL RTE_LOGTYPE_USER3
+#define acl_log(format, ...) RTE_LOG(ERR, PKTJ_ACL, format, ##__VA_ARGS__)
 #define uint32_t_to_char(ip, a, b, c, d)                                       \
 	do {                                                                   \
 		*a = (unsigned char)(ip >> 24 & 0xff);                         \
@@ -802,12 +802,12 @@ err:
 static void
 dump_acl_config(void)
 {
-	RTE_LOG(INFO, RDPDK1, "ACL option are:\n");
-	RTE_LOG(INFO, RDPDK1, CMD_LINE_OPT_RULE_IPV4 ": %s\n",
+	RTE_LOG(INFO, PKTJ1, "ACL option are:\n");
+	RTE_LOG(INFO, PKTJ1, CMD_LINE_OPT_RULE_IPV4 ": %s\n",
 		acl_parm_config.rule_ipv4_name);
-	RTE_LOG(INFO, RDPDK1, CMD_LINE_OPT_RULE_IPV6 ": %s\n",
+	RTE_LOG(INFO, PKTJ1, CMD_LINE_OPT_RULE_IPV6 ": %s\n",
 		acl_parm_config.rule_ipv6_name);
-	RTE_LOG(INFO, RDPDK1, CMD_LINE_OPT_SCALAR ": %d\n",
+	RTE_LOG(INFO, PKTJ1, CMD_LINE_OPT_SCALAR ": %d\n",
 		acl_parm_config.scalar);
 }
 
