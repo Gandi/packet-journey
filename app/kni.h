@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __DPDK_KNI_H
-#define __DPDK_KNI_H
+#ifndef __PKTJ_KNI_H
+#define __PKTJ_KNI_H
 
 #define KNI_MAX_KTHREAD 32
 void init_kni(void);

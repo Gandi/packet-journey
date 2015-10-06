@@ -11,20 +11,20 @@ Homepage: http://dpdk.org/
 Package: pktj-westmere
 Architecture: any
 Depends: ${misc:Depends}, dpdk-westmere
-Description: Router-DPDK
- Router-DPDK is doing packet processing using the Data Plane Development Kit (DPDK).
+Description: Packet-journey
+ Packet-journey is doing packet processing using the Data Plane Development Kit (DPDK).
 
 Package: pktj-ivybridge
 Architecture: any
 Depends: ${misc:Depends}, dpdk-ivybridge
-Description: Router-DPDK
- Router-DPDK is doing packet processing using the Data Plane Development Kit (DPDK).
+Description: Packet-journey
+ Packet-journey is doing packet processing using the Data Plane Development Kit (DPDK).
 
 Package: pktj-sandybridge
 Architecture: any
 Depends: ${misc:Depends}, dpdk-sandybridge
-Description: Router-DPDK
- Router-DPDK is doing packet processing using the Data Plane Development Kit (DPDK).
+Description: Packet-journey
+ Packet-journey is doing packet processing using the Data Plane Development Kit (DPDK).
 
 Package: pktj-westmere-dbg
 Architecture: any
