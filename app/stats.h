@@ -1,5 +1,5 @@
 /*
- * rdpdk - userland router which uses DPDK for its fastpath switching
+ * Packet-journey userland router which uses DPDK for its fastpath switching
  *
  */
 /*
@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __RDPDK_STATS_H
-#define __RDPDK_STATS_H
+#ifndef __PKTJ_STATS_H
+#define __PKTJ_STATS_H
 
 #define RSS_HASH_KEY_LENGTH 52
 
@@ -38,8 +38,8 @@ void nic_stats_clear(struct cmdline *cl, portid_t port_id);
 void nic_xstats_display(struct cmdline *cl, portid_t port_id, int option);
 void nic_xstats_clear(struct cmdline *cl, portid_t port_id);
 void port_infos_display(struct cmdline *cl, portid_t port_id);
-void rdpdk_stats_display(struct cmdline *cl, int option, int delay);
-void rdpdk_lpm_stats_display(struct cmdline *cl, int is_ipv4, int option);
+void pktj_stats_display(struct cmdline *cl, int option, int delay);
+void pktj_lpm_stats_display(struct cmdline *cl, int is_ipv4, int option);
 void port_rss_hash_conf_show(struct cmdline *cl, portid_t port_id,
 			     int show_rss_key);
 void port_rss_hash_key_update(struct cmdline *cl, portid_t port_id,

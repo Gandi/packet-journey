@@ -1,5 +1,5 @@
 /*
- * rdpdk - userland router which uses DPDK for its fastpath switching
+ * Packet-journey userland router which uses DPDK for its fastpath switching
  *
  */
 /*
@@ -26,8 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __RDPDK_CONFIG_H
-#define __RDPDK_CONFIG_H
+#ifndef __PKTJ_CONFIG_H
+#define __PKTJ_CONFIG_H
 
 void print_usage(const char *prgname);
 int parse_args(int argc, char **argv);
@@ -64,7 +64,7 @@ struct lcore_params {
 #define CMD_LINE_OPT_CONFIGFILE "configfile"
 #define CMD_LINE_OPT_KNI_RATE_LIMIT "kni_rate_limit"
 
-#define FILE_MAIN_CONFIG "rdpdk"
+#define FILE_MAIN_CONFIG "pktj"
 
 #define MAX_LCORE_PARAMS 1024
 #define MAX_JUMBO_PKT_LEN 9600

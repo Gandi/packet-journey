@@ -1,5 +1,5 @@
 /*
- * rdpdk - userland router which uses DPDK for its fastpath switching
+ * Packet-journey userland router which uses DPDK for its fastpath switching
  *
  */
 /*
@@ -26,13 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __RDPDK_CMDLINE_H
-#define __RDPDK_CMDLINE_H
+#ifndef __PKTJ_CMDLINE_H
+#define __PKTJ_CMDLINE_H
 
-int rdpdk_cmdline_init(const char *path, uint32_t socket_id);
-pthread_t rdpdk_cmdline_launch(int sock, cpu_set_t *cpuset);
-int rdpdk_cmdline_stop(int sock);
-int rdpdk_cmdline_terminate(int sock, const char *path);
+int pktj_cmdline_init(const char *path, uint32_t socket_id);
+pthread_t pktj_cmdline_launch(int sock, cpu_set_t *cpuset);
+int pktj_cmdline_stop(int sock);
+int pktj_cmdline_terminate(int sock, const char *path);
 
 #define CMDLINE_MAX_CLIENTS 32
 struct client_data_t {

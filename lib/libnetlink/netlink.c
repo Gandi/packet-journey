@@ -4,7 +4,7 @@
 #include <linux/if_arp.h>
 #include <poll.h>
 
-#include "rdpdk_common.h"
+#include "pktj_common.h"
 
 #include "libnetlink.h"
 #define NETL_POLL_TIMEOUT 1000
@@ -94,7 +94,7 @@ static uint16_t get_vlan_id(struct rtattr *linkinfo[])
 
 static int
 netl_handler(struct netl_handle *h,
-			 rdpdk_unused(struct sockaddr_nl *nladdr),
+			 pktj_unused(struct sockaddr_nl *nladdr),
 			 struct nlmsghdr *hdr, void *args)
 {
 	int len = hdr->nlmsg_len;
@@ -473,7 +473,7 @@ struct netl_handle *netl_create(void)
 
 
 	netl_handle =
-		rdpdk_calloc("netl_handle", 1, sizeof(struct netl_handle), 0,
+		pktj_calloc("netl_handle", 1, sizeof(struct netl_handle), 0,
 					 SOCKET_ID_ANY);
 	if (netl_handle == NULL)
 		return NULL;
@@ -529,7 +529,7 @@ struct netl_handle *netl_create(void)
 	return netl_handle;
 
   free_netl_handle:
-	rdpdk_free(netl_handle);
+	pktj_free(netl_handle);
 	return NULL;
 }
 
@@ -541,7 +541,7 @@ int netl_free(struct netl_handle *h)
 			h->fd = -1;
 		}
 
-		rdpdk_free(h);
+		pktj_free(h);
 	}
 
 	return 0;

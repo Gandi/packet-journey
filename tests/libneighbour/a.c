@@ -1,4 +1,4 @@
-#include "rdpdk_common.h"
+#include "pktj_common.h"
 #include <libneighbour.h>
 
 #define IP4(a,b,c,d) \
@@ -22,7 +22,7 @@ int main(void)
 
 	char *argv[7] = { "test", "-l", "0", "-n", "1", "--log-level", "0" };
 
-	rdpdk_init(7, argv);
+	pktj_init(7, argv);
 
 	t = nei_create(SOCKET_ID_ANY);
 	if (t == NULL) {

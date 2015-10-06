@@ -1,5 +1,5 @@
 /*
- * rdpdk - userland router which uses DPDK for its fastpath switching
+ * Packet-journey userland router which uses DPDK for its fastpath switching
  *
  */
 /*
@@ -137,7 +137,7 @@ print_ethaddr(struct cmdline *cl, const char *name,
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
 
 void
-rdpdk_stats_display(struct cmdline *cl, int option, int delay)
+pktj_stats_display(struct cmdline *cl, int option, int delay)
 {
 	uint64_t total_packets_dropped, total_packets_tx, total_packets_rx;
 	uint64_t total_packets_kni_tx, total_packets_kni_rx,
@@ -223,7 +223,7 @@ rdpdk_stats_display(struct cmdline *cl, int option, int delay)
 #pragma GCC diagnostic pop
 
 void
-rdpdk_lpm_stats_display(struct cmdline *cl, int is_ipv4, int option)
+pktj_lpm_stats_display(struct cmdline *cl, int is_ipv4, int option)
 {
 	struct lpm_stats_t *stats;
 

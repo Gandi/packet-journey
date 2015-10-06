@@ -1,4 +1,4 @@
-Source: rdpdk
+Source: pktj
 Section: net
 Priority: optional
 Maintainer: Nikita Kozlov <nikita@gandi.net>
@@ -8,50 +8,50 @@ Homepage: http://dpdk.org/
 #Vcs-Git: git://anonscm.debian.org/collab-maint/dpdk.git
 #Vcs-Browser: http://anonscm.debian.org/?p=collab-maint/dpdk.git;a=summary
 
-Package: rdpdk-westmere
+Package: pktj-westmere
 Architecture: any
 Depends: ${misc:Depends}, dpdk-westmere
-Description: Router-DPDK
- Router-DPDK is doing packet processing using the Data Plane Development Kit (DPDK).
+Description: Packet-journey
+ Packet-journey is doing packet processing using the Data Plane Development Kit (DPDK).
 
-Package: rdpdk-ivybridge
+Package: pktj-ivybridge
 Architecture: any
 Depends: ${misc:Depends}, dpdk-ivybridge
-Description: Router-DPDK
- Router-DPDK is doing packet processing using the Data Plane Development Kit (DPDK).
+Description: Packet-journey
+ Packet-journey is doing packet processing using the Data Plane Development Kit (DPDK).
 
-Package: rdpdk-sandybridge
+Package: pktj-sandybridge
 Architecture: any
 Depends: ${misc:Depends}, dpdk-sandybridge
-Description: Router-DPDK
- Router-DPDK is doing packet processing using the Data Plane Development Kit (DPDK).
+Description: Packet-journey
+ Packet-journey is doing packet processing using the Data Plane Development Kit (DPDK).
 
-Package: rdpdk-westmere-dbg
+Package: pktj-westmere-dbg
 Architecture: any
 Section: debug
 Priority: extra
 Depends:
-    rdpdk-westmere (= ${binary:Version}),
+    pktj-westmere (= ${binary:Version}),
     ${misc:Depends}
-Description: debugging symbols for rdpdk-westmere
- This package contains the debugging symbols for rdpdk-westmere.
+Description: debugging symbols for pktj-westmere
+ This package contains the debugging symbols for pktj-westmere.
 
-Package: rdpdk-sandybridge-dbg
+Package: pktj-sandybridge-dbg
 Architecture: any
 Section: debug
 Priority: extra
 Depends:
-    rdpdk-sandybridge (= ${binary:Version}),
+    pktj-sandybridge (= ${binary:Version}),
     ${misc:Depends}
-Description: debugging symbols for rdpdk-sandybridge
- This package contains the debugging symbols for rdpdk-sandybridge.
+Description: debugging symbols for pktj-sandybridge
+ This package contains the debugging symbols for pktj-sandybridge.
 
-Package: rdpdk-ivybridge-dbg
+Package: pktj-ivybridge-dbg
 Architecture: any
 Section: debug
 Priority: extra
 Depends:
-    rdpdk-ivybridge (= ${binary:Version}),
+    pktj-ivybridge (= ${binary:Version}),
     ${misc:Depends}
-Description: debugging symbols for rdpdk-ivybridge
- This package contains the debugging symbols for rdpdk-ivybridge.
+Description: debugging symbols for pktj-ivybridge
+ This package contains the debugging symbols for pktj-ivybridge.

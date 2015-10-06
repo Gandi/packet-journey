@@ -1,6 +1,6 @@
 #include <string.h>
 
-#include "rdpdk_common.h"
+#include "pktj_common.h"
 #include "libneighbour.h"
 
 inline static void neighbor6_free(struct nei_entry6 *e)
@@ -305,7 +305,7 @@ struct nei_table *nei_create(int socketid)
 	struct nei_table *nei_table;
 
 	nei_table =
-		rdpdk_calloc("nei_table", 1, sizeof(struct nei_table), 64,
+		pktj_calloc("nei_table", 1, sizeof(struct nei_table), 64,
 					 socketid);
 
 	return nei_table;
@@ -314,5 +314,5 @@ struct nei_table *nei_create(int socketid)
 void nei_free(struct nei_table *table)
 {
 	if (table != NULL)
-		rdpdk_free(table);
+		pktj_free(table);
 }
