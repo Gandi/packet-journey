@@ -36,38 +36,37 @@
 .Fl -rule_ipv6 Cm path
 .Sh DESCRIPTION
 .Nm
-(Packet-journey) is a program that permit to switch quickly packets through
-a fastpath and also to forward those packets to the kernel.
-It permit also to rate-limit those packets or filtering them.
+(Packet-journey) is a program that allows quickly switching packets through
+a fastpath and also forwarding those packets to the kernel.
+It also enables rate-limiting those packets or filtering them.
 .Pp
 The options are as follows:
 .Bl -tag -offset indent
 .It Fl -config Cm (port,queue_rx,lcore) Op ,(port,queue_rx,lcore)
-Create and use a RX queue on a specific Port and select which core you use
+Create and use an RX queue on a specific Port and select which core you use
 for the forwarding.
 You may set multiple tuples at the same time by separating them by a comma.
 .It Fl -kniconfig Cm (port,lcore_tx,lcore_kthread)
 Create a KNI which will be used by
 .Nm
-for sending certains packets to the kernel and for receiving packets from
+for sending certain packets to the kernel and for receiving packets from
 the kernel to the fastpath.
 .It Fl -enable-jumbo
-Explicitly enable jumbo frames support, it's necessary with certain cards.
+Explicitly enable jumbo frames support, which is necessary with certain cards.
 .It Fl -max-pkt-len Cm <64-9000>
-Set the max RX packet lenghts, it may also needs to have jumbo frames
-activated
+Set the max RX packet lengths, jumbo frames may also need to be activated
 .It Fl -promiscuous
-Set the promiscuous mode on the Port. It's necessary if you want to receive
-packets that have not your MAC address.
+Set the promiscuous mode on the Port. This is necessary if you want to receive
+packets that do not have your MAC address.
 .It Fl -no-numa
-Disable Numa awarness, it's necessary on non-numa platform.
+Disable Numa awarness. Necessary on non-numa platforms.
 .It Fl -aclavx2
 Use AVX2 instructions for packet filtering.
 .It Fl -unixsock Cm path
 Set the path of the unixsock which may be used for connecting to the CLI,
 by default /tmp/pktj.SOCKET_ID
 .It Fl -configfile Cm path
-Set the path of a configfile from which options would be taken. Its still
+Set the path of a configfile to retrieve options from. It's still
 possible to override configfile options by passing args.
 .It Fl -kni_rate_limit Cm pps
 Select the max number of packets per second which will be sent from the
@@ -77,30 +76,30 @@ Select which Ports will be used by
 .Nm
 from the Ports discovered by DPDK.
 .It -callback-setup Cm path
-Set a script to run after pktj has finished to init his KNI. The script
-receive in arguments the name of the KNI and its MAC address.
+Set a script to run after pktj has finished to init its KNI. The script
+accepts the name of the KNI and its MAC address as arguments.
 .It -rule_ipv4 Cm path
 File containing IPv4 ACLs. See below for the format.
 .It -rule_ipv6 Cm path
 File containing IPv6 ACLs. See below for the format.
 .El
 .Sh ACL FILE FORMAT
-The file contains a line perf ACL rules, the lines have the format :
+The file contains one line per ACL rule. The lines have the following format:
 .Pp
 @<src-ip> <dst-ip> <src-port-min>:<src-port-max> <dst-port-min>:<dst-port-max>
  <ip_proto_selected_bit>/<ip_proto_selection_mask>
 .Pp
-src-ip and dst-ip are written in CIDR notation. For filtering only on one of
-the 2 IP you may put 0.0.0.0/0 or ::/0.
+src-ip and dst-ip are written in CIDR notation. For filtering on only one of
+the two IPs, you may put 0.0.0.0/0 or ::/0.
 .Pp
 src-port-min:src-port-max define the range of filtered source ports.
-Put 0/0xFFFF for bypassing the check.
+Put 0/0xFFFF to bypass the check.
 .Pp
 dst-port-min:dst-port-max define the range of filtered destination ports.
-Put 0/0xFFFF for bypassing the check.
+Put 0/0xFFFF to bypass the check.
 .Pp
 ip_proto_selected_bit/ip_proto_selection_mask are applied on the IP protocol
-field. ip_proto_selection_mask select the bits on which ip_proto_selected_bit
+field. ip_proto_selection_mask selects the bits on which the ip_proto_selected_bit
 mask will be applied.
 .Sh SEE ALSO
 http://dpdk.org and http://github.com/gandi/packet-journey
