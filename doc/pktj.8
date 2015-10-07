@@ -1,0 +1,107 @@
+.\"
+.\" Packet-journey, userland router which uses DPDK for its fastpath switching
+.\"
+.\" Copyright (c) 2015 Gandi S.A.S.  All rights reserved.
+.\"
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 1. Redistributions of source code must retain the above copyright
+.\"    notice, this list of conditions and the following disclaimer.
+.\" 2. Redistributions in binary form must reproduce the above copyright
+.\"    notice, this list of conditions and the following disclaimer in the
+.\"    documentation and/or other materials provided with the distribution.
+.\"
+.Dd October 06, 2015
+.Dt PKTJ 8
+.Os
+.Sh NAME
+.Nm pktj
+.Nd Packet-journey client
+.Sh SYNOPSIS
+.Nm
+.Op Fl -config Cm (port,queue_rx,lcore) Op ,(port,queue_rx,lcore)
+.Op Fl -kniconfig Cm (port,lcore_tx,lcore_kthread)
+.Op Fl -enable-jumbo
+.Op Fl -max-pkt-len Cm <64-9000>
+.Op Fl -promiscuous
+.Op Fl -no-numa
+.Op Fl -aclavx2
+.Op Fl -unixsock Cm path
+.Op Fl -configfile Cm path
+.Op Fl -kni_rate_limit Cm pps
+.Fl -portmask Cm mask
+.Fl -callback-setup Cm path
+.Fl -rule_ipv4 Cm path
+.Fl -rule_ipv6 Cm path
+.Sh DESCRIPTION
+.Nm
+(Packet-journey) is a program that allows quickly switching packets through
+a fastpath and also forwarding those packets to the kernel.
+It also enables rate-limiting those packets or filtering them.
+.Pp
+The options are as follows:
+.Bl -tag -offset indent
+.It Fl -config Cm (port,queue_rx,lcore) Op ,(port,queue_rx,lcore)
+Create and use an RX queue on a specific Port and select which core you use
+for the forwarding.
+You may set multiple tuples at the same time by separating them by a comma.
+.It Fl -kniconfig Cm (port,lcore_tx,lcore_kthread)
+Create a KNI which will be used by
+.Nm
+for sending certain packets to the kernel and for receiving packets from
+the kernel to the fastpath.
+.It Fl -enable-jumbo
+Explicitly enable jumbo frames support, which is necessary with certain cards.
+.It Fl -max-pkt-len Cm <64-9000>
+Set the max RX packet lengths, jumbo frames may also need to be activated
+.It Fl -promiscuous
+Set the promiscuous mode on the Port. This is necessary if you want to receive
+packets that do not have your MAC address.
+.It Fl -no-numa
+Disable Numa awarness. Necessary on non-numa platforms.
+.It Fl -aclavx2
+Use AVX2 instructions for packet filtering.
+.It Fl -unixsock Cm path
+Set the path of the unixsock which may be used for connecting to the CLI,
+by default /tmp/pktj.SOCKET_ID
+.It Fl -configfile Cm path
+Set the path of a configfile to retrieve options from. It's still
+possible to override configfile options by passing args.
+.It Fl -kni_rate_limit Cm pps
+Select the max number of packets per second which will be sent from the
+fastpath to the kernel. TCP 179 (BGP), ARP and ICMPv6 ND are not rate-limited.
+.It -portmask Cm mask
+Select which Ports will be used by
+.Nm
+from the Ports discovered by DPDK.
+.It -callback-setup Cm path
+Set a script to run after pktj has finished to init its KNI. The script
+accepts the name of the KNI and its MAC address as arguments.
+.It -rule_ipv4 Cm path
+File containing IPv4 ACLs. See below for the format.
+.It -rule_ipv6 Cm path
+File containing IPv6 ACLs. See below for the format.
+.El
+.Sh ACL FILE FORMAT
+The file contains one line per ACL rule. The lines have the following format:
+.Pp
+@<src-ip> <dst-ip> <src-port-min>:<src-port-max> <dst-port-min>:<dst-port-max>
+ <ip_proto_selected_bit>/<ip_proto_selection_mask>
+.Pp
+src-ip and dst-ip are written in CIDR notation. For filtering on only one of
+the two IPs, you may put 0.0.0.0/0 or ::/0.
+.Pp
+src-port-min:src-port-max define the range of filtered source ports.
+Put 0/0xFFFF to bypass the check.
+.Pp
+dst-port-min:dst-port-max define the range of filtered destination ports.
+Put 0/0xFFFF to bypass the check.
+.Pp
+ip_proto_selected_bit/ip_proto_selection_mask are applied on the IP protocol
+field. ip_proto_selection_mask selects the bits on which the ip_proto_selected_bit
+mask will be applied.
+.Sh SEE ALSO
+http://dpdk.org and http://github.com/gandi/packet-journey
+.Sh AUTHORS
+This manual page was written by Nikita Kozlov <nikita@gandi.net>, for the Debian GNU/Linux system (but may be used by others).
