@@ -807,8 +807,8 @@ dump_acl_config(void)
 		acl_parm_config.rule_ipv4_name);
 	RTE_LOG(INFO, PKTJ1, CMD_LINE_OPT_RULE_IPV6 ": %s\n",
 		acl_parm_config.rule_ipv6_name);
-	RTE_LOG(INFO, PKTJ1, CMD_LINE_OPT_SCALAR ": %d\n",
-		acl_parm_config.scalar);
+	RTE_LOG(INFO, PKTJ1, CMD_LINE_OPT_ACLAVX2 ": %d\n",
+		acl_parm_config.aclavx2);
 }
 
 static int
@@ -852,8 +852,8 @@ setup_acl(struct rte_acl_rule *acl_base, unsigned int acl_num, int ipv6,
 		goto err;
 	}
 
-	if (acl_parm_config.scalar &&
-	    rte_acl_set_ctx_classify(context, RTE_ACL_CLASSIFY_SCALAR) != 0) {
+	if (acl_parm_config.aclavx2 &&
+	    rte_acl_set_ctx_classify(context, RTE_ACL_CLASSIFY_AVX2) != 0) {
 		acl_log("Failed to setup classify method for  ACL context\n");
 		goto err;
 	}

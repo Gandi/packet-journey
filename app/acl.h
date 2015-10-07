@@ -64,7 +64,7 @@ struct acl_search_t {
 struct acl_parm {
 	const char *rule_ipv4_name;
 	const char *rule_ipv6_name;
-	int scalar;
+	int aclavx2;
 };
 
 extern struct acl_parm acl_parm_config;

@@ -55,7 +55,7 @@ struct lcore_params {
 #define CMD_LINE_OPT_UNIXSOCK "unixsock"
 #define CMD_LINE_OPT_RULE_IPV4 "rule_ipv4"
 #define CMD_LINE_OPT_RULE_IPV6 "rule_ipv6"
-#define CMD_LINE_OPT_SCALAR "scalar"
+#define CMD_LINE_OPT_ACLAVX2 "aclavx2"
 #define CMD_LINE_OPT_PROMISC "promiscuous"
 #define CMD_LINE_OPT_NO_NUMA "no-numa"
 #define CMD_LINE_OPT_ENABLE_JUMBO "enable-jumbo"

@@ -140,8 +140,8 @@ print_usage(const char *prgname)
 	    "  [--unixsock PATH: override cmdline unixsock path (default: "
 	    "/tmp/pktj.sock)]\n"
 	    "  [--configfile PATH: use a configfile for params]\n"
+        "  [--aclavx2: Use AVX2 instructions to do lookupi n acl tables]\n"
 	    "  [--no-numa: disable numa awareness]\n"
-	    "  [--scalar: Use scalar function to do lookupn acl tables]\n"
 	    "  [--kni_rate_limit RATELIMIT: rate limit the packets sent to the "
 	    "kni]\n"
 	    "  --portmask PORTMASK: hexadecimal bitmask of ports to configure\n"
@@ -639,10 +639,10 @@ install_cfgfile(const char *file_name, char *prgname)
 	}
 
 	entry =
-	    rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_SCALAR);
+	    rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG, CMD_LINE_OPT_ACLAVX2);
 	if (entry) {
 		if (strtoul(entry, NULL, 0)) {
-			acl_parm_config.scalar = 1;
+			acl_parm_config.aclavx2 = 1;
 		}
 	}
 
@@ -696,7 +696,7 @@ parse_args(int argc, char **argv)
 					 {CMD_LINE_OPT_UNIXSOCK, 1, 0, 0},
 					 {CMD_LINE_OPT_RULE_IPV4, 1, 0, 0},
 					 {CMD_LINE_OPT_RULE_IPV6, 1, 0, 0},
-					 {CMD_LINE_OPT_SCALAR, 0, 0, 0},
+					 {CMD_LINE_OPT_ACLAVX2, 0, 0, 0},
 					 {CMD_LINE_OPT_PROMISC, 0, 0, 0},
 					 {CMD_LINE_OPT_NO_NUMA, 0, 0, 0},
 					 {CMD_LINE_OPT_ENABLE_JUMBO, 0, 0, 0},
@@ -806,9 +806,9 @@ parse_args(int argc, char **argv)
 			}
 
 			if (!strncmp(lgopts[option_index].name,
-				     CMD_LINE_OPT_SCALAR,
-				     sizeof(CMD_LINE_OPT_SCALAR))) {
-				acl_parm_config.scalar = 1;
+				     CMD_LINE_OPT_ACLAVX2,
+				     sizeof(CMD_LINE_OPT_ACLAVX2))) {
+				acl_parm_config.aclavx2 = 1;
 			}
 
 			if (!strncmp(lgopts[option_index].name,
