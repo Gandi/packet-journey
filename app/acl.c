@@ -914,7 +914,10 @@ acl_init(int is_ipv4)
 		for (i = 0; i < NB_SOCKETS; i++) {
 			if ((acl_ctx = setup_acl(acl_base_ipv4, acl_num_ipv4, 0,
 						 i)) != NULL) {
+				rte_acl_free(ipv4_acx[i]);
 				ipv4_acx[i] = acl_ctx;
+			} else if (acl_num_ipv4 == 0) {
+				ipv4_acx[i] = NULL;
 			} else {
 				acl_log("setup_acl failed for ipv4 with "
 					"socketid %d, keeping previous rules "
@@ -923,7 +926,9 @@ acl_init(int is_ipv4)
 			}
 		}
 #ifdef L3FWDACL_DEBUG
-		acl_config.rule_ipv4 = (struct acl4_rule *)acl_base_ipv4;
+		if (acl_base_ipv4) {
+			acl_config.rule_ipv4 = (struct acl4_rule *)acl_base_ipv4;
+		}
 #else
 		free(acl_base_ipv4);
 #endif
@@ -941,7 +946,10 @@ acl_init(int is_ipv4)
 		for (i = 0; i < NB_SOCKETS; i++) {
 			if ((acl_ctx = setup_acl(acl_base_ipv6, acl_num_ipv6, 1,
 						 i)) != NULL) {
+				rte_acl_free(ipv6_acx[i]);
 				ipv6_acx[i] = acl_ctx;
+			} else if (acl_num_ipv6 == 0) {
+				ipv6_acx[i] = NULL;
 			} else {
 				acl_log("setup_acl failed for ipv6 with "
 					"socketid %d, keeping previous rules "
@@ -950,7 +958,9 @@ acl_init(int is_ipv4)
 			}
 		}
 #ifdef L3FWDACL_DEBUG
-		acl_config.rule_ipv6 = (struct acl6_rule *)acl_base_ipv6;
+		if (acl_base_ipv6) {
+			acl_config.rule_ipv6 = (struct acl6_rule *)acl_base_ipv6;
+		}
 #else
 		free(acl_base_ipv6);
 #endif
