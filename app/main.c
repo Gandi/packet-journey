@@ -272,20 +272,6 @@ struct ether_addr ports_eth_addr[RTE_MAX_ETHPORTS];
 /* replace first 12B of the ethernet header. */
 #define MASK_ETH 0x3f
 
-struct mbuf_table {
-	uint16_t len;
-	struct rte_mbuf *m_table[MAX_PKT_BURST];
-};
-
-struct lcore_rx_queue {
-	uint8_t port_id;
-	uint8_t queue_id;
-} __rte_cache_aligned;
-
-#define MAX_RX_QUEUE_PER_LCORE 16
-#define MAX_TX_QUEUE_PER_PORT RTE_MAX_ETHPORTS
-#define MAX_RX_QUEUE_PER_PORT 128
-
 static struct rte_mempool *pktmbuf_pool[NB_SOCKETS];
 static struct rte_mempool *knimbuf_pool[RTE_MAX_ETHPORTS];
 struct nei_entry kni_neighbor[RTE_MAX_ETHPORTS];
@@ -294,23 +280,9 @@ struct nei_entry kni_neighbor[RTE_MAX_ETHPORTS];
 #define IPV6_L3FWD_LPM_MAX_RULES 524288
 #define IPV6_L3FWD_LPM_NUMBER_TBL8S (1 << 16)
 
-struct lcore_conf {
-	uint16_t n_rx_queue;
-	struct lcore_rx_queue rx_queue_list[MAX_RX_QUEUE_PER_LCORE];
-	uint16_t tx_queue_id[RTE_MAX_ETHPORTS];
-	struct mbuf_table tx_mbufs[RTE_MAX_ETHPORTS];
-	lookup_struct_t *ipv4_lookup_struct;
-	lookup6_struct_t *ipv6_lookup_struct;
-	neighbor_struct_t *neighbor4_struct;
-	neighbor_struct_t *neighbor6_struct;
-	struct rte_acl_ctx *acx_ipv4;
-	struct rte_acl_ctx *acx_ipv6;
-	uint32_t rate_limit_cur;
-} __rte_cache_aligned;
-
 struct lcore_stats stats[RTE_MAX_LCORE];
 
-static struct lcore_conf lcore_conf[RTE_MAX_LCORE];
+struct lcore_conf lcore_conf[RTE_MAX_LCORE];
 static rte_atomic32_t main_loop_stop = RTE_ATOMIC32_INIT(0);
 
 static void
@@ -1175,6 +1147,26 @@ filter_packets(uint32_t lcore_id, struct rte_mbuf **pkts,
 	return nb_pkts;
 }
 
+static inline int
+rte_atomic64_cmpswap(volatile uintptr_t *dst, uintptr_t* exp, uintptr_t src)
+{
+	uint8_t res;
+
+	asm volatile(
+			MPLOCKED
+			"cmpxchgq %[src], %[dst];"
+			"movq %%rax, %[exp];"
+			"sete %[res];"
+			: [res] "=a" (res),     /* output */
+			  [dst] "=m" (*dst),
+			  [exp] "=m" (*exp)
+			: [src] "r" (src),      /* input */
+			  "a" (*exp),
+			  "m" (*dst)
+			: "memory", "cc");            /* no-clobber list */
+	return res;
+}
+
 /* main processing loop */
 static int
 main_loop(__rte_unused void *dummy)
@@ -1196,6 +1188,7 @@ main_loop(__rte_unused void *dummy)
 	__m128i dip[MAX_PKT_BURST / FWDSTEP];
 	uint32_t flag[MAX_PKT_BURST / FWDSTEP];
 	uint16_t pnum[MAX_PKT_BURST + 1];
+	struct rte_acl_ctx *acx;
 
 	prev_tsc = 0;
 
@@ -1224,6 +1217,24 @@ main_loop(__rte_unused void *dummy)
 			break;
 		stats[lcore_id].nb_iteration_looped++;
 		cur_tsc = rte_rdtsc();
+
+#ifdef NON_ATOMIC
+#define SWAP_ACX(cur_acx, new_acx) \
+		if (unlikely(cur_acx != new_acx)) { \
+			rte_acl_free(cur_acx); \
+			cur_acx = new_acx; \
+		}
+#else
+#define SWAP_ACX(cur_acx, new_acx) \
+		acx = cur_acx; \
+		if (!rte_atomic64_cmpswap((uintptr_t*)&new_acx, (uintptr_t*)&cur_acx, (uintptr_t)new_acx)) { \
+			rte_acl_free(acx); \
+		}
+#endif
+
+		SWAP_ACX(qconf->cur_acx_ipv4, qconf->new_acx_ipv4);
+		SWAP_ACX(qconf->cur_acx_ipv6, qconf->new_acx_ipv6);
+#undef SWAP_ACX
 
 		/*
 		 * TX burst queue drain
@@ -1273,20 +1284,20 @@ main_loop(__rte_unused void *dummy)
 				prepare_acl_parameter(pkts_burst, &acl_search,
 						      nb_rx);
 
-				if (likely(qconf->acx_ipv4 &&
+				if (likely(qconf->cur_acx_ipv4 &&
 					   acl_search.num_ipv4)) {
 					rte_acl_classify(
-					    qconf->acx_ipv4,
+					    qconf->cur_acx_ipv4,
 					    acl_search.data_ipv4,
 					    acl_search.res_ipv4,
 					    acl_search.num_ipv4,
 					    DEFAULT_MAX_CATEGORIES);
 				}
 
-				if (likely(qconf->acx_ipv6 &&
+				if (likely(qconf->cur_acx_ipv6 &&
 					   acl_search.num_ipv6)) {
 					rte_acl_classify(
-					    qconf->acx_ipv6,
+					    qconf->cur_acx_ipv6,
 					    acl_search.data_ipv6,
 					    acl_search.res_ipv6,
 					    acl_search.num_ipv6,
@@ -1294,7 +1305,7 @@ main_loop(__rte_unused void *dummy)
 				}
 				nb_rx = filter_packets(
 				    lcore_id, pkts_burst, &acl_search, nb_rx,
-				    qconf->acx_ipv4, qconf->acx_ipv6);
+				    qconf->cur_acx_ipv4, qconf->cur_acx_ipv6);
 			}
 			if (unlikely(nb_rx == 0))
 				continue;
@@ -1665,8 +1676,8 @@ init_mem(uint8_t nb_ports)
 		qconf->neighbor4_struct = neighbor4_struct[socketid];
 		qconf->ipv6_lookup_struct = ipv6_pktj_lookup_struct[socketid];
 		qconf->neighbor6_struct = neighbor6_struct[socketid];
-		qconf->acx_ipv4 = ipv4_acx[socketid];
-		qconf->acx_ipv6 = ipv6_acx[socketid];
+		qconf->cur_acx_ipv4 = ipv4_acx[socketid];
+		qconf->cur_acx_ipv6 = ipv6_acx[socketid];
 	}
 	return 0;
 }

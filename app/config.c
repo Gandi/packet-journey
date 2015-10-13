@@ -73,6 +73,7 @@
 #include <rte_malloc.h>
 
 #include "common.h"
+#include "routing.h"
 #include "config.h"
 #include "acl.h"
 #include "kni.h"
