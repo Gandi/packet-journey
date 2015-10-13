@@ -1190,11 +1190,11 @@ pktj_cmdline_terminate(int sock, const char *path)
 	if (pthread_join(cmdline_tid[sock], NULL)) {
 		perror("error during free cmdline pthread_join");
 	}
-	close(cmdline_thread_unixsock[RTE_PER_LCORE(g_socket_id)]);
+	close(cmdline_thread_unixsock[sock]);
 	if (sock == 0) {
 		unlink(path);
 	}
-	snprintf(buf, sizeof(buf), "%s.%d", path, RTE_PER_LCORE(g_socket_id));
+	snprintf(buf, sizeof(buf), "%s.%d", path, sock);
 	unlink(buf);
 	return ret;
 }
