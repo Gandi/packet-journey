@@ -100,6 +100,7 @@
 #include <rte_acl.h>
 
 #include "common.h"
+#include "routing.h"
 #include "acl.h"
 #include "config.h"
 
@@ -914,7 +915,6 @@ acl_init(int is_ipv4)
 		for (i = 0; i < NB_SOCKETS; i++) {
 			if ((acl_ctx = setup_acl(acl_base_ipv4, acl_num_ipv4, 0,
 						 i)) != NULL) {
-				rte_acl_free(ipv4_acx[i]);
 				ipv4_acx[i] = acl_ctx;
 			} else if (acl_num_ipv4 == 0) {
 				ipv4_acx[i] = NULL;
@@ -946,7 +946,6 @@ acl_init(int is_ipv4)
 		for (i = 0; i < NB_SOCKETS; i++) {
 			if ((acl_ctx = setup_acl(acl_base_ipv6, acl_num_ipv6, 1,
 						 i)) != NULL) {
-				rte_acl_free(ipv6_acx[i]);
 				ipv6_acx[i] = acl_ctx;
 			} else if (acl_num_ipv6 == 0) {
 				ipv6_acx[i] = NULL;
@@ -964,6 +963,20 @@ acl_init(int is_ipv4)
 #else
 		free(acl_base_ipv6);
 #endif
+	}
+
+	int socketid, lcore_id;
+	for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++) {
+		if (rte_lcore_is_enabled(lcore_id) == 0)
+			continue;
+
+		if (numa_on)
+			socketid = rte_lcore_to_socket_id(lcore_id);
+		else
+			socketid = 0;
+
+		rte_atomic64_cmpset((uintptr_t*)&lcore_conf[lcore_id].new_acx_ipv4, (uintptr_t)lcore_conf[lcore_id].new_acx_ipv4, (uintptr_t)ipv4_acx[socketid]);
+		rte_atomic64_cmpset((uintptr_t*)&lcore_conf[lcore_id].new_acx_ipv6, (uintptr_t)lcore_conf[lcore_id].new_acx_ipv6, (uintptr_t)ipv6_acx[socketid]);
 	}
 
 	return 0;

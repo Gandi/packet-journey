@@ -49,6 +49,36 @@ struct lcore_params {
 	uint8_t lcore_id;
 } __rte_cache_aligned;
 
+#define MAX_RX_QUEUE_PER_LCORE 16
+#define MAX_TX_QUEUE_PER_PORT RTE_MAX_ETHPORTS
+#define MAX_RX_QUEUE_PER_PORT 128
+
+struct lcore_rx_queue {
+	uint8_t port_id;
+	uint8_t queue_id;
+} __rte_cache_aligned;
+
+struct mbuf_table {
+	uint16_t len;
+	struct rte_mbuf *m_table[MAX_PKT_BURST];
+};
+
+struct lcore_conf {
+	uint16_t n_rx_queue;
+	struct lcore_rx_queue rx_queue_list[MAX_RX_QUEUE_PER_LCORE];
+	uint16_t tx_queue_id[RTE_MAX_ETHPORTS];
+	struct mbuf_table tx_mbufs[RTE_MAX_ETHPORTS];
+	lookup_struct_t *ipv4_lookup_struct;
+	lookup6_struct_t *ipv6_lookup_struct;
+	neighbor_struct_t *neighbor4_struct;
+	neighbor_struct_t *neighbor6_struct;
+	struct rte_acl_ctx *cur_acx_ipv4, *new_acx_ipv4;
+	struct rte_acl_ctx *cur_acx_ipv6, *new_acx_ipv6;
+	uint32_t rate_limit_cur;
+} __rte_cache_aligned;
+
+extern struct lcore_conf lcore_conf[RTE_MAX_LCORE];
+
 #define CMD_LINE_OPT_CONFIG "config"
 #define CMD_LINE_OPT_KNICONFIG "kniconfig"
 #define CMD_LINE_OPT_CALLBACK_SETUP "callback-setup"
