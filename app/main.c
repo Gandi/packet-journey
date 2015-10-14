@@ -166,7 +166,7 @@ struct control_params_t control_handle[NB_SOCKETS];
 #else
 #define PKTJ_TEST_IPV4_HDR(m) (m)->ol_flags &PKT_RX_IPV4_HDR
 #define PKTJ_TEST_IPV6_HDR(m) (m)->ol_flags &PKT_RX_IPV6_HDR
-#define PKTJ_TEST_ARP_HDR(m)                                                  \
+#define PKTJ_TEST_ARP_HDR(m)                                                   \
 	((rte_pktmbuf_mtod((m), struct ether_hdr *)->ether_type) &             \
 	 ETHER_TYPE_BE_ARP)
 #endif
@@ -649,28 +649,28 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 	nb_kni = p->nb_kni;
 
 #define PROCESSX4_STEP(step)                                                   \
-	if (likely(PKTJ_TEST_IPV4_HDR(pkt[j]))) {                             \
+	if (likely(PKTJ_TEST_IPV4_HDR(pkt[j]))) {                              \
 		is_ipv4 = 1;                                                   \
 		process = !qconf->neighbor4_struct->entries.t4[dst_port[j]]    \
 			       .neighbor.valid ||                              \
 			  qconf->neighbor4_struct->entries.t4[dst_port[j]]     \
 				  .neighbor.action == NEI_ACTION_KNI;          \
-		RTE_LOG(DEBUG, PKTJ1,                                         \
+		RTE_LOG(DEBUG, PKTJ1,                                          \
 			#step ": j %d process %d dst_port %d ipv4\n", j,       \
 			process, dst_port[j]);                                 \
-	} else if (PKTJ_TEST_IPV6_HDR(pkt[j])) {                              \
+	} else if (PKTJ_TEST_IPV6_HDR(pkt[j])) {                               \
 		is_ipv4 = 0;                                                   \
 		process = !qconf->neighbor6_struct->entries.t6[dst_port[j]]    \
 			       .neighbor.valid ||                              \
 			  qconf->neighbor6_struct->entries.t6[dst_port[j]]     \
 				  .neighbor.action == NEI_ACTION_KNI;          \
-		RTE_LOG(DEBUG, PKTJ1, #step ": j %d process %d ipv6\n", j,    \
+		RTE_LOG(DEBUG, PKTJ1, #step ": j %d process %d ipv6\n", j,     \
 			process);                                              \
 	} else {                                                               \
 		is_ipv4 = 0;                                                   \
 		process = 1;                                                   \
 		RTE_LOG(                                                       \
-		    DEBUG, PKTJ1,                                             \
+		    DEBUG, PKTJ1,                                              \
 		    #step ": j %d process %d olflags%lx eth_type %x\n", j,     \
 		    process, pkt[j]->ol_flags,                                 \
 		    rte_pktmbuf_mtod(pkt[j], struct ether_hdr *)->ether_type); \
@@ -680,7 +680,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 		? ip_process(                                                  \
 		      rte_pktmbuf_mtod_offset(pkt[j], struct ether_hdr *,      \
 					      sizeof(struct ether_hdr)),       \
-		      &dst_port[j], PKTJ_PKT_TYPE(pkt[j]), qconf)             \
+		      &dst_port[j], PKTJ_PKT_TYPE(pkt[j]), qconf)              \
 		: 0;                                                           \
 	if (process) {                                                         \
 		/* test if we need to rate-limit that packet before sending it \
@@ -696,7 +696,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 			pkt[j] = pkt[nb_rx];                                   \
 			dst_port[j] = dst_port[nb_rx];                         \
 		}                                                              \
-		RTE_LOG(DEBUG, PKTJ1, #step                                   \
+		RTE_LOG(DEBUG, PKTJ1, #step                                    \
 			": j %d nb_rx %d i %d dst_port %d lcore_id %d\n",      \
 			j, nb_rx, i, dst_port[j], lcore_id);                   \
 	} else {                                                               \
@@ -713,7 +713,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 		}                                                              \
 		pkt[j]->vlan_tci = vlan_tci;                                   \
 		pkt[j]->ol_flags |= PKT_TX_VLAN_PKT;                           \
-		RTE_LOG(DEBUG, PKTJ1, #step ": olflags%lx vlan%d\n",          \
+		RTE_LOG(DEBUG, PKTJ1, #step ": olflags%lx vlan%d\n",           \
 			pkt[j]->ol_flags, vlan_tci);                           \
 		j++;                                                           \
 	}
@@ -1101,9 +1101,8 @@ filter_packets(uint32_t lcore_id, struct rte_mbuf **pkts,
 		} else {
 			// add back the unfiltered packet in pkts but don't
 			// discard non IP packet
-			while (
-			    nb_pkts < nb_rx &&
-			    !(PKTJ_PKT_TYPE(pkts[nb_pkts]) & PKTJ_IP_MASK)) {
+			while (nb_pkts < nb_rx &&
+			       !(PKTJ_PKT_TYPE(pkts[nb_pkts]) & PKTJ_IP_MASK)) {
 				nb_pkts++;
 			}
 			pkts[nb_pkts++] = acl_pkts[i];
@@ -1128,9 +1127,8 @@ filter_packets(uint32_t lcore_id, struct rte_mbuf **pkts,
 		} else {
 			// add back the unfiltered packet in pkts but don't
 			// discard non IP packet
-			while (
-			    nb_pkts < nb_rx &&
-			    !(PKTJ_PKT_TYPE(pkts[nb_pkts]) & PKTJ_IP_MASK)) {
+			while (nb_pkts < nb_rx &&
+			       !(PKTJ_PKT_TYPE(pkts[nb_pkts]) & PKTJ_IP_MASK)) {
 				nb_pkts++;
 			}
 			pkts[nb_pkts++] = acl_pkts[i];
@@ -1148,22 +1146,18 @@ filter_packets(uint32_t lcore_id, struct rte_mbuf **pkts,
 }
 
 static inline int
-rte_atomic64_cmpswap(volatile uintptr_t *dst, uintptr_t* exp, uintptr_t src)
+rte_atomic64_cmpswap(volatile uintptr_t *dst, uintptr_t *exp, uintptr_t src)
 {
 	uint8_t res;
 
-	asm volatile(
-			MPLOCKED
-			"cmpxchgq %[src], %[dst];"
-			"movq %%rax, %[exp];"
-			"sete %[res];"
-			: [res] "=a" (res),     /* output */
-			  [dst] "=m" (*dst),
-			  [exp] "=m" (*exp)
-			: [src] "r" (src),      /* input */
-			  "a" (*exp),
-			  "m" (*dst)
-			: "memory", "cc");            /* no-clobber list */
+	asm volatile(MPLOCKED "cmpxchgq %[src], %[dst];"
+			      "movq %%rax, %[exp];"
+			      "sete %[res];"
+		     : [res] "=a"(res), /* output */
+		       [dst] "=m"(*dst), [exp] "=m"(*exp)
+		     : [src] "r"(src), /* input */
+		       "a"(*exp), "m"(*dst)
+		     : "memory", "cc"); /* no-clobber list */
 	return res;
 }
 
@@ -1219,17 +1213,19 @@ main_loop(__rte_unused void *dummy)
 		cur_tsc = rte_rdtsc();
 
 #ifdef NON_ATOMIC
-#define SWAP_ACX(cur_acx, new_acx) \
-		if (unlikely(cur_acx != new_acx)) { \
-			rte_acl_free(cur_acx); \
-			cur_acx = new_acx; \
-		}
+#define SWAP_ACX(cur_acx, new_acx)                                             \
+	if (unlikely(cur_acx != new_acx)) {                                    \
+		rte_acl_free(cur_acx);                                         \
+		cur_acx = new_acx;                                             \
+	}
 #else
-#define SWAP_ACX(cur_acx, new_acx) \
-		acx = cur_acx; \
-		if (!rte_atomic64_cmpswap((uintptr_t*)&new_acx, (uintptr_t*)&cur_acx, (uintptr_t)new_acx)) { \
-			rte_acl_free(acx); \
-		}
+#define SWAP_ACX(cur_acx, new_acx)                                             \
+	acx = cur_acx;                                                         \
+	if (!rte_atomic64_cmpswap((uintptr_t *)&new_acx,                       \
+				  (uintptr_t *)&cur_acx,                       \
+				  (uintptr_t)new_acx)) {                       \
+		rte_acl_free(acx);                                             \
+	}
 #endif
 
 		SWAP_ACX(qconf->cur_acx_ipv4, qconf->new_acx_ipv4);
@@ -1488,7 +1484,7 @@ check_lcore_params(void)
 		if ((socketid = rte_lcore_to_socket_id(lcore) != 0) &&
 		    (numa_on == 0)) {
 			RTE_LOG(WARNING, PKTJ1, "warning: lcore %hhu is on "
-						 "socket %d with numa off \n",
+						"socket %d with numa off \n",
 				lcore, socketid);
 		}
 	}
@@ -1942,7 +1938,7 @@ signal_handler(int signum, __rte_unused siginfo_t *si,
 		int pid, status;
 		if ((pid = wait(&status)) > 0) {
 			RTE_LOG(INFO, PKTJ1, "SIGCHLD received, reaped child "
-					      "pid: %d status %d\n",
+					     "pid: %d status %d\n",
 				pid, WEXITSTATUS(status));
 		}
 	}

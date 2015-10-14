@@ -156,8 +156,8 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 						  NEI_ACTION_FWD);
 			if (s < 0) {
 				RTE_LOG(ERR, PKTJ_CTRL1, "failed to add a "
-							  "nexthop during "
-							  "route adding...\n");
+							 "nexthop during "
+							 "route adding...\n");
 				return -1;
 			}
 		}
@@ -167,8 +167,8 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 		if (s < 0) {
 			lpm4_stats[socket_id].nb_add_ko++;
 			RTE_LOG(ERR, PKTJ_CTRL1, "failed to add a route in "
-						  "lpm during route "
-						  "adding...\n");
+						 "lpm during route "
+						 "adding...\n");
 			return -1;
 		}
 		neighbor4_refcount_incr(neighbor4_struct[socket_id],
@@ -183,7 +183,7 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 					     nexthop, &nexthop_id);
 		if (s < 0) {
 			RTE_LOG(ERR, PKTJ_CTRL1, "failed to find nexthop "
-						  "during route deletion...\n");
+						 "during route deletion...\n");
 			return -1;
 		}
 
@@ -191,8 +191,7 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 				   rte_be_to_cpu_32(addr->s_addr), depth);
 		if (s < 0) {
 			lpm4_stats[socket_id].nb_del_ko++;
-			RTE_LOG(ERR, PKTJ_CTRL1,
-				"failed to delete route...\n");
+			RTE_LOG(ERR, PKTJ_CTRL1, "failed to delete route...\n");
 			return -1;
 		}
 		neighbor4_refcount_decr(neighbor4_struct[socket_id],
@@ -242,8 +241,8 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 						  NEI_ACTION_FWD);
 			if (s < 0) {
 				RTE_LOG(ERR, PKTJ_CTRL1, "failed to add a "
-							  "nexthop during "
-							  "route adding...\n");
+							 "nexthop during "
+							 "route adding...\n");
 				return -1;
 			}
 		}
@@ -252,8 +251,8 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 		if (s < 0) {
 			lpm6_stats[socket_id].nb_add_ko++;
 			RTE_LOG(ERR, PKTJ_CTRL1, "failed to add a route in "
-						  "lpm during route "
-						  "adding...\n");
+						 "lpm during route "
+						 "adding...\n");
 			return -1;
 		}
 		neighbor6_refcount_incr(neighbor6_struct[socket_id],
@@ -268,7 +267,7 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 					     nexthop, &nexthop_id);
 		if (s < 0) {
 			RTE_LOG(ERR, PKTJ_CTRL1, "failed to find nexthop "
-						  "during route deletion...\n");
+						 "during route deletion...\n");
 			return -1;
 		}
 
@@ -276,8 +275,7 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 				    addr->s6_addr, depth);
 		if (s < 0) {
 			lpm6_stats[socket_id].nb_del_ko++;
-			RTE_LOG(ERR, PKTJ_CTRL1,
-				"failed to delete route...\n");
+			RTE_LOG(ERR, PKTJ_CTRL1, "failed to delete route...\n");
 			return -1;
 		}
 		neighbor6_refcount_decr(neighbor6_struct[socket_id],
@@ -336,8 +334,8 @@ neighbor4(neighbor_action_t action, __s32 port_id, struct in_addr *addr,
 		s = sscanf(ibuf, "dpdk%10u.%10u", &port_id, &kni_vlan);
 		if (s <= 0) {
 			RTE_LOG(ERR, PKTJ_CTRL1, "received a neighbor "
-						  "announce for an unmanaged "
-						  "iface %s\n",
+						 "announce for an unmanaged "
+						 "iface %s\n",
 				ibuf);
 			return -1;
 		}
@@ -364,8 +362,8 @@ neighbor4(neighbor_action_t action, __s32 port_id, struct in_addr *addr,
 						  NEI_ACTION_FWD);
 			if (s < 0) {
 				RTE_LOG(ERR, PKTJ_CTRL1, "failed to add a "
-							  "nexthop in neighbor "
-							  "table...\n");
+							 "nexthop in neighbor "
+							 "table...\n");
 				return -1;
 			}
 
@@ -410,8 +408,8 @@ neighbor4(neighbor_action_t action, __s32 port_id, struct in_addr *addr,
 					     &nexthop_id);
 		if (s < 0) {
 			RTE_LOG(ERR, PKTJ_CTRL1, "failed to find a nexthop to "
-						  "delete in neighbor "
-						  "table...\n");
+						 "delete in neighbor "
+						 "table...\n");
 			return 0;
 		}
 		neighbor4_delete(neighbor4_struct[socket_id], nexthop_id);
@@ -483,8 +481,8 @@ neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
 
 		if (s <= 0) {
 			RTE_LOG(ERR, PKTJ_CTRL1, "received a neighbor "
-						  "announce for an unmanaged "
-						  "iface %s\n",
+						 "announce for an unmanaged "
+						 "iface %s\n",
 				ibuf);
 			return -1;
 		}
@@ -511,8 +509,8 @@ neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
 						  NEI_ACTION_FWD);
 			if (s < 0) {
 				RTE_LOG(ERR, PKTJ_CTRL1, "failed to add a "
-							  "nexthop in neighbor "
-							  "table...\n");
+							 "nexthop in neighbor "
+							 "table...\n");
 				return -1;
 			}
 			if (rte_lpm6_lookup(ipv6_pktj_lookup_struct[socket_id],
@@ -554,8 +552,8 @@ neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
 					     &nexthop_id);
 		if (s < 0) {
 			RTE_LOG(ERR, PKTJ_CTRL1, "failed to find a nexthop to "
-						  "delete in neighbor "
-						  "table...\n");
+						 "delete in neighbor "
+						 "table...\n");
 			return 0;
 		}
 		neighbor6_delete(neighbor6_struct[socket_id], nexthop_id);

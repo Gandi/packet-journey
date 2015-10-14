@@ -927,7 +927,8 @@ acl_init(int is_ipv4)
 		}
 #ifdef L3FWDACL_DEBUG
 		if (acl_base_ipv4) {
-			acl_config.rule_ipv4 = (struct acl4_rule *)acl_base_ipv4;
+			acl_config.rule_ipv4 =
+			    (struct acl4_rule *)acl_base_ipv4;
 		}
 #else
 		free(acl_base_ipv4);
@@ -958,7 +959,8 @@ acl_init(int is_ipv4)
 		}
 #ifdef L3FWDACL_DEBUG
 		if (acl_base_ipv6) {
-			acl_config.rule_ipv6 = (struct acl6_rule *)acl_base_ipv6;
+			acl_config.rule_ipv6 =
+			    (struct acl6_rule *)acl_base_ipv6;
 		}
 #else
 		free(acl_base_ipv6);
@@ -975,8 +977,14 @@ acl_init(int is_ipv4)
 		else
 			socketid = 0;
 
-		rte_atomic64_cmpset((uintptr_t*)&lcore_conf[lcore_id].new_acx_ipv4, (uintptr_t)lcore_conf[lcore_id].new_acx_ipv4, (uintptr_t)ipv4_acx[socketid]);
-		rte_atomic64_cmpset((uintptr_t*)&lcore_conf[lcore_id].new_acx_ipv6, (uintptr_t)lcore_conf[lcore_id].new_acx_ipv6, (uintptr_t)ipv6_acx[socketid]);
+		rte_atomic64_cmpset(
+		    (uintptr_t *)&lcore_conf[lcore_id].new_acx_ipv4,
+		    (uintptr_t)lcore_conf[lcore_id].new_acx_ipv4,
+		    (uintptr_t)ipv4_acx[socketid]);
+		rte_atomic64_cmpset(
+		    (uintptr_t *)&lcore_conf[lcore_id].new_acx_ipv6,
+		    (uintptr_t)lcore_conf[lcore_id].new_acx_ipv6,
+		    (uintptr_t)ipv6_acx[socketid]);
 	}
 
 	return 0;

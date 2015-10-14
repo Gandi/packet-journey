@@ -141,7 +141,7 @@ print_usage(const char *prgname)
 	    "  [--unixsock PATH: override cmdline unixsock path (default: "
 	    "/tmp/pktj.sock)]\n"
 	    "  [--configfile PATH: use a configfile for params]\n"
-        "  [--aclavx2: Use AVX2 instructions to do lookupi n acl tables]\n"
+	    "  [--aclavx2: Use AVX2 instructions to do lookupi n acl tables]\n"
 	    "  [--no-numa: disable numa awareness]\n"
 	    "  [--kni_rate_limit RATELIMIT: rate limit the packets sent to the "
 	    "kni]\n"
@@ -653,7 +653,7 @@ install_cfgfile(const char *file_name, char *prgname)
 
 		if (strtoul(entry, NULL, 0)) {
 			RTE_LOG(INFO, PKTJ1, "jumbo frame is enabled - "
-					      "disabling simple TX path\n");
+					     "disabling simple TX path\n");
 			port_conf.rxmode.jumbo_frame = 1;
 
 			entry = rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
@@ -732,8 +732,7 @@ parse_args(int argc, char **argv)
 				     sizeof(CMD_LINE_OPT_KNICONFIG))) {
 				ret = kni_parse_config(optarg);
 				if (ret) {
-					RTE_LOG(ERR, PKTJ1,
-						"Invalid config\n");
+					RTE_LOG(ERR, PKTJ1, "Invalid config\n");
 					print_usage(prgname);
 					return -1;
 				}
@@ -744,8 +743,7 @@ parse_args(int argc, char **argv)
 				     sizeof(CMD_LINE_OPT_CONFIG))) {
 				ret = parse_config(optarg);
 				if (ret) {
-					RTE_LOG(ERR, PKTJ1,
-						"invalid config\n");
+					RTE_LOG(ERR, PKTJ1, "invalid config\n");
 					print_usage(prgname);
 					return -1;
 				}
@@ -820,8 +818,8 @@ parse_args(int argc, char **argv)
 				    0, 0};
 
 				RTE_LOG(INFO, PKTJ1, "jumbo frame is enabled "
-						      "- disabling simple TX "
-						      "path\n");
+						     "- disabling simple TX "
+						     "path\n");
 				port_conf.rxmode.jumbo_frame = 1;
 
 				/* if no max-pkt-len set, use the default value
