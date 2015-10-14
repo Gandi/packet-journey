@@ -275,6 +275,7 @@ struct ether_addr ports_eth_addr[RTE_MAX_ETHPORTS];
 static struct rte_mempool *pktmbuf_pool[NB_SOCKETS];
 static struct rte_mempool *knimbuf_pool[RTE_MAX_ETHPORTS];
 struct nei_entry kni_neighbor[RTE_MAX_ETHPORTS];
+static rte_spinlock_t spinlock_kni[RTE_MAX_ETHPORTS] = {RTE_SPINLOCK_INITIALIZER};
 
 #define IPV4_L3FWD_LPM_MAX_RULES 524288
 #define IPV6_L3FWD_LPM_MAX_RULES 524288
@@ -741,7 +742,9 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 				int l = 0;
 				for (; l < i; ++l)
 					rte_vlan_insert(knimbuf + l);
+				rte_spinlock_lock(&spinlock_kni[portid]);
 				num = rte_kni_tx_burst(p->kni[k], knimbuf, i);
+				rte_spinlock_unlock(&spinlock_kni[portid]);
 				stats[lcore_id].nb_kni_tx += nb_rx;
 				if (unlikely(num < i)) {
 					/* Free mbufs not tx to kni interface */
