@@ -273,6 +273,7 @@ struct ether_addr ports_eth_addr[RTE_MAX_ETHPORTS];
 #define MASK_ETH 0x3f
 
 static struct rte_mempool *pktmbuf_pool[NB_SOCKETS];
+static uint64_t glob_tsc[RTE_MAX_LCORE];
 static struct rte_mempool *knimbuf_pool[RTE_MAX_ETHPORTS];
 struct nei_entry kni_neighbor[RTE_MAX_ETHPORTS];
 
@@ -1210,7 +1211,7 @@ main_loop(__rte_unused void *dummy)
 		if (unlikely(f_stop))
 			break;
 		stats[lcore_id].nb_iteration_looped++;
-		cur_tsc = rte_rdtsc();
+		cur_tsc = glob_tsc[lcore_id];
 
 #ifdef NON_ATOMIC
 #define SWAP_ACX(cur_acx, new_acx)                                             \
@@ -1944,6 +1945,28 @@ signal_handler(int signum, __rte_unused siginfo_t *si,
 	}
 }
 
+static int
+rdtsc_thread(__rte_unused void *args)
+{
+	int32_t f_stop;
+	uint32_t i;
+	uint64_t cur_tsc;
+
+	while (1) {
+		f_stop = rte_atomic32_read(&main_loop_stop);
+		if (unlikely(f_stop))
+			break;
+		cur_tsc = rte_rdtsc();
+
+		for (i = 0; i < RTE_MAX_LCORE; i++) {
+			glob_tsc[i] = cur_tsc;
+		}
+		usleep(50000);
+	}
+
+	return 0;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -1953,6 +1976,7 @@ main(int argc, char **argv)
 	unsigned lcore_id;
 	uint8_t portid;
 	pthread_t control_tid;
+	pthread_t rdtsc_tid;
 	char thread_name[16];
 	struct sigaction sa;
 	cpu_set_t cpuset;
@@ -2141,6 +2165,25 @@ main(int argc, char **argv)
 				    lcore_config[lcore_id].thread_id,
 				    thread_name);
 
+				pthread_create(&rdtsc_tid, NULL,
+					       (void *)rdtsc_thread, NULL);
+
+				snprintf(thread_name, 16, "rdtsc-%d", ctrlsock);
+				pthread_setname_np(rdtsc_tid, thread_name);
+
+				ret = pthread_setaffinity_np(
+				    rdtsc_tid, sizeof(cpu_set_t),
+				    &lcore_config[lcore_id].cpuset);
+
+				if (ret != 0) {
+					perror(
+					    "rdtsc pthread_setaffinity_np: ");
+					rte_exit(EXIT_FAILURE,
+						 "rdtsc pthread_setaffinity_np "
+						 "returned error: err=%d,",
+						 ret);
+				}
+
 				pktj_cmdline_init(unixsock_path, ctrlsock);
 				pktj_cmdline_launch(
 				    ctrlsock, &lcore_config[lcore_id].cpuset);
@@ -2160,6 +2203,18 @@ main(int argc, char **argv)
 		if (ret != 0) {
 			perror("control pthread_setaffinity_np: ");
 			rte_exit(EXIT_FAILURE, "control pthread_setaffinity_np "
+					       "returned error: err=%d,",
+				 ret);
+		}
+		pthread_create(&rdtsc_tid, NULL, (void *)rdtsc_thread, NULL);
+		snprintf(thread_name, 16, "rdtsc-0");
+		pthread_setname_np(rdtsc_tid, thread_name);
+		ret = pthread_setaffinity_np(rdtsc_tid, sizeof(cpu_set_t),
+					     &cpuset);
+
+		if (ret != 0) {
+			perror("rdtsc pthread_setaffinity_np: ");
+			rte_exit(EXIT_FAILURE, "rdtsc pthread_setaffinity_np "
 					       "returned error: err=%d,",
 				 ret);
 		}
