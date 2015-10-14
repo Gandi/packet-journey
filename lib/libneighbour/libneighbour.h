@@ -58,6 +58,7 @@ int neighbor4_set_lladdr_port(struct nei_table *, uint8_t,
 							  struct ether_addr *lladdr, int16_t port_id,
 							  int16_t vlan_id);
 int neighbor4_set_state(struct nei_table *, uint8_t, uint8_t flags);
+int neighbor4_set_action(struct nei_table *t, uint8_t nexthop_id, uint8_t action);
 int neighbor4_set_port(struct nei_table *t, uint8_t nexthop_id,
 					   int32_t port_id);
 int neighbor4_delete(struct nei_table *, uint8_t);
@@ -73,6 +74,7 @@ int neighbor6_set_lladdr_port(struct nei_table *, uint8_t,
 							  struct ether_addr *lladdr, int16_t port_id,
 							  int16_t vlan_id);
 int neighbor6_set_state(struct nei_table *, uint8_t, uint8_t flags);
+int neighbor6_set_action(struct nei_table *, uint8_t, uint8_t action);
 int neighbor6_set_port(struct nei_table *t, uint8_t nexthop_id,
 					   int32_t port_id);
 int neighbor6_delete(struct nei_table *, uint8_t);

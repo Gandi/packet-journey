@@ -119,6 +119,20 @@ neighbor6_set_state(struct nei_table *t, uint8_t nexthop_id, uint8_t flags)
 }
 
 int
+neighbor6_set_action(struct nei_table *t, uint8_t nexthop_id, uint8_t action)
+{
+	struct nei_entry6 *entry;
+
+	entry = &t->entries.t6[nexthop_id];
+
+	if (entry->neighbor.in_use == 0)
+		return -1;
+
+	entry->neighbor.action = action;
+	return 0;
+}
+
+int
 neighbor6_set_port(struct nei_table *t, uint8_t nexthop_id,
 				   int32_t port_id)
 {
@@ -263,6 +277,20 @@ neighbor4_set_state(struct nei_table *t, uint8_t nexthop_id, uint8_t flags)
 		return -1;
 
 	entry->neighbor.state = flags;
+	return 0;
+}
+
+int
+neighbor4_set_action(struct nei_table *t, uint8_t nexthop_id, uint8_t action)
+{
+	struct nei_entry4 *entry;
+
+	entry = &t->entries.t4[nexthop_id];
+
+	if (entry->neighbor.in_use == 0)
+		return -1;
+
+	entry->neighbor.action = action;
 	return 0;
 }
 
