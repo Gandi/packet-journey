@@ -207,6 +207,7 @@ kni_main_loop(__rte_unused void *arg)
 		for (i = 0; i < nb_ports; i++) {
 			kni_egress(kni_port_params_array[i], lcore_id);
 		}
+		usleep(1000);
 	}
 
 	return 0;
