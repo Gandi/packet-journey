@@ -1186,7 +1186,9 @@ main_loop(__rte_unused void *dummy)
 	__m128i dip[MAX_PKT_BURST / FWDSTEP];
 	uint32_t flag[MAX_PKT_BURST / FWDSTEP];
 	uint16_t pnum[MAX_PKT_BURST + 1];
+#ifdef ATOMIC_ACL
 	struct rte_acl_ctx *acx;
+#endif
 
 	prev_tsc = 0;
 
@@ -1216,19 +1218,19 @@ main_loop(__rte_unused void *dummy)
 		stats[lcore_id].nb_iteration_looped++;
 		cur_tsc = glob_tsc[lcore_id];
 
-#ifdef NON_ATOMIC
-#define SWAP_ACX(cur_acx, new_acx)                                             \
-	if (unlikely(cur_acx != new_acx)) {                                    \
-		rte_acl_free(cur_acx);                                         \
-		cur_acx = new_acx;                                             \
-	}
-#else
+#ifdef ATOMIC_ACL
 #define SWAP_ACX(cur_acx, new_acx)                                             \
 	acx = cur_acx;                                                         \
 	if (!rte_atomic64_cmpswap((uintptr_t *)&new_acx,                       \
 				  (uintptr_t *)&cur_acx,                       \
 				  (uintptr_t)new_acx)) {                       \
 		rte_acl_free(acx);                                             \
+	}
+#else
+#define SWAP_ACX(cur_acx, new_acx)                                             \
+	if (unlikely(cur_acx != new_acx)) {                                    \
+		rte_acl_free(cur_acx);                                         \
+		cur_acx = new_acx;                                             \
 	}
 #endif
 
