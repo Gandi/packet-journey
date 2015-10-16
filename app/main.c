@@ -276,7 +276,8 @@ static struct rte_mempool *pktmbuf_pool[NB_SOCKETS];
 static uint64_t glob_tsc[RTE_MAX_LCORE];
 static struct rte_mempool *knimbuf_pool[RTE_MAX_ETHPORTS];
 struct nei_entry kni_neighbor[RTE_MAX_ETHPORTS];
-static rte_spinlock_t spinlock_kni[RTE_MAX_ETHPORTS] = {RTE_SPINLOCK_INITIALIZER};
+static rte_spinlock_t spinlock_kni[RTE_MAX_ETHPORTS] = {
+    RTE_SPINLOCK_INITIALIZER};
 
 #define IPV4_L3FWD_LPM_MAX_RULES 524288
 #define IPV6_L3FWD_LPM_MAX_RULES 524288
@@ -2160,15 +2161,28 @@ main(int argc, char **argv)
 				printf("launching control thread for socketid "
 				       "%d on lcore %u\n",
 				       ctrlsock, lcore_id);
-				rte_eal_remote_launch(
-				    control_main, control_handle[ctrlsock].addr,
-				    lcore_id);
+
+				pthread_create(&control_tid, NULL,
+					       (void *)control_main,
+					       control_handle[ctrlsock].addr);
 
 				snprintf(thread_name, 16, "control-%d",
 					 ctrlsock);
-				pthread_setname_np(
-				    lcore_config[lcore_id].thread_id,
-				    thread_name);
+				pthread_setname_np(control_tid, thread_name);
+
+				ret = pthread_setaffinity_np(
+				    control_tid, sizeof(cpu_set_t),
+				    &lcore_config[lcore_id].cpuset);
+
+				if (ret != 0) {
+					perror(
+					    "control pthread_setaffinity_np: ");
+					rte_exit(
+					    EXIT_FAILURE,
+					    "control pthread_setaffinity_np "
+					    "returned error: err=%d,",
+					    ret);
+				}
 
 				pthread_create(&rdtsc_tid, NULL,
 					       (void *)rdtsc_thread, NULL);
