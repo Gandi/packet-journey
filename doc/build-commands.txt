@@ -1,0 +1,10 @@
+Build variables
+        EXTRA_CPPFLAGS   preprocessor options
+        EXTRA_CFLAGS     compiler options
+        EXTRA_LDFLAGS    linker options
+        EXTRA_LDLIBS     linker library options
+        CROSS     toolchain prefix
+        V         verbose
+        O         build directory (default: build/ - install default: ./)
+        DESTDIR   second-stage install directory
+        BUILD_TARGET release,debug,qemu

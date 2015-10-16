@@ -23,8 +23,8 @@ DEPDIR-y += lib/libnetlink lib/libneighbour
 
 LDFLAGS += -lc -lpthread -ldl
 LDFLAGS += -L$(BASE_OUTPUT)/lib/libneighbour/$(RTE_TARGET)/lib -L$(BASE_OUTPUT)/lib/libnetlink/$(RTE_TARGET)/lib -lneighbour -lnetlink
-ifeq ($(PKTJ_QEMU),1)
-LDFLAGS += --wrap=virtio_recv_mergeable_pkts
+ifeq ($(BUILD_TARGET),qemu)
+	LDFLAGS += --wrap=virtio_recv_mergeable_pkts
 endif
 
 # workaround for a gcc bug with noreturn attribute
