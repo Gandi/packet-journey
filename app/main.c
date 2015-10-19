@@ -2061,33 +2061,17 @@ main(int argc, char **argv)
 
 			// TODO: look for all available vcpus (not only eal
 			// enabled lcores)
-			RTE_LCORE_FOREACH_SLAVE(lcore_id)
+			RTE_LCORE_FOREACH(lcore_id)
 			{
 				if (rte_lcore_to_socket_id(lcore_id) ==
 				    ctrlsock) {
 					qconf = &lcore_conf[lcore_id];
 					if (qconf->n_rx_queue == 0) {
-						for (portid = 0;
-						     portid < nb_ports;
-						     portid++) {
-							if (kni_port_params_array
-								[portid]
-								    ->lcore_tx ==
-							    lcore_id) {
-								break;
-							}
-						}
-
-						if (portid == nb_ports) {
-							control_handle[ctrlsock]
-							    .addr =
-							    control_init(
-								ctrlsock);
-							control_handle[ctrlsock]
-							    .lcore_id =
-							    lcore_id;
-							break;
-						}
+						control_handle[ctrlsock].addr =
+						    control_init(ctrlsock);
+						control_handle[ctrlsock]
+						    .lcore_id = lcore_id;
+						break;
 					}
 				}
 			}
