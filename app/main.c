@@ -2252,6 +2252,9 @@ main(int argc, char **argv)
 		qconf = &lcore_conf[lcore_id];
 		if (qconf->n_rx_queue != 0) {
 			rte_eal_remote_launch(main_loop, NULL, lcore_id);
+			snprintf(thread_name, 16, "forward-%u", lcore_id);
+			pthread_setname_np(lcore_config[lcore_id].thread_id,
+					   thread_name);
 		}
 
 		for (portid = 0; portid < nb_ports; portid++) {
@@ -2262,6 +2265,10 @@ main(int argc, char **argv)
 					lcore_id);
 				rte_eal_remote_launch(kni_main_loop, NULL,
 						      lcore_id);
+				snprintf(thread_name, 16, "kni-%u", lcore_id);
+				pthread_setname_np(
+				    lcore_config[lcore_id].thread_id,
+				    thread_name);
 				break;
 			}
 		}
