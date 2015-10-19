@@ -387,10 +387,11 @@ neighbor4(neighbor_action_t action, __s32 port_id, struct in_addr *addr,
 		}
 
 		if (flags == NUD_FAILED) {
-			neighbor4_set_action(neighbor4_struct[socket_id], nexthop_id, NEI_ACTION_KNI);
-		}
-		else {
-			neighbor4_set_action(neighbor4_struct[socket_id], nexthop_id, NEI_ACTION_FWD);
+			neighbor4_set_action(neighbor4_struct[socket_id],
+					     nexthop_id, NEI_ACTION_KNI);
+		} else {
+			neighbor4_set_action(neighbor4_struct[socket_id],
+					     nexthop_id, NEI_ACTION_FWD);
 		}
 		RTE_LOG(DEBUG, PKTJ_CTRL1,
 			"set neighbor4 with port_id %d state %d\n", port_id,
@@ -538,10 +539,11 @@ neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
 		}
 
 		if (flags == NUD_FAILED) {
-			neighbor6_set_action(neighbor6_struct[socket_id], nexthop_id, NEI_ACTION_KNI);
-		}
-		else {
-			neighbor6_set_action(neighbor6_struct[socket_id], nexthop_id, NEI_ACTION_FWD);
+			neighbor6_set_action(neighbor6_struct[socket_id],
+					     nexthop_id, NEI_ACTION_KNI);
+		} else {
+			neighbor6_set_action(neighbor6_struct[socket_id],
+					     nexthop_id, NEI_ACTION_FWD);
 		}
 		RTE_LOG(DEBUG, PKTJ_CTRL1,
 			"set neighbor6 with port_id %d state %d \n", port_id,
