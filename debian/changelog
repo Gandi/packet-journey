@@ -1,3 +1,16 @@
+pktj (0.1.17) unstable; urgency=low
+
+  * catch SIGTERM and SIGQUIT for terminating properly the processes.
+  * add local route for neighbor in the same network as ourselves.
+  * licensing.
+  * rename rdpdk to packet-journey.
+  * add a usleep of 1ms in kni_main_loop for not consuming all the core.
+  * fix acces to the kni from multiple threads.
+  * make acl switching threadsafe.
+  * documentations.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Mon, 19 Oct 2015 16:34:29 +0200
+
 pktj (0.1.16) unstable; urgency=low
 
   * Fix kni config from file.
