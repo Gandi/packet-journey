@@ -63,3 +63,29 @@ kni             = 3,0 ; lcore_tx,kthread
 ```
 
 Those settings will launch pktj with 2 forwarding threads, on core 1 and 2, a KNI tx thread on core 3, will launch the script ```up.sh``` after setting up the KNI.
+
+The script `up.sh` is configuring the KNI IPv4, IPv6 and mac addresses. It also start some processes (bgpd and zebra in our case).
+
+
+```
+#!/bin/sh
+
+link1=$1
+mac1=$2
+
+ip link set $link1 up
+ip link add link $link1 name $link1.2000 type vlan id 2000
+ip link set $link1.2000 address $mac1
+ip link set $link1.2000 up
+
+ip addr add 1.2.3.5/24 dev $link1.2000
+ip route add 1.2.4.0/24 via 1.2.3.4
+ip addr add 2001:3::5/48 dev $link1.2000
+ip route add 2001:4::/48 via 2001:3::4
+
+# delay start because of quagga racy start
+sleep 15s
+
+/usr/lib/quagga/zebra &
+/usr/lib/quagga/bgpd &
+```
