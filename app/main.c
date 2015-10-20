@@ -690,8 +690,10 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 		 * to kni */                                                   \
 		if (!rate_limit_step(qconf, pkt[j]))                           \
 			knimbuf[i++] = pkt[j];                                 \
-		else                                                           \
+		else {                                                         \
 			rte_pktmbuf_free(pkt[j]);                              \
+			stats[lcore_id].nb_ratel_dropped++;                    \
+		}                                                              \
 		/* no dest neighbor addr available, send it through the kni */ \
 		if (j != --nb_rx) {                                            \
 			/* we have more packets, deplace last one and its info \
@@ -747,7 +749,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 				rte_spinlock_lock(&spinlock_kni[portid]);
 				num = rte_kni_tx_burst(p->kni[k], knimbuf, i);
 				rte_spinlock_unlock(&spinlock_kni[portid]);
-				stats[lcore_id].nb_kni_tx += nb_rx;
+				stats[lcore_id].nb_kni_tx += num;
 				if (unlikely(num < i)) {
 					/* Free mbufs not tx to kni interface */
 					if (num > 0)
