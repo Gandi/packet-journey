@@ -1,3 +1,10 @@
+pktj (0.1.18) unstable; urgency=low
+
+  * Fix ratel and kni_tx stats.
+  * Fix a potential sigpipe in cmdline.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Tue, 20 Oct 2015 17:24:29 +0200
+
 pktj (0.1.17) unstable; urgency=low
 
   * catch SIGTERM and SIGQUIT for terminating properly the processes.
