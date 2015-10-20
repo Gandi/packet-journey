@@ -26,6 +26,7 @@ LDFLAGS += -L$(BASE_OUTPUT)/lib/libneighbour/$(RTE_TARGET)/lib -L$(BASE_OUTPUT)/
 ifeq ($(BUILD_TARGET),qemu)
 	LDFLAGS += --wrap=virtio_recv_mergeable_pkts
 endif
+LDFLAGS += --wrap=cmdline_printf
 
 # workaround for a gcc bug with noreturn attribute
 # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=12603

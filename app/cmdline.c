@@ -104,6 +104,39 @@
 
 #define CMDLINE_POLL_TIMEOUT 500
 
+void
+__wrap_cmdline_printf(const struct cmdline *cl, const char *fmt, ...);
+
+void
+__wrap_cmdline_printf(const struct cmdline *cl, const char *fmt, ...)
+{
+	va_list ap;
+
+	if (!cl || !fmt)
+		return;
+
+	int ret;
+	char *buf;
+
+	if (cl->s_out < 0)
+		return;
+
+	buf = malloc(BUFSIZ);
+	if (buf == NULL)
+		return;
+	va_start(ap, fmt);
+	ret = vsnprintf(buf, BUFSIZ, fmt, ap);
+	va_end(ap);
+	if (ret < 0) {
+		free(buf);
+		return;
+	}
+	if (ret >= BUFSIZ)
+		ret = BUFSIZ - 1;
+	send(cl->s_out, buf, ret, MSG_NOSIGNAL);
+	free(buf);
+}
+
 static pthread_t cmdline_tid[NB_SOCKETS];
 
 struct client_data_t cmdline_clients[NB_SOCKETS][CMDLINE_MAX_CLIENTS];
