@@ -1119,6 +1119,23 @@ create_unixsock(const char *path)
 	return sock;
 }
 
+static int
+cmdline_send_char(struct rdline *rdl, char c)
+{
+	int ret = -1;
+	struct cmdline *cl;
+
+	if (!rdl)
+		return -1;
+
+	cl = rdl->opaque;
+
+	if (cl->s_out >= 0)
+		ret = send(cl->s_out, &c, 1, MSG_NOSIGNAL);
+
+	return ret;
+}
+
 static struct cmdline *
 cmdline_unixsock_new(cmdline_parse_ctx_t *ctx, const char *prompt, int sock)
 {
@@ -1131,6 +1148,7 @@ cmdline_new_unixsock(int sock)
 	struct cmdline *cl;
 
 	cl = cmdline_unixsock_new(main_ctx, "pktj> ", sock);
+	cl->rdl.write_char = cmdline_send_char;
 
 	if (cl == NULL)
 		rte_exit(EXIT_FAILURE, "Cannot create cmdline instance\n");
@@ -1265,8 +1283,8 @@ cmdline_run(void *data)
 
 			if (i == CMDLINE_MAX_CLIENTS) {
 #define CMDLINE_MCLI_MSG "Max client reached... \n"
-				ret = write(res, CMDLINE_MCLI_MSG,
-					    sizeof(CMDLINE_MCLI_MSG));
+				ret = send(res, CMDLINE_MCLI_MSG,
+					    sizeof(CMDLINE_MCLI_MSG), MSG_NOSIGNAL);
 				close(res);
 			}
 		}
