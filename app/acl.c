@@ -835,13 +835,14 @@ setup_acl(struct rte_acl_rule *acl_base, unsigned int acl_num, int ipv6,
 	struct rte_acl_config acl_build_param;
 	struct rte_acl_ctx *context;
 	int dim = ipv6 ? RTE_DIM(ipv6_defs) : RTE_DIM(ipv4_defs);
+	static uint32_t ctx_count[NB_SOCKETS] = {0};
 
 	if (!acl_num)
 		return NULL;
 
 	/* Create ACL contexts */
-	snprintf(name, sizeof(name), "%s%d",
-		 ipv6 ? L3FWD_ACL_IPV6_NAME : L3FWD_ACL_IPV4_NAME, socketid);
+	snprintf(name, sizeof(name), "%s%d-%d",
+		 ipv6 ? L3FWD_ACL_IPV6_NAME : L3FWD_ACL_IPV4_NAME, socketid, ctx_count[socketid]++);
 
 	acl_param.name = name;
 	acl_param.socket_id = socketid;
