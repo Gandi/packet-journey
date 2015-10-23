@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <title>naarad analysis report</title>
+        <script type="text/javascript" src="resources/jquery-1.11.2.min.js"></script>
+        
+        <script type="text/javascript" src="resources/dygraph-combined.js"></script>
+        
+        <script type="text/javascript" src="resources/bootstrap.min.js"></script>
+        
+        <script type="text/javascript" src="resources/sorttable.js"></script>
+        
+        <script type="text/javascript" src="resources/naarad.js"></script>
+        
+        <link rel="stylesheet" href="resources/bootstrap.min.css">
+        <link rel="stylesheet" href="resources/naarad.css">
+    <style>
+      body { padding-top: 60px; }
+      .popover { z-index: 10001; }
+      /* make link targets appear just below the header */
+      .link-target { padding-top: 80px; margin-top: -80px; }
+    </style>
+  </head>
+<body data-spy="scroll" data-target=".topbar" data-offset="90" onload="loadSavedChart()">
+<nav class="navbar navbar-default navbar-fixed-top topbar">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="https://github.com/linkedin/naarad">naarad</a>
+    </div>
+    <div id="navbar">
+      <ul class="nav navbar-nav">
+        
+        <li><a href="summary_report.html" title="Summary"><span>Summary</span></a></li>
+        
+        <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+            <span>Metrics</span>
+            <span class="caret"></span>
+          </a>
+          <ul class="dropdown-menu" role="menu">
+            <li>
+              <a href="pktgen-perf_report.html">
+                <span>pktgen-perf</span>
+              </a>
+            </li>
+            <li>
+              <a href="pktj-perf_report.html">
+                <span>pktj-perf</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li class="active"><a href="report.html"></span>Chart</span></a></li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li><a href="#">Back to Top</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div id="chart-parent-div" class="container-fluid">
+  <div id="chart-div-0" class="content">
+    <div id="selection-div-0" class="row">
+      <div class="col-md-3">
+        <select id="select-chart-0" onchange="plot('select-chart-0','select-percentiles-0','charting-div-0',0,false,'csv-url-div-0')" class="form-control">
+            <option selected disabled hidden value=''>View Timeseries</option>
+            <option value="resources/pktgen-perf.0.mbits_rx.csv">pktgen-perf.0.mbits_rx</option>
+            <option value="resources/pktgen-perf.0.mbits_tx.csv">pktgen-perf.0.mbits_tx</option>
+            <option value="resources/pktgen-perf.0.rate_rx.csv">pktgen-perf.0.rate_rx</option>
+            <option value="resources/pktgen-perf.0.rate_tx.csv">pktgen-perf.0.rate_tx</option>
+            <option value="resources/pktgen-perf.0.rx.csv">pktgen-perf.0.rx</option>
+            <option value="resources/pktgen-perf.0.tx.csv">pktgen-perf.0.tx</option>
+            <option value="resources/pktgen-perf.Overall_summary.mbits_rx.csv">pktgen-perf.Overall_summary.mbits_rx</option>
+            <option value="resources/pktgen-perf.Overall_summary.mbits_tx.csv">pktgen-perf.Overall_summary.mbits_tx</option>
+            <option value="resources/pktgen-perf.Overall_summary.rate_rx.csv">pktgen-perf.Overall_summary.rate_rx</option>
+            <option value="resources/pktgen-perf.Overall_summary.rate_tx.csv">pktgen-perf.Overall_summary.rate_tx</option>
+            <option value="resources/pktgen-perf.Overall_summary.rx.csv">pktgen-perf.Overall_summary.rx</option>
+            <option value="resources/pktgen-perf.Overall_summary.tx.csv">pktgen-perf.Overall_summary.tx</option>
+            <option value="resources/pktj-perf.0.acl_drop.csv">pktj-perf.0.acl_drop</option>
+            <option value="resources/pktj-perf.0.drop.csv">pktj-perf.0.drop</option>
+            <option value="resources/pktj-perf.0.iteration.csv">pktj-perf.0.iteration</option>
+            <option value="resources/pktj-perf.0.kni_drop.csv">pktj-perf.0.kni_drop</option>
+            <option value="resources/pktj-perf.0.kni_rx.csv">pktj-perf.0.kni_rx</option>
+            <option value="resources/pktj-perf.0.kni_tx.csv">pktj-perf.0.kni_tx</option>
+            <option value="resources/pktj-perf.0.port.csv">pktj-perf.0.port</option>
+            <option value="resources/pktj-perf.0.ratel_drop.csv">pktj-perf.0.ratel_drop</option>
+            <option value="resources/pktj-perf.0.rx.csv">pktj-perf.0.rx</option>
+            <option value="resources/pktj-perf.0.tx.csv">pktj-perf.0.tx</option>
+            <option value="resources/pktj-perf.1.acl_drop.csv">pktj-perf.1.acl_drop</option>
+            <option value="resources/pktj-perf.1.drop.csv">pktj-perf.1.drop</option>
+            <option value="resources/pktj-perf.1.iteration.csv">pktj-perf.1.iteration</option>
+            <option value="resources/pktj-perf.1.kni_drop.csv">pktj-perf.1.kni_drop</option>
+            <option value="resources/pktj-perf.1.kni_rx.csv">pktj-perf.1.kni_rx</option>
+            <option value="resources/pktj-perf.1.kni_tx.csv">pktj-perf.1.kni_tx</option>
+            <option value="resources/pktj-perf.1.port.csv">pktj-perf.1.port</option>
+            <option value="resources/pktj-perf.1.ratel_drop.csv">pktj-perf.1.ratel_drop</option>
+            <option value="resources/pktj-perf.1.rx.csv">pktj-perf.1.rx</option>
+            <option value="resources/pktj-perf.1.tx.csv">pktj-perf.1.tx</option>
+            <option value="resources/pktj-perf.12.acl_drop.csv">pktj-perf.12.acl_drop</option>
+            <option value="resources/pktj-perf.12.drop.csv">pktj-perf.12.drop</option>
+            <option value="resources/pktj-perf.12.iteration.csv">pktj-perf.12.iteration</option>
+            <option value="resources/pktj-perf.12.kni_drop.csv">pktj-perf.12.kni_drop</option>
+            <option value="resources/pktj-perf.12.kni_rx.csv">pktj-perf.12.kni_rx</option>
+            <option value="resources/pktj-perf.12.kni_tx.csv">pktj-perf.12.kni_tx</option>
+            <option value="resources/pktj-perf.12.port.csv">pktj-perf.12.port</option>
+            <option value="resources/pktj-perf.12.ratel_drop.csv">pktj-perf.12.ratel_drop</option>
+            <option value="resources/pktj-perf.12.rx.csv">pktj-perf.12.rx</option>
+            <option value="resources/pktj-perf.12.tx.csv">pktj-perf.12.tx</option>
+            <option value="resources/pktj-perf.2.acl_drop.csv">pktj-perf.2.acl_drop</option>
+            <option value="resources/pktj-perf.2.drop.csv">pktj-perf.2.drop</option>
+            <option value="resources/pktj-perf.2.iteration.csv">pktj-perf.2.iteration</option>
+            <option value="resources/pktj-perf.2.kni_drop.csv">pktj-perf.2.kni_drop</option>
+            <option value="resources/pktj-perf.2.kni_rx.csv">pktj-perf.2.kni_rx</option>
+            <option value="resources/pktj-perf.2.kni_tx.csv">pktj-perf.2.kni_tx</option>
+            <option value="resources/pktj-perf.2.port.csv">pktj-perf.2.port</option>
+            <option value="resources/pktj-perf.2.ratel_drop.csv">pktj-perf.2.ratel_drop</option>
+            <option value="resources/pktj-perf.2.rx.csv">pktj-perf.2.rx</option>
+            <option value="resources/pktj-perf.2.tx.csv">pktj-perf.2.tx</option>
+            <option value="resources/pktj-perf.3.acl_drop.csv">pktj-perf.3.acl_drop</option>
+            <option value="resources/pktj-perf.3.drop.csv">pktj-perf.3.drop</option>
+            <option value="resources/pktj-perf.3.iteration.csv">pktj-perf.3.iteration</option>
+            <option value="resources/pktj-perf.3.kni_drop.csv">pktj-perf.3.kni_drop</option>
+            <option value="resources/pktj-perf.3.kni_rx.csv">pktj-perf.3.kni_rx</option>
+            <option value="resources/pktj-perf.3.kni_tx.csv">pktj-perf.3.kni_tx</option>
+            <option value="resources/pktj-perf.3.port.csv">pktj-perf.3.port</option>
+            <option value="resources/pktj-perf.3.ratel_drop.csv">pktj-perf.3.ratel_drop</option>
+            <option value="resources/pktj-perf.3.rx.csv">pktj-perf.3.rx</option>
+            <option value="resources/pktj-perf.3.tx.csv">pktj-perf.3.tx</option>
+            <option value="resources/pktj-perf.4.acl_drop.csv">pktj-perf.4.acl_drop</option>
+            <option value="resources/pktj-perf.4.drop.csv">pktj-perf.4.drop</option>
+            <option value="resources/pktj-perf.4.iteration.csv">pktj-perf.4.iteration</option>
+            <option value="resources/pktj-perf.4.kni_drop.csv">pktj-perf.4.kni_drop</option>
+            <option value="resources/pktj-perf.4.kni_rx.csv">pktj-perf.4.kni_rx</option>
+            <option value="resources/pktj-perf.4.kni_tx.csv">pktj-perf.4.kni_tx</option>
+            <option value="resources/pktj-perf.4.port.csv">pktj-perf.4.port</option>
+            <option value="resources/pktj-perf.4.ratel_drop.csv">pktj-perf.4.ratel_drop</option>
+            <option value="resources/pktj-perf.4.rx.csv">pktj-perf.4.rx</option>
+            <option value="resources/pktj-perf.4.tx.csv">pktj-perf.4.tx</option>
+            <option value="resources/pktj-perf.5.acl_drop.csv">pktj-perf.5.acl_drop</option>
+            <option value="resources/pktj-perf.5.drop.csv">pktj-perf.5.drop</option>
+            <option value="resources/pktj-perf.5.iteration.csv">pktj-perf.5.iteration</option>
+            <option value="resources/pktj-perf.5.kni_drop.csv">pktj-perf.5.kni_drop</option>
+            <option value="resources/pktj-perf.5.kni_rx.csv">pktj-perf.5.kni_rx</option>
+            <option value="resources/pktj-perf.5.kni_tx.csv">pktj-perf.5.kni_tx</option>
+            <option value="resources/pktj-perf.5.port.csv">pktj-perf.5.port</option>
+            <option value="resources/pktj-perf.5.ratel_drop.csv">pktj-perf.5.ratel_drop</option>
+            <option value="resources/pktj-perf.5.rx.csv">pktj-perf.5.rx</option>
+            <option value="resources/pktj-perf.5.tx.csv">pktj-perf.5.tx</option>
+            <option value="resources/pktj-perf.Overall_summary.acl_drop.csv">pktj-perf.Overall_summary.acl_drop</option>
+            <option value="resources/pktj-perf.Overall_summary.drop.csv">pktj-perf.Overall_summary.drop</option>
+            <option value="resources/pktj-perf.Overall_summary.iteration.csv">pktj-perf.Overall_summary.iteration</option>
+            <option value="resources/pktj-perf.Overall_summary.kni_drop.csv">pktj-perf.Overall_summary.kni_drop</option>
+            <option value="resources/pktj-perf.Overall_summary.kni_rx.csv">pktj-perf.Overall_summary.kni_rx</option>
+            <option value="resources/pktj-perf.Overall_summary.kni_tx.csv">pktj-perf.Overall_summary.kni_tx</option>
+            <option value="resources/pktj-perf.Overall_summary.port.csv">pktj-perf.Overall_summary.port</option>
+            <option value="resources/pktj-perf.Overall_summary.ratel_drop.csv">pktj-perf.Overall_summary.ratel_drop</option>
+            <option value="resources/pktj-perf.Overall_summary.rx.csv">pktj-perf.Overall_summary.rx</option>
+            <option value="resources/pktj-perf.Overall_summary.tx.csv">pktj-perf.Overall_summary.tx</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select id="select-percentiles-0" onchange="plotCdf('select-percentiles-0','select-chart-0','charting-div-0',0,false,'csv-url-div-0')" class="form-control">
+            <option selected disabled hidden value=''>View CDF</option>
+            <option value="resources/pktgen-perf.0.mbits_rx.percentiles.csv">pktgen-perf.0.mbits_rx.percentiles</option>
+            <option value="resources/pktgen-perf.0.mbits_tx.percentiles.csv">pktgen-perf.0.mbits_tx.percentiles</option>
+            <option value="resources/pktgen-perf.0.rate_rx.percentiles.csv">pktgen-perf.0.rate_rx.percentiles</option>
+            <option value="resources/pktgen-perf.0.rate_tx.percentiles.csv">pktgen-perf.0.rate_tx.percentiles</option>
+            <option value="resources/pktgen-perf.0.rx.percentiles.csv">pktgen-perf.0.rx.percentiles</option>
+            <option value="resources/pktgen-perf.0.tx.percentiles.csv">pktgen-perf.0.tx.percentiles</option>
+            <option value="resources/pktgen-perf.Overall_summary.mbits_rx.percentiles.csv">pktgen-perf.Overall_summary.mbits_rx.percentiles</option>
+            <option value="resources/pktgen-perf.Overall_summary.mbits_tx.percentiles.csv">pktgen-perf.Overall_summary.mbits_tx.percentiles</option>
+            <option value="resources/pktgen-perf.Overall_summary.rate_rx.percentiles.csv">pktgen-perf.Overall_summary.rate_rx.percentiles</option>
+            <option value="resources/pktgen-perf.Overall_summary.rate_tx.percentiles.csv">pktgen-perf.Overall_summary.rate_tx.percentiles</option>
+            <option value="resources/pktgen-perf.Overall_summary.rx.percentiles.csv">pktgen-perf.Overall_summary.rx.percentiles</option>
+            <option value="resources/pktgen-perf.Overall_summary.tx.percentiles.csv">pktgen-perf.Overall_summary.tx.percentiles</option>
+            <option value="resources/pktj-perf.0.acl_drop.percentiles.csv">pktj-perf.0.acl_drop.percentiles</option>
+            <option value="resources/pktj-perf.0.drop.percentiles.csv">pktj-perf.0.drop.percentiles</option>
+            <option value="resources/pktj-perf.0.iteration.percentiles.csv">pktj-perf.0.iteration.percentiles</option>
+            <option value="resources/pktj-perf.0.kni_drop.percentiles.csv">pktj-perf.0.kni_drop.percentiles</option>
+            <option value="resources/pktj-perf.0.kni_rx.percentiles.csv">pktj-perf.0.kni_rx.percentiles</option>
+            <option value="resources/pktj-perf.0.kni_tx.percentiles.csv">pktj-perf.0.kni_tx.percentiles</option>
+            <option value="resources/pktj-perf.0.port.percentiles.csv">pktj-perf.0.port.percentiles</option>
+            <option value="resources/pktj-perf.0.ratel_drop.percentiles.csv">pktj-perf.0.ratel_drop.percentiles</option>
+            <option value="resources/pktj-perf.0.rx.percentiles.csv">pktj-perf.0.rx.percentiles</option>
+            <option value="resources/pktj-perf.0.tx.percentiles.csv">pktj-perf.0.tx.percentiles</option>
+            <option value="resources/pktj-perf.1.acl_drop.percentiles.csv">pktj-perf.1.acl_drop.percentiles</option>
+            <option value="resources/pktj-perf.1.drop.percentiles.csv">pktj-perf.1.drop.percentiles</option>
+            <option value="resources/pktj-perf.1.iteration.percentiles.csv">pktj-perf.1.iteration.percentiles</option>
+            <option value="resources/pktj-perf.1.kni_drop.percentiles.csv">pktj-perf.1.kni_drop.percentiles</option>
+            <option value="resources/pktj-perf.1.kni_rx.percentiles.csv">pktj-perf.1.kni_rx.percentiles</option>
+            <option value="resources/pktj-perf.1.kni_tx.percentiles.csv">pktj-perf.1.kni_tx.percentiles</option>
+            <option value="resources/pktj-perf.1.port.percentiles.csv">pktj-perf.1.port.percentiles</option>
+            <option value="resources/pktj-perf.1.ratel_drop.percentiles.csv">pktj-perf.1.ratel_drop.percentiles</option>
+            <option value="resources/pktj-perf.1.rx.percentiles.csv">pktj-perf.1.rx.percentiles</option>
+            <option value="resources/pktj-perf.1.tx.percentiles.csv">pktj-perf.1.tx.percentiles</option>
+            <option value="resources/pktj-perf.12.acl_drop.percentiles.csv">pktj-perf.12.acl_drop.percentiles</option>
+            <option value="resources/pktj-perf.12.drop.percentiles.csv">pktj-perf.12.drop.percentiles</option>
+            <option value="resources/pktj-perf.12.iteration.percentiles.csv">pktj-perf.12.iteration.percentiles</option>
+            <option value="resources/pktj-perf.12.kni_drop.percentiles.csv">pktj-perf.12.kni_drop.percentiles</option>
+            <option value="resources/pktj-perf.12.kni_rx.percentiles.csv">pktj-perf.12.kni_rx.percentiles</option>
+            <option value="resources/pktj-perf.12.kni_tx.percentiles.csv">pktj-perf.12.kni_tx.percentiles</option>
+            <option value="resources/pktj-perf.12.port.percentiles.csv">pktj-perf.12.port.percentiles</option>
+            <option value="resources/pktj-perf.12.ratel_drop.percentiles.csv">pktj-perf.12.ratel_drop.percentiles</option>
+            <option value="resources/pktj-perf.12.rx.percentiles.csv">pktj-perf.12.rx.percentiles</option>
+            <option value="resources/pktj-perf.12.tx.percentiles.csv">pktj-perf.12.tx.percentiles</option>
+            <option value="resources/pktj-perf.2.acl_drop.percentiles.csv">pktj-perf.2.acl_drop.percentiles</option>
+            <option value="resources/pktj-perf.2.drop.percentiles.csv">pktj-perf.2.drop.percentiles</option>
+            <option value="resources/pktj-perf.2.iteration.percentiles.csv">pktj-perf.2.iteration.percentiles</option>
+            <option value="resources/pktj-perf.2.kni_drop.percentiles.csv">pktj-perf.2.kni_drop.percentiles</option>
+            <option value="resources/pktj-perf.2.kni_rx.percentiles.csv">pktj-perf.2.kni_rx.percentiles</option>
+            <option value="resources/pktj-perf.2.kni_tx.percentiles.csv">pktj-perf.2.kni_tx.percentiles</option>
+            <option value="resources/pktj-perf.2.port.percentiles.csv">pktj-perf.2.port.percentiles</option>
+            <option value="resources/pktj-perf.2.ratel_drop.percentiles.csv">pktj-perf.2.ratel_drop.percentiles</option>
+            <option value="resources/pktj-perf.2.rx.percentiles.csv">pktj-perf.2.rx.percentiles</option>
+            <option value="resources/pktj-perf.2.tx.percentiles.csv">pktj-perf.2.tx.percentiles</option>
+            <option value="resources/pktj-perf.3.acl_drop.percentiles.csv">pktj-perf.3.acl_drop.percentiles</option>
+            <option value="resources/pktj-perf.3.drop.percentiles.csv">pktj-perf.3.drop.percentiles</option>
+            <option value="resources/pktj-perf.3.iteration.percentiles.csv">pktj-perf.3.iteration.percentiles</option>
+            <option value="resources/pktj-perf.3.kni_drop.percentiles.csv">pktj-perf.3.kni_drop.percentiles</option>
+            <option value="resources/pktj-perf.3.kni_rx.percentiles.csv">pktj-perf.3.kni_rx.percentiles</option>
+            <option value="resources/pktj-perf.3.kni_tx.percentiles.csv">pktj-perf.3.kni_tx.percentiles</option>
+            <option value="resources/pktj-perf.3.port.percentiles.csv">pktj-perf.3.port.percentiles</option>
+            <option value="resources/pktj-perf.3.ratel_drop.percentiles.csv">pktj-perf.3.ratel_drop.percentiles</option>
+            <option value="resources/pktj-perf.3.rx.percentiles.csv">pktj-perf.3.rx.percentiles</option>
+            <option value="resources/pktj-perf.3.tx.percentiles.csv">pktj-perf.3.tx.percentiles</option>
+            <option value="resources/pktj-perf.4.acl_drop.percentiles.csv">pktj-perf.4.acl_drop.percentiles</option>
+            <option value="resources/pktj-perf.4.drop.percentiles.csv">pktj-perf.4.drop.percentiles</option>
+            <option value="resources/pktj-perf.4.iteration.percentiles.csv">pktj-perf.4.iteration.percentiles</option>
+            <option value="resources/pktj-perf.4.kni_drop.percentiles.csv">pktj-perf.4.kni_drop.percentiles</option>
+            <option value="resources/pktj-perf.4.kni_rx.percentiles.csv">pktj-perf.4.kni_rx.percentiles</option>
+            <option value="resources/pktj-perf.4.kni_tx.percentiles.csv">pktj-perf.4.kni_tx.percentiles</option>
+            <option value="resources/pktj-perf.4.port.percentiles.csv">pktj-perf.4.port.percentiles</option>
+            <option value="resources/pktj-perf.4.ratel_drop.percentiles.csv">pktj-perf.4.ratel_drop.percentiles</option>
+            <option value="resources/pktj-perf.4.rx.percentiles.csv">pktj-perf.4.rx.percentiles</option>
+            <option value="resources/pktj-perf.4.tx.percentiles.csv">pktj-perf.4.tx.percentiles</option>
+            <option value="resources/pktj-perf.5.acl_drop.percentiles.csv">pktj-perf.5.acl_drop.percentiles</option>
+            <option value="resources/pktj-perf.5.drop.percentiles.csv">pktj-perf.5.drop.percentiles</option>
+            <option value="resources/pktj-perf.5.iteration.percentiles.csv">pktj-perf.5.iteration.percentiles</option>
+            <option value="resources/pktj-perf.5.kni_drop.percentiles.csv">pktj-perf.5.kni_drop.percentiles</option>
+            <option value="resources/pktj-perf.5.kni_rx.percentiles.csv">pktj-perf.5.kni_rx.percentiles</option>
+            <option value="resources/pktj-perf.5.kni_tx.percentiles.csv">pktj-perf.5.kni_tx.percentiles</option>
+            <option value="resources/pktj-perf.5.port.percentiles.csv">pktj-perf.5.port.percentiles</option>
+            <option value="resources/pktj-perf.5.ratel_drop.percentiles.csv">pktj-perf.5.ratel_drop.percentiles</option>
+            <option value="resources/pktj-perf.5.rx.percentiles.csv">pktj-perf.5.rx.percentiles</option>
+            <option value="resources/pktj-perf.5.tx.percentiles.csv">pktj-perf.5.tx.percentiles</option>
+            <option value="resources/pktj-perf.Overall_summary.acl_drop.percentiles.csv">pktj-perf.Overall_summary.acl_drop.percentiles</option>
+            <option value="resources/pktj-perf.Overall_summary.drop.percentiles.csv">pktj-perf.Overall_summary.drop.percentiles</option>
+            <option value="resources/pktj-perf.Overall_summary.iteration.percentiles.csv">pktj-perf.Overall_summary.iteration.percentiles</option>
+            <option value="resources/pktj-perf.Overall_summary.kni_drop.percentiles.csv">pktj-perf.Overall_summary.kni_drop.percentiles</option>
+            <option value="resources/pktj-perf.Overall_summary.kni_rx.percentiles.csv">pktj-perf.Overall_summary.kni_rx.percentiles</option>
+            <option value="resources/pktj-perf.Overall_summary.kni_tx.percentiles.csv">pktj-perf.Overall_summary.kni_tx.percentiles</option>
+            <option value="resources/pktj-perf.Overall_summary.port.percentiles.csv">pktj-perf.Overall_summary.port.percentiles</option>
+            <option value="resources/pktj-perf.Overall_summary.ratel_drop.percentiles.csv">pktj-perf.Overall_summary.ratel_drop.percentiles</option>
+            <option value="resources/pktj-perf.Overall_summary.rx.percentiles.csv">pktj-perf.Overall_summary.rx.percentiles</option>
+            <option value="resources/pktj-perf.Overall_summary.tx.percentiles.csv">pktj-perf.Overall_summary.tx.percentiles</option>
+        </select>
+      </div>
+      <div class="input-append col-md-5">
+        <div class="col-md-9">
+          <input type="text" id="filter-text-0" class="col-md-2 search-query form-control">
+        </div>
+        <button type="button" class="btn btn-primary" onclick="filter('select-chart-0','select-percentiles-0','filter-text-0')">Filter</button>
+        <button type="button" class="btn btn-danger" onclick="resetFilter('select-chart-0','select-percentiles-0','filter-text-0')">Reset</button>
+      </div>
+      <div class="col-md-1" id="button-div-0">
+        <button type="button" class="btn btn-primary" onclick="addChart('chart-parent-div')">+</button>
+      </div> 
+    </div>
+    <div id="labels-charting-div-0" class="row chart-label"></div>
+    <div id="charting-div-0" class="row chart-area"></div>
+    <div id="csv-url-div-0" class="chart-csv"></div>
+ </div>
+ <hr />
+</div>
+
+<div class="container-fluid">
+  <hr />
+  <h2>Link to This Page</h2>
+  <div class="content">
+    <div class="row">
+      <div class="col-md-12">
+        <input id="text-share-report-url" class="col-md-12 form-control" readonly="readonly" onclick="this.select()"/>
+      </div>
+    </div>
+  </div>
+</div>
+<br />
+<br />
+<footer>
+  <p>naarad &copy; LinkedIn 2014, 2015</p>
+  <p><a href="#">Back to Top</a></p>
+</footer>
+</body>
+</html>

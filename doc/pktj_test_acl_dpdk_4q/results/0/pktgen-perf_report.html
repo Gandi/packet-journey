@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <title>naarad analysis report</title>
+        <script type="text/javascript" src="resources/jquery-1.11.2.min.js"></script>
+        
+        <script type="text/javascript" src="resources/dygraph-combined.js"></script>
+        
+        <script type="text/javascript" src="resources/bootstrap.min.js"></script>
+        
+        <script type="text/javascript" src="resources/sorttable.js"></script>
+        
+        <script type="text/javascript" src="resources/naarad.js"></script>
+        
+        <link rel="stylesheet" href="resources/bootstrap.min.css">
+        <link rel="stylesheet" href="resources/naarad.css">
+    <style>
+      body { padding-top: 60px; }
+      .popover { z-index: 10001; }
+      /* make link targets appear just below the header */
+      .link-target { padding-top: 80px; margin-top: -80px; }
+    </style>
+  </head><body data-spy="scroll" data-target=".topbar" data-offset="90">
+<nav class="navbar navbar-default navbar-fixed-top topbar">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="https://github.com/linkedin/naarad">naarad</a>
+    </div>
+    <div id="navbar">
+      <ul class="nav navbar-nav">
+        
+        <li><a href="summary_report.html" title="Summary"><span>Summary</span></a></li>
+        
+        <li class="active dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+            <span>Metrics</span>
+            <span class="caret"></span>
+          </a>
+          <ul class="dropdown-menu" role="menu">
+            <li>
+              <a href="pktj-perf_report.html">
+                <span>pktj-perf</span>
+              </a>
+            </li>
+            <li>
+              <a href="pktgen-perf_report.html">
+                <span>pktgen-perf</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+        <li><a href="report.html"></span>Chart</span></a></li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li><a href="#">Back to Top</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Container -->
+<div class="container-fluid">
+  <div class="content">
+    <!-- Title -->
+    <div id="pktgen-perf-header" class="row">
+      <div id="pktgen-perf-header-span" class="col-md-12">
+        <h2 class="content-title">
+          <span class="text">pktgen-perf</span>
+        </h2>
+      </div>
+    </div>
+    <div class="btn-group" role="group" aria-label="btn-group">
+      <button type="button" class="btn btn-default" onclick="jumpTo('metric-summary')">
+        Metric Summary
+      </button>
+      <button type="button" class="btn btn-default" onclick="jumpTo('metric-plots')">
+       Metric Plots
+      </button>
+    </div>
+
+    <!-- Anomalies //TODO -->
+
+    <!-- Metrics SLA //TODO -->
+
+    <!-- Metrics Summary -->
+    <a name="metric-summary"></a>
+    <div id="pktgen-perf-summary-table" class="row">
+      <div id="pktgen-perf-summary-table-span" class="col-md-12">
+        <h3>Metric Summary</h3>
+        <div style="overflow-x:auto;">
+        <table class="table table-hover table-striped table-bordered sortable">
+          <thead>
+              <tr>
+                  <th>sub_metric</th>
+                  <th>max</th>
+                  <th>mean</th>
+                  <th>min</th>
+                  <th>p50</th>
+                  <th>p75</th>
+                  <th>p90</th>
+                  <th>p95</th>
+                  <th>p99</th>
+                  <th>std</th>
+              </tr>
+          </thead>
+          <tbody>
+              <tr>
+                <td>
+                  <a href="#pktgen-perf.0.mbits_tx">0.mbits_tx</a>
+                </td>
+                    <td>24763.00</td>
+                    <td>22576.45</td>
+                    <td>0.0</td>
+                    <td>24532.00</td>
+                    <td>24734.50</td>
+                    <td>24758.00</td>
+                    <td>24758.25</td>
+                    <td>24762.05</td>
+                    <td>5845.27</td>
+              </tr>
+              <tr>
+                <td>
+                  <a href="#pktgen-perf.0.rate_tx">0.rate_tx</a>
+                </td>
+                    <td>36849800.00</td>
+                    <td>33596419.65</td>
+                    <td>0.0</td>
+                    <td>36506482.50</td>
+                    <td>36807764.75</td>
+                    <td>36842827.70</td>
+                    <td>36843515.75</td>
+                    <td>36848543.15</td>
+                    <td>8698432.85</td>
+              </tr>
+              <tr>
+                <td>
+                  <a href="#pktgen-perf.0.rx">0.rx</a>
+                </td>
+                    <td>839263069.00</td>
+                    <td>424798154.55</td>
+                    <td>0.0</td>
+                    <td>425281677.00</td>
+                    <td>647592464.25</td>
+                    <td>768549210.30</td>
+                    <td>824588386.70</td>
+                    <td>836328132.54</td>
+                    <td>262914305.81</td>
+              </tr>
+              <tr>
+                <td>
+                  <a href="#pktgen-perf.Overall_summary.mbits_rx">Overall_summary.mbits_rx</a>
+                </td>
+                    <td>21790.00</td>
+                    <td>19837.75</td>
+                    <td>0.0</td>
+                    <td>21581.50</td>
+                    <td>21652.25</td>
+                    <td>21701.20</td>
+                    <td>21707.35</td>
+                    <td>21773.47</td>
+                    <td>5128.35</td>
+              </tr>
+              <tr>
+                <td>
+                  <a href="#pktgen-perf.Overall_summary.tx">Overall_summary.tx</a>
+                </td>
+                    <td>1000000000.00</td>
+                    <td>506127483.10</td>
+                    <td>0.0</td>
+                    <td>506615581.00</td>
+                    <td>772008830.25</td>
+                    <td>916040963.00</td>
+                    <td>982587053.85</td>
+                    <td>996517410.77</td>
+                    <td>313458142.64</td>
+              </tr>
+              <tr>
+                <td>
+                  <a href="#pktgen-perf.Overall_summary.rate_rx">Overall_summary.rate_rx</a>
+                </td>
+                    <td>30951796.00</td>
+                    <td>28179261.05</td>
+                    <td>0.0</td>
+                    <td>30656233.00</td>
+                    <td>30756963.75</td>
+                    <td>30825915.00</td>
+                    <td>30835346.90</td>
+                    <td>30928506.18</td>
+                    <td>7284659.07</td>
+              </tr>
+              <tr>
+                <td>
+                  <a href="#pktgen-perf.0.mbits_rx">0.mbits_rx</a>
+                </td>
+                    <td>21790.00</td>
+                    <td>19837.75</td>
+                    <td>0.0</td>
+                    <td>21581.50</td>
+                    <td>21652.25</td>
+                    <td>21701.20</td>
+                    <td>21707.35</td>
+                    <td>21773.47</td>
+                    <td>5128.35</td>
+              </tr>
+              <tr>
+                <td>
+                  <a href="#pktgen-perf.Overall_summary.rx">Overall_summary.rx</a>
+                </td>
+                    <td>839263069.00</td>
+                    <td>424798154.55</td>
+                    <td>0.0</td>
+                    <td>425281677.00</td>
+                    <td>647592464.25</td>
+                    <td>768549210.30</td>
+                    <td>824588386.70</td>
+                    <td>836328132.54</td>
+                    <td>262914305.81</td>
+              </tr>
+              <tr>
+                <td>
+                  <a href="#pktgen-perf.0.tx">0.tx</a>
+                </td>
+                    <td>1000000000.00</td>
+                    <td>506127483.10</td>
+                    <td>0.0</td>
+                    <td>506615581.00</td>
+                    <td>772008830.25</td>
+                    <td>916040963.00</td>
+                    <td>982587053.85</td>
+                    <td>996517410.77</td>
+                    <td>313458142.64</td>
+              </tr>
+              <tr>
+                <td>
+                  <a href="#pktgen-perf.Overall_summary.mbits_tx">Overall_summary.mbits_tx</a>
+                </td>
+                    <td>24763.00</td>
+                    <td>22576.45</td>
+                    <td>0.0</td>
+                    <td>24532.00</td>
+                    <td>24734.50</td>
+                    <td>24758.00</td>
+                    <td>24758.25</td>
+                    <td>24762.05</td>
+                    <td>5845.27</td>
+              </tr>
+              <tr>
+                <td>
+                  <a href="#pktgen-perf.0.rate_rx">0.rate_rx</a>
+                </td>
+                    <td>30951796.00</td>
+                    <td>28179261.05</td>
+                    <td>0.0</td>
+                    <td>30656233.00</td>
+                    <td>30756963.75</td>
+                    <td>30825915.00</td>
+                    <td>30835346.90</td>
+                    <td>30928506.18</td>
+                    <td>7284659.07</td>
+              </tr>
+              <tr>
+                <td>
+                  <a href="#pktgen-perf.Overall_summary.rate_tx">Overall_summary.rate_tx</a>
+                </td>
+                    <td>36849800.00</td>
+                    <td>33596419.65</td>
+                    <td>0.0</td>
+                    <td>36506482.50</td>
+                    <td>36807764.75</td>
+                    <td>36842827.70</td>
+                    <td>36843515.75</td>
+                    <td>36848543.15</td>
+                    <td>8698432.85</td>
+              </tr>
+          </tbody>
+          <tfoot></tfoot>
+        </table>
+        </div>
+      </div>
+    </div>
+
+<!-- Metric Plots -->
+<a name="metric-plots"></a>
+<div id="<naarad.metrics.metric.Metric object at 0x7fa3bcd566d0>-metric-plots" class="row">
+  <div id="<naarad.metrics.metric.Metric object at 0x7fa3bcd566d0>-metric-plots-span" class="col-md-12">
+    <h3>Metric Plots</h3>
+    <p><strong>
+<a name="pktgen-perf.0"></a><div class="col-md-12"><img src="resources/pktgen-perf.0.png" id="pktgen-perf.0.png" width="100%" height="auto"/></div><div class="col-md-12"><p align="center"><strong>pktgen-perf.0.png</strong></p></div><hr />
+<a name="pktgen-perf.Overall_summary"></a><div class="col-md-12"><img src="resources/pktgen-perf.Overall_summary.png" id="pktgen-perf.Overall_summary.png" width="100%" height="auto"/></div><div class="col-md-12"><p align="center"><strong>pktgen-perf.Overall_summary.png</strong></p></div><hr /></strong></p>
+  </div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /container --><footer>
+  <p>naarad &copy; LinkedIn 2014, 2015</p>
+  <p><a href="#">Back to Top</a></p>
+</footer>
+</body>
+</html>
