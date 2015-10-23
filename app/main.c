@@ -279,8 +279,8 @@ struct nei_entry kni_neighbor[RTE_MAX_ETHPORTS];
 static rte_spinlock_t spinlock_kni[RTE_MAX_ETHPORTS] = {
     RTE_SPINLOCK_INITIALIZER};
 
-#define IPV4_L3FWD_LPM_MAX_RULES 524288
-#define IPV6_L3FWD_LPM_MAX_RULES 524288
+#define IPV4_L3FWD_LPM_MAX_RULES (1 << 20) // 1048576
+#define IPV6_L3FWD_LPM_MAX_RULES (1 << 19) // 524288
 #define IPV6_L3FWD_LPM_NUMBER_TBL8S (1 << 16)
 
 struct lcore_stats stats[RTE_MAX_LCORE];
