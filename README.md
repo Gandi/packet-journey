@@ -32,6 +32,7 @@ For optimal performances, the forwarding threads must be alone on their cores. A
 ### Processing steps
 
 The forwarding threads are running the main_loop() function. It can be resumed by those steps:
+
 1. read up to 32 packet descriptors
 2. if none, read again
 3. prepare the acl processing for the new packets and filter them
