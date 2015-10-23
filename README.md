@@ -32,6 +32,7 @@ For optimal performances, the forwarding threads must be alone on their cores. A
 ### Processing steps
 
 The forwarding threads are running the main_loop() function. It can be resumed by those steps:
+
 1. read up to 32 packet descriptors
 2. if none, read again
 3. prepare the acl processing for the new packets and filter them
@@ -89,3 +90,13 @@ sleep 15s
 /usr/lib/quagga/zebra &
 /usr/lib/quagga/bgpd &
 ```
+
+## Performances
+
+The test scenario is done between 2 physicals machines having both a XL710 NIC and a E5-2630L CPU. The first host is running Packet-Journey, he receives traffic from the second host and send it back to it.
+
+For simulating real life confitions, the tests are done with 500k routes (something similar to a BGP full view) and 50 acl (we use scalar implementation for ACL since the CPU don't have AVX2 instructions), we have also a percentage of the packets which are forwarded to the KNI instead of going through the fastpath.
+
+The packets are generated using DPDK-PktGen which is configured for sending 64 Bytes UDP packets with a random source IP and to a fixed destination IP. When Configured with 4 RX queues, Packet-Journey is able to forward 21773.47 mbits.
+
+The graphs of the test scenario are in [doc/pktj_test_acl_dpdk_4q] . The most easy graphs to read are the one from pktgen since it show you the TX/RX rates [doc/pktj_test_acl_dpdk_4q/results/0/pktgen-perf_report.html].
