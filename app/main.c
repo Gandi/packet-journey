@@ -1310,10 +1310,9 @@ main_loop(__rte_unused void *dummy)
 			if (sec > rate_tsc) {
 				rate_tsc = sec;
 				qconf->kni_rate_limit_cur = 0;
-				for (i = 0; i < NEI_NUM_ENTRIES; i++) {
-					qconf->rlimit6_cur[i] = 0;
-				}
 
+				memset(qconf->rlimit6_cur, 0,
+				       sizeof(qconf->rlimit6_cur));
 				memset(qconf->rlimit4_cur, 0,
 				       sizeof(qconf->rlimit4_cur));
 			}
