@@ -136,9 +136,10 @@ lookup6_struct_t *ipv6_pktj_lookup_struct[NB_SOCKETS];
 neighbor_struct_t *neighbor4_struct[NB_SOCKETS];
 neighbor_struct_t *neighbor6_struct[NB_SOCKETS];
 
-uint8_t rlimit4_lookup_table[65536] __rte_cache_aligned;
-uint32_t rlimit4_max[MAX_RLIMIT_RANGE][65536] __rte_cache_aligned;
-uint32_t rlimit6_max[256] __rte_cache_aligned;
+#define RATE_LIMITED UINT8_MAX
+uint8_t rlimit4_lookup_table[UINT16_MAX + 1] __rte_cache_aligned;
+uint32_t rlimit4_max[MAX_RLIMIT_RANGE][UINT16_MAX + 1] __rte_cache_aligned;
+uint32_t rlimit6_max[NEI_NUM_ENTRIES] __rte_cache_aligned;
 
 struct control_params_t {
 	void *addr;
@@ -521,7 +522,7 @@ process_step2(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 static __m128i mask_tcp_179;
 
 static inline int
-rate_limit_step(struct lcore_conf *qconf, struct rte_mbuf *pkt)
+kni_rate_limit_step(struct lcore_conf *qconf, struct rte_mbuf *pkt)
 {
 	__m128i data;
 
@@ -565,6 +566,34 @@ rate_limit_step(struct lcore_conf *qconf, struct rte_mbuf *pkt)
 		}
 	}
 	return ++qconf->kni_rate_limit_cur > kni_rate_limit;
+}
+
+static inline int
+rate_limit_step_ipv4(struct lcore_conf *qconf, struct rte_mbuf *pkt)
+{
+	struct ipv4_hdr *ipv4_hdr;
+	uint16_t addr_low, addr_high;
+	uint8_t range_id;
+
+	ipv4_hdr = rte_pktmbuf_mtod_offset(pkt, struct ipv4_hdr *,
+					   sizeof(struct ether_hdr));
+	addr_low = (uint16_t)ipv4_hdr->dst_addr;
+	range_id = rlimit4_lookup_table[addr_low];
+	if (range_id) {
+		addr_high = (uint16_t)((ipv4_hdr->dst_addr >> 16) & 0xFFFF);
+		if (qconf->rlimit4_cur[range_id][addr_high]++ >=
+		    rlimit4_max[range_id][addr_high]) {
+			return RATE_LIMITED;
+		}
+	}
+}
+
+static inline int
+rate_limit_step_ipv6(struct lcore_conf *qconf, uint16_t dst_port)
+{
+	if (qconf->rlimit6_cur[dst_port]++ >= rlimit6_max[dst_port]) {
+		return RATE_LIMITED;
+	}
 }
 
 /*
@@ -651,7 +680,6 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 	struct kni_port_params *p;
 	uint8_t process, is_ipv4;
 	uint16_t vlan_tci;
-	struct ipv4_hdr *ipv4_hdr;
 
 	p = kni_port_params_array[portid];
 	nb_kni = p->nb_kni;
@@ -693,7 +721,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 	if (process) {                                                         \
 		/* test if we need to rate-limit that packet before sending it \
 		 * to kni */                                                   \
-		if (!rate_limit_step(qconf, pkt[j]))                           \
+		if (!kni_rate_limit_step(qconf, pkt[j]))                       \
 			knimbuf[i++] = pkt[j];                                 \
 		else {                                                         \
 			rte_pktmbuf_free(pkt[j]);                              \
@@ -713,33 +741,17 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 		/* we have only ipv4 or ipv6 packets here, other protos are    \
 		 * sent to the kni */                                          \
 		if (is_ipv4) {                                                 \
-			ipv4_hdr =                                             \
-			    rte_pktmbuf_mtod_offset(pkt[j], struct ipv4_hdr *, \
-						    sizeof(struct ether_hdr)); \
-			vlan_tci = (uint16_t)ipv4_hdr->dst_addr;               \
-			is_ipv4 = rlimit4_lookup_table[vlan_tci];              \
-			if (is_ipv4) {                               \
-				vlan_tci = (uint16_t)(                         \
-				    (ipv4_hdr->dst_addr >> 16) & 0xFFFF);      \
-				if (qconf->rlimit4_cur[is_ipv4][vlan_tci]++ >= \
-				    rlimit4_max[is_ipv4][vlan_tci]) {          \
-					process = 255;                         \
-				}                                              \
-			}                                                      \
+			process = rate_limit_step_ipv4(qconf, pkt[j]);         \
 			vlan_tci =                                             \
 			    qconf->neighbor4_struct->entries.t4[dst_port[j]]   \
 				.neighbor.vlan_id;                             \
 		} else {                                                       \
-			if (qconf->rlimit6_cur[dst_port[j]]++ >=               \
-			    rlimit6_max[dst_port[j]]) {                        \
-				process = 255;                                 \
-			} else {                                               \
-				vlan_tci = qconf->neighbor6_struct->entries    \
-					       .t6[dst_port[j]]                \
-					       .neighbor.vlan_id;              \
-			}                                                      \
+			process = rate_limit_step_ipv6(qconf, dst_port[j]);    \
+			vlan_tci =                                             \
+			    qconf->neighbor6_struct->entries.t6[dst_port[j]]   \
+				.neighbor.vlan_id;                             \
 		}                                                              \
-		if (unlikely(process == 255)) {                                \
+		if (unlikely(process == RATE_LIMITED)) {                       \
 			rte_pktmbuf_free(pkt[j]);                              \
 			stats[lcore_id].nb_ratel_dropped++;                    \
 			if (j != --nb_rx) {                                    \
@@ -1298,11 +1310,12 @@ main_loop(__rte_unused void *dummy)
 			if (sec > rate_tsc) {
 				rate_tsc = sec;
 				qconf->kni_rate_limit_cur = 0;
-				for (i = 0; i < 256; i++) {
+				for (i = 0; i < NEI_NUM_ENTRIES; i++) {
 					qconf->rlimit6_cur[i] = 0;
 				}
 
-				memset(qconf->rlimit4_cur, 0, sizeof(qconf->rlimit4_cur));
+				memset(qconf->rlimit4_cur, 0,
+				       sizeof(qconf->rlimit4_cur));
 			}
 
 			prev_tsc = cur_tsc;
@@ -1723,17 +1736,12 @@ init_mem(uint8_t nb_ports)
 		qconf->neighbor6_struct = neighbor6_struct[socketid];
 		qconf->cur_acx_ipv4 = ipv4_acx[socketid];
 		qconf->cur_acx_ipv6 = ipv6_acx[socketid];
-		for (socketid = 0; socketid < 256; socketid++) {
-			qconf->rlimit6_cur[socketid] = 0;
-			rlimit6_max[socketid] = UINT32_MAX;
-		}
 
-		for (port = 0; port < MAX_RLIMIT_RANGE; port++) {
-			for (socketid = 0; socketid < 65536; socketid++) {
-				qconf->rlimit4_cur[port][socketid] = 0;
-				rlimit4_max[port][socketid] = UINT32_MAX;
-			}
-		}
+		memset(qconf->rlimit6_cur, 0, sizeof(qconf->rlimit6_cur));
+		memset(rlimit6_max, UINT32_MAX, sizeof(rlimit6_max));
+
+		memset(qconf->rlimit4_cur, 0, sizeof(qconf->rlimit4_cur));
+		memset(rlimit4_max, UINT32_MAX, sizeof(rlimit4_max));
 	}
 	return 0;
 }

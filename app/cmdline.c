@@ -857,9 +857,11 @@ cmd_obj_rlimit_parsed(void *parsed_result, struct cmdline *cl,
 			}
 
 			if (next_hop == MAX_RLIMIT_RANGE) {
-				cmdline_printf(cl, "could not find free array slot for %s \n",
-			    inet_ntop(AF_INET, &res->ip.addr.ipv4, buf,
-					 INET6_ADDRSTRLEN));
+				cmdline_printf(
+				    cl,
+				    "could not find free array slot for %s \n",
+				    inet_ntop(AF_INET, &res->ip.addr.ipv4, buf,
+					      INET6_ADDRSTRLEN));
 				return;
 			}
 		}
