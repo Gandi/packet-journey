@@ -63,6 +63,8 @@ struct mbuf_table {
 	struct rte_mbuf *m_table[MAX_PKT_BURST];
 };
 
+#define MAX_RLIMIT_RANGE 10 + 1
+
 struct lcore_conf {
 	uint16_t n_rx_queue;
 	struct lcore_rx_queue rx_queue_list[MAX_RX_QUEUE_PER_LCORE];
@@ -74,10 +76,16 @@ struct lcore_conf {
 	neighbor_struct_t *neighbor6_struct;
 	struct rte_acl_ctx *cur_acx_ipv4, *new_acx_ipv4;
 	struct rte_acl_ctx *cur_acx_ipv6, *new_acx_ipv6;
-	uint32_t rate_limit_cur;
+	uint32_t kni_rate_limit_cur;
+	uint32_t rlimit4_cur[MAX_RLIMIT_RANGE][65536];
+	uint32_t rlimit6_cur[256];
 } __rte_cache_aligned;
 
 extern struct lcore_conf lcore_conf[RTE_MAX_LCORE];
+
+extern uint8_t rlimit4_lookup_table[65536];
+extern uint32_t rlimit4_max[MAX_RLIMIT_RANGE][65536];
+extern uint32_t rlimit6_max[256];
 
 #define CMD_LINE_OPT_CONFIG "config"
 #define CMD_LINE_OPT_KNICONFIG "kniconfig"
