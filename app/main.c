@@ -1969,7 +1969,7 @@ rdtsc_thread(__rte_unused void *args)
 		for (i = 0; i < RTE_MAX_LCORE; i++) {
 			glob_tsc[i] = cur_tsc;
 		}
-		usleep(50000);
+		usleep(1000);
 	}
 
 	return 0;
