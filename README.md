@@ -99,4 +99,4 @@ For simulating real life confitions, the tests are done with 500k routes (someth
 
 The packets are generated using DPDK-PktGen which is configured for sending 64 Bytes UDP packets with a random source IP and to a fixed destination IP. When Configured with 4 RX queues, Packet-Journey is able to forward 21773.47 mbits.
 
-The graphs of the test scenario are in [doc/pktj_test_acl_dpdk_4q] . The most easy graphs to read are the one from pktgen since it show you the TX/RX rates [doc/pktj_test_acl_dpdk_4q/results/0/pktgen-perf_report.html].
+The graphs of the test scenario are in (doc)[doc/pktj_test_acl_dpdk_4q] . The most easy graphs to read are the one from pktgen since it show you the TX/RX rates (PktGen report)[doc/pktj_test_acl_dpdk_4q/results/0/pktgen-perf_report.html].
