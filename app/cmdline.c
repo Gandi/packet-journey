@@ -844,16 +844,16 @@ cmd_obj_rlimit_parsed(void *parsed_result, struct cmdline *cl,
 		// check if this /16 range is the lookup table
 		if (next_hop == INVALID_RLIMIT_RANGE) {
 			// try to find free slot in the lookup table
-			for (next_hop = 1; next_hop < MAX_RLIMIT_RANGE;
+			for (next_hop = 0; next_hop < MAX_RLIMIT_RANGE;
 			     next_hop++) {
-				for (j = 0; j < 65536; j++) {
+				for (j = 0; j < UINT16_MAX + 1; j++) {
 					if (rlimit4_lookup_table[j] ==
 					    next_hop) {
 						break;
 					}
 				}
 
-				if (j == 65536) {
+				if (j == UINT16_MAX + 1) {
 					break;
 				}
 			}
