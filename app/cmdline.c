@@ -834,31 +834,20 @@ cmd_obj_rlimit_parsed(void *parsed_result, struct cmdline *cl,
 {
 	struct cmd_obj_rlimit_result *res = parsed_result;
 	uint8_t next_hop;
+	uint8_t range_id;
+	static uint8_t next_range_id = 0;
 	int i, j;
 	char buf[INET6_ADDRSTRLEN];
 
 	if (res->ip.family == AF_INET) {
 
 		i = (uint16_t)res->ip.addr.ipv4.s_addr;
-		next_hop = rlimit4_lookup_table[i];
+		range_id = rlimit4_lookup_table[i];
 		// check if this /16 range is the lookup table
-		if (next_hop == INVALID_RLIMIT_RANGE) {
-			// try to find free slot in the lookup table
-			for (next_hop = 0; next_hop < MAX_RLIMIT_RANGE;
-			     next_hop++) {
-				for (j = 0; j < UINT16_MAX + 1; j++) {
-					if (rlimit4_lookup_table[j] ==
-					    next_hop) {
-						break;
-					}
-				}
+		if (range_id == INVALID_RLIMIT_RANGE) {
+			range_id = next_range_id++;
 
-				if (j == UINT16_MAX + 1) {
-					break;
-				}
-			}
-
-			if (next_hop == MAX_RLIMIT_RANGE) { // if not found
+			if (range_id >= MAX_RLIMIT_RANGE) { // if not found
 				cmdline_printf(
 				    cl,
 				    "could not find free array slot for %s \n",
@@ -870,14 +859,14 @@ cmd_obj_rlimit_parsed(void *parsed_result, struct cmdline *cl,
 
 		// set slot for this /16 range in the lookup table
 		// and set the max packet rate for this dest addr
-		rlimit4_lookup_table[i] = next_hop;
+		rlimit4_lookup_table[i] = range_id;
 		i = (uint16_t)((res->ip.addr.ipv4.s_addr >> 16) & 0xFFFF);
-		rlimit4_max[next_hop][i] = res->num;
+		rlimit4_max[range_id][i] = res->num;
 
 		cmdline_printf(cl, "rate limited %s to %d (%d)\n",
 			       inet_ntop(AF_INET, &res->ip.addr.ipv4, buf,
 					 INET6_ADDRSTRLEN),
-			       res->num, next_hop);
+			       res->num, range_id);
 	} else if (res->ip.family == AF_INET6) {
 		i = rte_lpm6_lookup(
 		    ipv6_pktj_lookup_struct[RTE_PER_LCORE(g_socket_id)],
