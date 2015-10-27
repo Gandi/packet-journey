@@ -1,16 +1,16 @@
 # Packet-journey, linux router based on DPDK
 
-The purpose of this project is to provide an application capable of:
+The purpose of this project is to provide a **free** application capable of:
+
 * Switching many packets using the LPM algorithm
-* Make this switching scalable with the possibility of adding more packet queues/CPUs
+* Making this switching scalable with the possibility of adding more packet queues/CPUs
 * Learning routes from the Linux kernel using Netlink
 * Learning neighbors from Netlink, the kernel is refreshing them automatically
 * Being able to forward some packets to the kernel which will handle them (ARP, ICMP, BGP)
-* Rate limit ICMP packets that are sent to the kernel
-* Permit adding L3/L4 ACLs
-* Permit gathering statistics and managing ACLs through a cli based on a unixsock
-* Make all those things configurable through a configfile
-* Make it free
+* Rate limiting ICMP packets that are sent to the kernel
+* Supporting L3/L4 ACLs
+* Gathering statistics and managing ACLs through a cli based on a unixsock
+* Being configurable through a configfile
 
 Most of these features are based on various DPDK libs.
 
@@ -18,7 +18,8 @@ Most of these features are based on various DPDK libs.
 
 ### Threads
 
-Packet-journey (pktj) is composed of multiple kind of threads :
+Packet-journey (pktj) is composed of multiple kind of threads:
+
 * pktj, the main thread which is doing all the initialization and are handling signals.
 * forward-LCOREID, those threads are doing the forwarding part. They are reading packets from the PMD, doing the processing of those packets and sending them back to the PMD.
 * kni-LCOREID, those threads are reading packets from the KNI and sending them to the configured port.
@@ -31,22 +32,26 @@ For optimal performances, the forwarding threads must be alone on their cores. A
 
 ### Processing steps
 
-The forwarding threads are running the main_loop() function. It can be resumed by those steps:
+The forwarding threads are running the main_loop() function. It basically follows these steps:
 
-1. read up to 32 packet descriptors
-2. if none, read again
-3. prepare the acl processing for the new packets and filter them
-4. find the correct neighbor for the remaining packets by looking into the ipv4 or ipv6 LPM
-5. if a packet has no possible next_hop in the LPM or if a packet has the router IP, send it to the kni and remove it from the rest of the processing loop
-6. for each remaining packets, set the correct destination MAC address according to the selected next_hop
-7. reorder packets by destination port
-8. send the packets in batch grouped by destination port
+1. Read up to 32 packet descriptors
+2. If none, read again
+3. Prepare the ACL processing for the new packets and filter them
+4. Find the correct neighbor for the remaining packets by looking into the IPv4 or IPv6 LPM
+5. If a packet has no possible next_hop in the LPM or if a packet has the router IP, send it to the KNI and remove it from the rest of the processing loop
+6. For each of the remaining packets, set the correct destination MAC address according to the selected next_hop
+7. Reorder packets by destination port
+8. Send the packets in batch grouped by destination port
 
 ## Configuration examples
 
-```pktj -l 0,1,2,3 -n 4 --socket-mem=4096 --log-level=4 -- --configfile /root/devel/router-dpdk/tests/integration/lab00/pktj.conf```
+```
+pktj -l 0,1,2,3 -n 4 --socket-mem=4096 --log-level=4 -- \
+--configfile /root/devel/router-dpdk/tests/integration/lab00/pktj.conf
+```
 
-with pktj.conf containing :
+with `pktj.conf` containing:
+
 ```
 ; pktj
 [pktj]
@@ -63,9 +68,14 @@ eal queues      = 0,1 1,2 ; queue,lcore
 kni             = 3,0 ; lcore_tx,kthread
 ```
 
-Those settings will launch pktj with 2 forwarding threads, on core 1 and 2, a KNI tx thread on core 3, will launch the script ```up.sh``` after setting up the KNI.
+These settings will launch the following:
 
-The script `up.sh` is configuring the KNI IPv4, IPv6 and mac addresses. It also start some processes (bgpd and zebra in our case).
+* pktj with 2 forwarding threads, on core 1 and 2,
+* a KNI tx thread on core 3, and
+* the script ```up.sh``` after setting up the KNI.
+
+The script `up.sh` configures the KNI IPv4, IPv6 and MAC addresses. It also
+starts some processes (bgpd and zebra in our case).
 
 
 ```
@@ -93,10 +103,21 @@ sleep 15s
 
 ## Performances
 
-The test scenario is done between 2 physicals machines having both a XL710 NIC and a E5-2630L CPU. The first host is running Packet-Journey, he receives traffic from the second host and send it back to it.
+The test scenario is done between 2 physical machines having both a XL710 NIC
+and a E5-2630L CPU. The first host is running Packet-Journey; it receives
+traffic from the second host and sends it back.
 
-For simulating real life confitions, the tests are done with 500k routes (something similar to a BGP full view) and 50 acl (we use scalar implementation for ACL since the CPU don't have AVX2 instructions), we have also a percentage of the packets which are forwarded to the KNI instead of going through the fastpath.
+For simulating real life conditions, the tests are done with 500k
+routes (something similar to a BGP full view) and 50 ACL (we use scalar
+implementation for ACL since the CPU don't have AVX2 instructions). We have
+also a percentage of the packets which are forwarded to the KNI instead of
+going through the fastpath.
 
-The packets are generated using DPDK-PktGen which is configured for sending 64 Bytes UDP packets with a random source IP and to a fixed destination IP. When Configured with 4 RX queues, Packet-Journey is able to forward 21773.47 mbits.
+The packets are generated using DPDK-PktGen which is configured for sending 64
+Bytes UDP packets with a random source IP and to a fixed destination IP. When
+Configured with 4 RX queues, Packet-Journey is able to forward 21773.47 mbits.
 
-The graphs of the test scenario are in [doc](doc/pktj_test_acl_dpdk_4q) . The most easy graphs to read are the one from pktgen since it show you the TX/RX rates [PktGen report](doc/pktj_test_acl_dpdk_4q/results/0/pktgen-perf_report.html).
+The graphs of the test scenario are in the [doc](doc/pktj_test_acl_dpdk_4q).
+The easiest graphs to read are the ones from pktgen since it shows you the TX
+RX rates: [PktGen report](doc/pktj_test_acl_dpdk_4q/results/0/pktgen-perf_report.html).
+
