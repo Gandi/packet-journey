@@ -114,7 +114,7 @@ also a percentage of the packets which are forwarded to the KNI instead of
 going through the fastpath.
 
 The packets are generated using DPDK-PktGen which is configured for sending 64
-Bytes UDP packets with a random source IP and to a fixed destination IP. When
+Bytes UDP packets with a random source and destination IP. When
 Configured with 4 RX queues, Packet-Journey is able to forward 21773.47 mbits.
 
 The graphs of the test scenario are in the [doc](doc/pktj_test_acl_dpdk_4q).
