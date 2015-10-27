@@ -137,8 +137,8 @@ neighbor_struct_t *neighbor4_struct[NB_SOCKETS];
 neighbor_struct_t *neighbor6_struct[NB_SOCKETS];
 
 #define RATE_LIMITED UINT8_MAX
-uint8_t rlimit4_lookup_table[UINT16_MAX + 1] __rte_cache_aligned;
-uint32_t rlimit4_max[MAX_RLIMIT_RANGE][UINT16_MAX + 1] __rte_cache_aligned;
+uint8_t rlimit4_lookup_table[MAX_RLIMIT_RANGE_HOST] __rte_cache_aligned;
+uint32_t rlimit4_max[MAX_RLIMIT_RANGE][MAX_RLIMIT_RANGE_HOST] __rte_cache_aligned;
 uint32_t rlimit6_max[NEI_NUM_ENTRIES] __rte_cache_aligned;
 
 struct control_params_t {
@@ -572,20 +572,19 @@ static inline int
 rate_limit_step_ipv4(struct lcore_conf *qconf, struct rte_mbuf *pkt)
 {
 	struct ipv4_hdr *ipv4_hdr;
-	uint16_t addr_low, addr_high;
 	uint8_t range_id;
+	union rlimit_addr *dst_addr;
 
 	ipv4_hdr = rte_pktmbuf_mtod_offset(pkt, struct ipv4_hdr *,
 					   sizeof(struct ether_hdr));
-	addr_low = (uint16_t)ipv4_hdr->dst_addr;
-	range_id = rlimit4_lookup_table[addr_low];
+	dst_addr = (union rlimit_addr*)&ipv4_hdr->dst_addr;
+	range_id = rlimit4_lookup_table[dst_addr->network];
 	// check if the dest /16 range is in the lookup table
 	if (range_id != INVALID_RLIMIT_RANGE) {
-		addr_high = (uint16_t)((ipv4_hdr->dst_addr >> 16) & 0xFFFF);
 		// increase the counter for this dest
 		// and check against the max value
-		if (qconf->rlimit4_cur[range_id][addr_high]++ >=
-		    rlimit4_max[range_id][addr_high]) {
+		if (qconf->rlimit4_cur[range_id][dst_addr->host]++ >=
+		    rlimit4_max[range_id][dst_addr->host]) {
 			return RATE_LIMITED;
 		}
 	}

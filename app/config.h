@@ -64,7 +64,8 @@ struct mbuf_table {
 };
 
 #define INVALID_RLIMIT_RANGE UINT8_MAX
-#define MAX_RLIMIT_RANGE 10 // maximum number of /16 ranges that can be limited
+#define MAX_RLIMIT_RANGE 10 // max number of /16 ranges that can be limited
+#define MAX_RLIMIT_RANGE_HOST (UINT16_MAX + 1) // max number of hosts in a range
 
 struct lcore_conf {
 	uint16_t n_rx_queue;
@@ -81,14 +82,21 @@ struct lcore_conf {
 
 	// counter for each lower part of
 	// dest ipv4 addrs in ratelimited /16 ranges
-	uint32_t rlimit4_cur[MAX_RLIMIT_RANGE][UINT16_MAX + 1];
+	uint32_t rlimit4_cur[MAX_RLIMIT_RANGE][MAX_RLIMIT_RANGE_HOST];
 	uint32_t rlimit6_cur[NEI_NUM_ENTRIES]; // counter for each ipv6 neighbor
 } __rte_cache_aligned;
 
 extern struct lcore_conf lcore_conf[RTE_MAX_LCORE];
 
-extern uint8_t rlimit4_lookup_table[UINT16_MAX + 1];
-extern uint32_t rlimit4_max[MAX_RLIMIT_RANGE][UINT16_MAX + 1];
+union rlimit_addr {
+	struct {
+		unsigned network : 16;
+		unsigned host : 16;
+	};
+	uint32_t addr;
+};
+extern uint8_t rlimit4_lookup_table[MAX_RLIMIT_RANGE_HOST];
+extern uint32_t rlimit4_max[MAX_RLIMIT_RANGE][MAX_RLIMIT_RANGE_HOST];
 extern uint32_t rlimit6_max[NEI_NUM_ENTRIES];
 
 #define CMD_LINE_OPT_CONFIG "config"

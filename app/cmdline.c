@@ -836,13 +836,14 @@ cmd_obj_rlimit_parsed(void *parsed_result, struct cmdline *cl,
 	uint8_t next_hop;
 	uint8_t range_id;
 	static uint8_t next_range_id = 0;
-	int i, j;
+	int i;
+	union rlimit_addr *addr;
 	char buf[INET6_ADDRSTRLEN];
 
 	if (res->ip.family == AF_INET) {
 
-		i = (uint16_t)res->ip.addr.ipv4.s_addr;
-		range_id = rlimit4_lookup_table[i];
+		addr = (union rlimit_addr*)&res->ip.addr.ipv4.s_addr;
+		range_id = rlimit4_lookup_table[addr->network];
 		// check if this /16 range is the lookup table
 		if (range_id == INVALID_RLIMIT_RANGE) {
 			range_id = next_range_id++;
@@ -859,9 +860,8 @@ cmd_obj_rlimit_parsed(void *parsed_result, struct cmdline *cl,
 
 		// set slot for this /16 range in the lookup table
 		// and set the max packet rate for this dest addr
-		rlimit4_lookup_table[i] = range_id;
-		i = (uint16_t)((res->ip.addr.ipv4.s_addr >> 16) & 0xFFFF);
-		rlimit4_max[range_id][i] = res->num;
+		rlimit4_lookup_table[addr->network] = range_id;
+		rlimit4_max[range_id][addr->host] = res->num;
 
 		cmdline_printf(cl, "rate limited %s to %d (%d)\n",
 			       inet_ntop(AF_INET, &res->ip.addr.ipv4, buf,
