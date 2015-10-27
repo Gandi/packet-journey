@@ -909,7 +909,7 @@ cmdline_parse_token_num_t cmd_obj_rlimit_num =
 cmdline_parse_inst_t cmd_obj_rlimit = {
     .f = cmd_obj_rlimit_parsed, /* function to call */
     .data = NULL,		/* 2nd arg of func */
-    .help_str = "Rate limit an address",
+    .help_str = "Rate limit an address (rate in pps per queue)",
     .tokens =
 	{
 	    /* token list, NULL terminated */
@@ -1177,6 +1177,7 @@ cmd_help_parsed(__attribute__((unused)) void *parsed_result, struct cmdline *cl,
 		"- lpm_stats {ipv4 | ipv6}\n"
 		"- loglevel level\n"
 		"- logtype type_id { 0 | 1 }\n"
+		"- rlimit IP rate\n"
 
 		"- help\n\n");
 }
