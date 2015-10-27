@@ -841,7 +841,9 @@ cmd_obj_rlimit_parsed(void *parsed_result, struct cmdline *cl,
 
 		i = (uint16_t)res->ip.addr.ipv4.s_addr;
 		next_hop = rlimit4_lookup_table[i];
-		if (!next_hop) {
+		// check if this /16 range is the lookup table
+		if (next_hop == INVALID_RLIMIT_RANGE) {
+			// try to find free slot in the lookup table
 			for (next_hop = 1; next_hop < MAX_RLIMIT_RANGE;
 			     next_hop++) {
 				for (j = 0; j < 65536; j++) {
@@ -856,7 +858,7 @@ cmd_obj_rlimit_parsed(void *parsed_result, struct cmdline *cl,
 				}
 			}
 
-			if (next_hop == MAX_RLIMIT_RANGE) {
+			if (next_hop == MAX_RLIMIT_RANGE) { // if not found
 				cmdline_printf(
 				    cl,
 				    "could not find free array slot for %s \n",
@@ -866,6 +868,8 @@ cmd_obj_rlimit_parsed(void *parsed_result, struct cmdline *cl,
 			}
 		}
 
+		// set slot for this /16 range in the lookup table
+		// and set the max packet rate for this dest addr
 		rlimit4_lookup_table[i] = next_hop;
 		i = (uint16_t)((res->ip.addr.ipv4.s_addr >> 16) & 0xFFFF);
 		rlimit4_max[next_hop][i] = res->num;
@@ -881,6 +885,7 @@ cmd_obj_rlimit_parsed(void *parsed_result, struct cmdline *cl,
 		if (i < 0) {
 			cmdline_printf(cl, "not found\n");
 		} else {
+			// set the max packet rate for this neighbor
 			rlimit6_max[next_hop] = res->num;
 			struct in6_addr *addr =
 			    &neighbor6_struct[RTE_PER_LCORE(g_socket_id)]

@@ -63,9 +63,8 @@ struct mbuf_table {
 	struct rte_mbuf *m_table[MAX_PKT_BURST];
 };
 
-#define MAX_RLIMIT_RANGE                                                       \
-	(10 + 1) // maximum number of /16 ranges limited (+ 1 will be removed
-		 // asap, have to define some invalid range value)
+#define INVALID_RLIMIT_RANGE UINT8_MAX
+#define MAX_RLIMIT_RANGE 10 // maximum number of /16 ranges that can be limited
 
 struct lcore_conf {
 	uint16_t n_rx_queue;
@@ -79,8 +78,11 @@ struct lcore_conf {
 	struct rte_acl_ctx *cur_acx_ipv4, *new_acx_ipv4;
 	struct rte_acl_ctx *cur_acx_ipv6, *new_acx_ipv6;
 	uint32_t kni_rate_limit_cur;
+
+	// counter for each lower part of
+	// dest ipv4 addrs in ratelimited /16 ranges
 	uint32_t rlimit4_cur[MAX_RLIMIT_RANGE][UINT16_MAX + 1];
-	uint32_t rlimit6_cur[NEI_NUM_ENTRIES];
+	uint32_t rlimit6_cur[NEI_NUM_ENTRIES]; // counter for each ipv6 neighbor
 } __rte_cache_aligned;
 
 extern struct lcore_conf lcore_conf[RTE_MAX_LCORE];

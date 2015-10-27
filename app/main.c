@@ -579,21 +579,30 @@ rate_limit_step_ipv4(struct lcore_conf *qconf, struct rte_mbuf *pkt)
 					   sizeof(struct ether_hdr));
 	addr_low = (uint16_t)ipv4_hdr->dst_addr;
 	range_id = rlimit4_lookup_table[addr_low];
-	if (range_id) {
+	// check if the dest /16 range is in the lookup table
+	if (range_id != INVALID_RLIMIT_RANGE) {
 		addr_high = (uint16_t)((ipv4_hdr->dst_addr >> 16) & 0xFFFF);
+		// increase the counter for this dest
+		// and check against the max value
 		if (qconf->rlimit4_cur[range_id][addr_high]++ >=
 		    rlimit4_max[range_id][addr_high]) {
 			return RATE_LIMITED;
 		}
 	}
+
+	return 0;
 }
 
 static inline int
 rate_limit_step_ipv6(struct lcore_conf *qconf, uint16_t dst_port)
 {
+	// increase the packet counter for this neighbor
+	// and check against the max value
 	if (qconf->rlimit6_cur[dst_port]++ >= rlimit6_max[dst_port]) {
 		return RATE_LIMITED;
 	}
+
+	return 0;
 }
 
 /*
@@ -1309,6 +1318,8 @@ main_loop(__rte_unused void *dummy)
 			uint64_t sec = cur_tsc / ticks_per_s;
 			if (sec > rate_tsc) {
 				rate_tsc = sec;
+
+				// reset rate limit counters
 				qconf->kni_rate_limit_cur = 0;
 
 				memset(qconf->rlimit6_cur, 0,
@@ -1681,6 +1692,9 @@ init_mem(uint8_t nb_ports)
 		kni_neighbor[port].action = NEI_ACTION_KNI;
 		kni_neighbor[port].port_id = port;
 	}
+
+	memset(rlimit4_lookup_table, INVALID_RLIMIT_RANGE,
+	       sizeof(rlimit4_lookup_table));
 
 	for (lcore_id = 0; lcore_id < RTE_MAX_LCORE; lcore_id++) {
 		if (rte_lcore_is_enabled(lcore_id) == 0)
