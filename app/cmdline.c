@@ -101,11 +101,11 @@
 #include "routing.h"
 #include "acl.h"
 #include "stats.h"
+#include "config.h"
 
 #define CMDLINE_POLL_TIMEOUT 500
 
-void
-__wrap_cmdline_printf(const struct cmdline *cl, const char *fmt, ...);
+void __wrap_cmdline_printf(const struct cmdline *cl, const char *fmt, ...);
 
 void
 __wrap_cmdline_printf(const struct cmdline *cl, const char *fmt, ...)
@@ -820,6 +820,93 @@ cmdline_parse_inst_t cmd_obj_lpm_lkp = {
 	},
 };
 
+//----- CMD RLIMIT
+
+struct cmd_obj_rlimit_result {
+	cmdline_fixed_string_t action;
+	cmdline_ipaddr_t ip;
+	uint32_t num;
+};
+
+static void
+cmd_obj_rlimit_parsed(void *parsed_result, struct cmdline *cl,
+		      __rte_unused void *data)
+{
+	struct cmd_obj_rlimit_result *res = parsed_result;
+	uint8_t next_hop;
+	uint8_t range_id;
+	static uint8_t next_range_id = 0;
+	int i;
+	union rlimit_addr *addr;
+	char buf[INET6_ADDRSTRLEN];
+
+	if (res->ip.family == AF_INET) {
+
+		addr = (union rlimit_addr*)&res->ip.addr.ipv4.s_addr;
+		range_id = rlimit4_lookup_table[addr->network];
+		// check if this /16 range is the lookup table
+		if (range_id == INVALID_RLIMIT_RANGE) {
+			range_id = next_range_id++;
+
+			if (range_id >= MAX_RLIMIT_RANGE) { // if not found
+				cmdline_printf(
+				    cl,
+				    "could not find free array slot for %s \n",
+				    inet_ntop(AF_INET, &res->ip.addr.ipv4, buf,
+					      INET6_ADDRSTRLEN));
+				return;
+			}
+		}
+
+		// set slot for this /16 range in the lookup table
+		// and set the max packet rate for this dest addr
+		rlimit4_lookup_table[addr->network] = range_id;
+		rlimit4_max[range_id][addr->host] = res->num;
+
+		cmdline_printf(cl, "rate limited %s to %d (%d)\n",
+			       inet_ntop(AF_INET, &res->ip.addr.ipv4, buf,
+					 INET6_ADDRSTRLEN),
+			       res->num, range_id);
+	} else if (res->ip.family == AF_INET6) {
+		i = rte_lpm6_lookup(
+		    ipv6_pktj_lookup_struct[RTE_PER_LCORE(g_socket_id)],
+		    res->ip.addr.ipv6.s6_addr, &next_hop);
+		if (i < 0) {
+			cmdline_printf(cl, "not found\n");
+		} else {
+			// set the max packet rate for this neighbor
+			rlimit6_max[next_hop] = res->num;
+			struct in6_addr *addr =
+			    &neighbor6_struct[RTE_PER_LCORE(g_socket_id)]
+				 ->entries.t6[next_hop]
+				 .addr;
+			cmdline_printf(
+			    cl, "present, rate limited %s to %d\n",
+			    inet_ntop(AF_INET6, addr, buf, INET6_ADDRSTRLEN),
+			    res->num);
+		}
+	}
+}
+
+cmdline_parse_token_string_t cmd_obj_action_rlimit =
+    TOKEN_STRING_INITIALIZER(struct cmd_obj_rlimit_result, action, "rlimit");
+cmdline_parse_token_ipaddr_t cmd_obj_rlimit_ip =
+    TOKEN_IPADDR_INITIALIZER(struct cmd_obj_rlimit_result, ip);
+cmdline_parse_token_num_t cmd_obj_rlimit_num =
+    TOKEN_NUM_INITIALIZER(struct cmd_obj_rlimit_result, num, UINT32);
+
+cmdline_parse_inst_t cmd_obj_rlimit = {
+    .f = cmd_obj_rlimit_parsed, /* function to call */
+    .data = NULL,		/* 2nd arg of func */
+    .help_str = "Rate limit an address (rate in pps per queue)",
+    .tokens =
+	{
+	    /* token list, NULL terminated */
+	    (void *)&cmd_obj_action_rlimit, (void *) & cmd_obj_rlimit_ip,
+	    (void *) & cmd_obj_rlimit_num, NULL,
+	},
+};
+
 //----- CMD ACL_ADD
 
 struct cmd_obj_acl_add_result {
@@ -1079,6 +1166,7 @@ cmd_help_parsed(__attribute__((unused)) void *parsed_result, struct cmdline *cl,
 		"- lpm_stats {ipv4 | ipv6}\n"
 		"- loglevel level\n"
 		"- logtype type_id { 0 | 1 }\n"
+		"- rlimit IP rate\n"
 
 		"- help\n\n");
 }
@@ -1102,6 +1190,7 @@ cmdline_parse_inst_t cmd_help = {
 cmdline_parse_ctx_t main_ctx[] = {
     (cmdline_parse_inst_t *)&cmd_obj_acl_add,
     (cmdline_parse_inst_t *)&cmd_obj_lpm_lkp,
+    (cmdline_parse_inst_t *)&cmd_obj_rlimit,
     (cmdline_parse_inst_t *)&cmd_stats,
     (cmdline_parse_inst_t *)&cmd_loglevel,
     (cmdline_parse_inst_t *)&cmd_logtype,
@@ -1317,7 +1406,8 @@ cmdline_run(void *data)
 			if (i == CMDLINE_MAX_CLIENTS) {
 #define CMDLINE_MCLI_MSG "Max client reached... \n"
 				ret = send(res, CMDLINE_MCLI_MSG,
-					    sizeof(CMDLINE_MCLI_MSG), MSG_NOSIGNAL);
+					   sizeof(CMDLINE_MCLI_MSG),
+					   MSG_NOSIGNAL);
 				close(res);
 			}
 		}

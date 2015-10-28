@@ -72,6 +72,8 @@
 #include <rte_cfgfile.h>
 #include <rte_malloc.h>
 
+#include <libneighbour.h>
+
 #include "common.h"
 #include "routing.h"
 #include "config.h"

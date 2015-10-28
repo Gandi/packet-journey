@@ -102,6 +102,8 @@
 #include <rte_malloc.h>
 #include <rte_kni.h>
 
+#include <libneighbour.h>
+
 #include "common.h"
 #include "routing.h"
 #include "kni.h"
