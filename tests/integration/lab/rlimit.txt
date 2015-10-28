@@ -1,0 +1,5 @@
+1.0.0.0/16 1000 ; rate limit this /16 range
+1.0.2.0/24 100 ; rate limit this /24 range
+1.0.2.254 10 ; rate limit this address
+1.0.1.254 10 ; at this point you have 1.0.1.254 and 1.0.2.254 limited to 10, 1.0.2.0/24 except the previous addresses limited to 100, 1.0.0.0/16 except previous addresses limited to 1000
+2001:1::2 ; rate limit packets forwarded to this neighbor

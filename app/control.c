@@ -71,6 +71,8 @@
 #include <rte_lpm.h>
 #include <rte_lpm6.h>
 #include <rte_ethdev.h>
+#include <cmdline_parse.h>
+#include <cmdline_parse_ipaddr.h>
 
 #include <libnetlink.h>
 #include <libneighbour.h>
@@ -78,6 +80,7 @@
 #include "common.h"
 #include "control.h"
 #include "routing.h"
+#include "config.h"
 
 #define CTRL_CBK_MAX_SIZE 256
 #ifndef __DECONST
@@ -109,6 +112,24 @@ print_operstate(FILE *f, __u8 state)
 		fprintf(f, "state %#x ", state);
 	else
 		fprintf(f, "state %s ", oper_states[state]);
+}
+
+static void
+apply_rate_limit_ipv6(struct in6_addr *nexthop, uint8_t nexthop_id,
+		      int socket_id)
+{
+	uint32_t i;
+
+	// apply rate limit rule if next hop neighbor is in the table
+	for (i = 0; i < NEI_NUM_ENTRIES; i++) {
+		// if addresses match
+		if (!memcmp(&rlimit6_lookup_table[socket_id][i].addr, nexthop,
+			    sizeof(struct in6_addr))) {
+			rlimit6_max[socket_id][nexthop_id] =
+			    rlimit6_lookup_table[socket_id][i].num;
+			break;
+		}
+	}
 }
 
 int control_add_ipv4_local_entry(struct in_addr *nexthop, struct in_addr *saddr,
@@ -245,6 +266,10 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 							 "route adding...\n");
 				return -1;
 			}
+
+			// apply rate limit rule if next hop neighbor is in the
+			// table
+			apply_rate_limit_ipv6(nexthop, nexthop_id, socket_id);
 		}
 		s = rte_lpm6_add(ipv6_pktj_lookup_struct[socket_id],
 				 addr->s6_addr, depth, nexthop_id);
@@ -521,6 +546,11 @@ neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
 							 "table...\n");
 				return -1;
 			}
+
+			// apply rate limit rule if next hop neighbor is in the
+			// table
+			apply_rate_limit_ipv6(addr, nexthop_id, socket_id);
+
 			if (rte_lpm6_lookup(ipv6_pktj_lookup_struct[socket_id],
 					    addr->s6_addr, &find_id) == 0) {
 				s = rte_lpm6_add(
@@ -585,6 +615,10 @@ neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
 					"failed to delete route...\n");
 				return -1;
 			}
+
+			// reset rate limit for this id
+			rlimit6_max[socket_id][nexthop_id] = UINT32_MAX;
+
 			lpm6_stats[socket_id].nb_del_ok++;
 		}
 	}
@@ -829,6 +863,9 @@ control_add_ipv6_local_entry(struct in6_addr *nexthop, struct in6_addr *saddr,
 			    "failed to add a nexthop during route adding...\n");
 			return -1;
 		}
+
+		// apply rate limit rule if next hop neighbor is in the table
+		apply_rate_limit_ipv6(nexthop, nexthop_id, socket_id);
 	}
 	neighbor6_set_port(neighbor6_struct[socket_id], nexthop_id, port_id);
 	s = rte_lpm6_add(ipv6_pktj_lookup_struct[socket_id], saddr->s6_addr,

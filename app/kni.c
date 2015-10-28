@@ -100,7 +100,11 @@
 #include <rte_string_fns.h>
 #include <rte_cycles.h>
 #include <rte_malloc.h>
+#include <cmdline_parse.h>
+#include <cmdline_parse_ipaddr.h>
 #include <rte_kni.h>
+
+#include <libneighbour.h>
 
 #include "common.h"
 #include "routing.h"

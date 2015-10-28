@@ -71,6 +71,11 @@
 #include <rte_ethdev.h>
 #include <rte_cfgfile.h>
 #include <rte_malloc.h>
+#include <rte_lpm6.h>
+#include <cmdline_parse.h>
+#include <cmdline_parse_ipaddr.h>
+
+#include <libneighbour.h>
 
 #include "common.h"
 #include "routing.h"
@@ -90,6 +95,7 @@ int numa_on = 1;	/**< NUMA is enabled by default. */
 uint32_t kni_rate_limit = UINT32_MAX;
 const char *callback_setup = NULL;
 const char *unixsock_path = "/tmp/pktj.sock";
+const char *ratelimit_file = NULL;
 
 struct rte_eth_conf port_conf = {
     .rxmode =
@@ -494,6 +500,176 @@ parse_config_from_file(uint8_t port_id, char *q_arg)
 }
 
 static int
+rate_limit_ipv4(union rlimit_addr *addr, uint32_t num, int socket_id)
+{
+	uint8_t range_id;
+	static uint8_t next_range_id[NB_SOCKETS] = {0};
+
+	range_id = rlimit4_lookup_table[socket_id][addr->network];
+	// check if this cidr range is the lookup table
+	if (range_id == INVALID_RLIMIT_RANGE) {
+		range_id = next_range_id[socket_id]++;
+
+		if (range_id >= MAX_RLIMIT_RANGE) { // if not found
+			return -1;
+		}
+	}
+
+	// set slot for this cidr range in the lookup table
+	// and set the max packet rate for this dest addr
+	rlimit4_lookup_table[socket_id][addr->network] = range_id;
+	rlimit4_max[socket_id][range_id][addr->host] = num;
+
+	return 0;
+}
+
+static int
+rate_limit_ipv6(cmdline_ipaddr_t *ip, uint32_t num, int socket_id)
+{
+	static uint8_t next_hop_count[NB_SOCKETS] = {0};
+	uint16_t next_hop = 0;
+
+	// store the rule so it can applied once
+	// it is added if it is not already
+
+	// check if this address is already stored
+	for (next_hop = 0; next_hop < NEI_NUM_ENTRIES; next_hop++) {
+		// if addresses match
+		if (!memcmp(&rlimit6_lookup_table[socket_id][next_hop].addr,
+			    &ip->addr.ipv6, sizeof(struct in6_addr))) {
+			break;
+		}
+	}
+
+	// otherwise try to allocate new slot for storage
+	if (next_hop == NEI_NUM_ENTRIES) {
+		// no more slot available
+		if (next_hop_count[socket_id] == NEI_NUM_ENTRIES - 1) {
+			return -1;
+		}
+
+		next_hop = next_hop_count[socket_id]++;
+	}
+
+	rte_memcpy(&rlimit6_lookup_table[socket_id][next_hop].addr,
+		   &ip->addr.ipv6, sizeof(struct in6_addr));
+	rlimit6_lookup_table[socket_id][next_hop].num = num;
+
+	if (rte_lpm6_lookup(ipv6_pktj_lookup_struct[socket_id],
+			    ip->addr.ipv6.s6_addr, (uint8_t *)&next_hop) == 0) {
+		// set the max packet rate for this neighbor
+		rlimit6_max[socket_id][next_hop] = num;
+	}
+
+	return 0;
+}
+
+int
+rate_limit_address(cmdline_ipaddr_t *ip, uint32_t num, int socket_id)
+{
+	int i, res;
+	uint32_t netmask, netaddr, maxhost, j;
+
+	res = 0;
+	if (ip->family == AF_INET) {
+		if (ip->prefixlen > 0) {
+			// rate limit range
+			netmask = ~(UINT32_MAX >> ip->prefixlen);
+			netaddr =
+			    rte_be_to_cpu_32(ip->addr.ipv4.s_addr) & netmask;
+			maxhost = netaddr + (1 << (32 - ip->prefixlen));
+			if (socket_id == SOCKET_ID_ANY) {
+				for (i = 0; i < NB_SOCKETS; i++) {
+					for (j = netaddr; j < maxhost; j++) {
+						rate_limit_ipv4(
+						    (union rlimit_addr *)&j,
+						    num, i);
+					}
+				}
+			} else {
+				for (j = netaddr; j < maxhost; j++) {
+					rate_limit_ipv4((union rlimit_addr *)&j,
+							num, socket_id);
+				}
+			}
+		} else {
+			netaddr = rte_be_to_cpu_32(ip->addr.ipv4.s_addr);
+			if (socket_id == SOCKET_ID_ANY) {
+				for (i = 0; i < NB_SOCKETS; i++) {
+					res += rate_limit_ipv4(
+					    (union rlimit_addr *)&netaddr, num,
+					    i);
+				}
+			} else {
+				res = rate_limit_ipv4(
+				    (union rlimit_addr *)&netaddr, num,
+				    socket_id);
+			}
+		}
+	} else if (ip->family == AF_INET6) {
+		if (socket_id == SOCKET_ID_ANY) { // rate limit for all sockets
+			for (i = 0; i < NB_SOCKETS; i++) {
+				res += rate_limit_ipv6(ip, num, i);
+			}
+		} else {
+			res = rate_limit_ipv6(ip, num, socket_id);
+		}
+	}
+
+	return res;
+}
+
+void
+rate_limit_config_from_file(const char *file_name)
+{
+	char buff[LINE_MAX];
+	enum fieldnames { FLD_ADDRESS = 0, FLD_RATE, _NUM_FLD };
+	char *str_fld[_NUM_FLD];
+	cmdline_parse_token_ipaddr_t tk, tk_net;
+	cmdline_ipaddr_t ip_addr;
+	uint32_t num;
+
+	FILE *fh = fopen(file_name, "rb");
+
+	if (fh == NULL) {
+		RTE_LOG(ERR, PKTJ1,
+			"Could not open rate limit config file: %s\n",
+			file_name);
+		return;
+	}
+
+	tk.ipaddr_data.flags = CMDLINE_IPADDR_V4 | CMDLINE_IPADDR_V6;
+	tk_net.ipaddr_data.flags =
+	    CMDLINE_IPADDR_V4 | CMDLINE_IPADDR_V6 | CMDLINE_IPADDR_NETWORK;
+
+	while ((fgets(buff, LINE_MAX, fh) != NULL)) {
+		if (rte_strsplit(buff, strlen(buff), str_fld, _NUM_FLD, ' ') !=
+		    _NUM_FLD) {
+			continue;
+		}
+
+		sscanf(str_fld[FLD_RATE], "%u", &num);
+		if (cmdline_parse_ipaddr((cmdline_parse_token_hdr_t *)&tk_net,
+					 str_fld[FLD_ADDRESS], &ip_addr,
+					 sizeof(ip_addr)) > 0 ||
+		    cmdline_parse_ipaddr((cmdline_parse_token_hdr_t *)&tk,
+					 str_fld[FLD_ADDRESS], &ip_addr,
+					 sizeof(ip_addr)) > 0) {
+			if (rate_limit_address(&ip_addr, num, SOCKET_ID_ANY) ==
+			    0) {
+				RTE_LOG(INFO, PKTJ1, "rate limited %s to %d\n",
+					str_fld[FLD_ADDRESS], num);
+			}
+		} else { // invalid address
+			RTE_LOG(ERR, PKTJ1, "could not rate limit %s to %d\n",
+				str_fld[FLD_ADDRESS], num);
+		}
+	}
+
+	fclose(fh);
+}
+
+static int
 install_cfgfile(const char *file_name, char *prgname)
 {
 	struct rte_cfgfile *file;
@@ -618,6 +794,12 @@ install_cfgfile(const char *file_name, char *prgname)
 				      CMD_LINE_OPT_RULE_IPV6);
 	if (entry) {
 		acl_parm_config.rule_ipv6_name = strdup(entry);
+	}
+
+	entry = rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
+				      CMD_LINE_OPT_RATE_LIMIT);
+	if (entry) {
+		ratelimit_file = strdup(entry);
 	}
 
 	/*      optional    */

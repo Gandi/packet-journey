@@ -101,6 +101,7 @@
 #include "routing.h"
 #include "acl.h"
 #include "stats.h"
+#include "config.h"
 
 #define CMDLINE_POLL_TIMEOUT 500
 
@@ -819,6 +820,78 @@ cmdline_parse_inst_t cmd_obj_lpm_lkp = {
 	},
 };
 
+//----- CMD RLIMIT
+
+struct cmd_obj_rlimit_result {
+	cmdline_fixed_string_t action;
+	cmdline_ipaddr_t ip;
+	uint32_t num;
+};
+
+static void
+cmd_obj_rlimit_parsed(void *parsed_result, struct cmdline *cl,
+		      __rte_unused void *data)
+{
+	struct cmd_obj_rlimit_result *res = parsed_result;
+	char buf[INET6_ADDRSTRLEN];
+	int ret;
+
+	if (res->num == 0) { // remove rate limiting
+		res->num = UINT32_MAX;
+	}
+	ret =
+	    rate_limit_address(&res->ip, res->num, RTE_PER_LCORE(g_socket_id));
+	if (ret < 0) {
+		if (res->ip.family == AF_INET) {
+			cmdline_printf(
+			    cl, "could not find free array slot for %s \n",
+			    inet_ntop(AF_INET, &res->ip.addr.ipv4, buf,
+				      INET6_ADDRSTRLEN));
+		} else {
+			cmdline_printf(cl, "not found\n");
+		}
+		return;
+	}
+
+	cmdline_printf(
+	    cl, "rate limited %s/%d to %d\n",
+	    inet_ntop(res->ip.family, &res->ip.addr, buf, INET6_ADDRSTRLEN),
+	    res->ip.prefixlen == 0 ? 32 : res->ip.prefixlen, res->num);
+}
+
+cmdline_parse_token_string_t cmd_obj_action_rlimit =
+    TOKEN_STRING_INITIALIZER(struct cmd_obj_rlimit_result, action, "rlimit");
+cmdline_parse_token_ipaddr_t cmd_obj_rlimit_ip =
+    TOKEN_IPADDR_INITIALIZER(struct cmd_obj_rlimit_result, ip);
+cmdline_parse_token_ipaddr_t cmd_obj_rlimit_ipnet =
+    TOKEN_IPNET_INITIALIZER(struct cmd_obj_rlimit_result, ip);
+cmdline_parse_token_num_t cmd_obj_rlimit_num =
+    TOKEN_NUM_INITIALIZER(struct cmd_obj_rlimit_result, num, UINT32);
+
+cmdline_parse_inst_t cmd_obj_rlimit = {
+    .f = cmd_obj_rlimit_parsed, /* function to call */
+    .data = NULL,		/* 2nd arg of func */
+    .help_str = "Rate limit an address (rate in pps per queue)",
+    .tokens =
+	{
+	    /* token list, NULL terminated */
+	    (void *)&cmd_obj_action_rlimit, (void *) & cmd_obj_rlimit_ip,
+	    (void *) & cmd_obj_rlimit_num, NULL,
+	},
+};
+
+cmdline_parse_inst_t cmd_obj_rlimit_net = {
+    .f = cmd_obj_rlimit_parsed, /* function to call */
+    .data = NULL,		/* 2nd arg of func */
+    .help_str = "Rate limit a network (rate in pps per queue)",
+    .tokens =
+	{
+	    /* token list, NULL terminated */
+	    (void *)&cmd_obj_action_rlimit, (void *) & cmd_obj_rlimit_ipnet,
+	    (void *) & cmd_obj_rlimit_num, NULL,
+	},
+};
+
 //----- CMD ACL_ADD
 
 struct cmd_obj_acl_add_result {
@@ -1078,6 +1151,7 @@ cmd_help_parsed(__attribute__((unused)) void *parsed_result, struct cmdline *cl,
 		"- lpm_stats {ipv4 | ipv6}\n"
 		"- loglevel level\n"
 		"- logtype type_id { 0 | 1 }\n"
+		"- rlimit IP rate\n"
 
 		"- help\n\n");
 }
@@ -1101,6 +1175,8 @@ cmdline_parse_inst_t cmd_help = {
 cmdline_parse_ctx_t main_ctx[] = {
     (cmdline_parse_inst_t *)&cmd_obj_acl_add,
     (cmdline_parse_inst_t *)&cmd_obj_lpm_lkp,
+    (cmdline_parse_inst_t *)&cmd_obj_rlimit,
+    (cmdline_parse_inst_t *)&cmd_obj_rlimit_net,
     (cmdline_parse_inst_t *)&cmd_stats,
     (cmdline_parse_inst_t *)&cmd_loglevel,
     (cmdline_parse_inst_t *)&cmd_logtype,

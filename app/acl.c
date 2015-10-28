@@ -97,7 +97,11 @@
 #include <rte_tcp.h>
 #include <rte_udp.h>
 #include <rte_string_fns.h>
+#include <cmdline_parse.h>
+#include <cmdline_parse_ipaddr.h>
 #include <rte_acl.h>
+
+#include <libneighbour.h>
 
 #include "common.h"
 #include "routing.h"
@@ -842,7 +846,8 @@ setup_acl(struct rte_acl_rule *acl_base, unsigned int acl_num, int ipv6,
 
 	/* Create ACL contexts */
 	snprintf(name, sizeof(name), "%s%d-%d",
-		 ipv6 ? L3FWD_ACL_IPV6_NAME : L3FWD_ACL_IPV4_NAME, socketid, ctx_count[socketid]++);
+		 ipv6 ? L3FWD_ACL_IPV6_NAME : L3FWD_ACL_IPV4_NAME, socketid,
+		 ctx_count[socketid]++);
 
 	acl_param.name = name;
 	acl_param.socket_id = socketid;
