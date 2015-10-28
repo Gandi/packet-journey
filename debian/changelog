@@ -1,3 +1,9 @@
+pktj (0.1.20) unstable; urgency=low
+
+  * Decrease usleep time in rdtsc thread.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 28 Oct 2015 13:15:29 +0200
+
 pktj (0.1.19) unstable; urgency=low
 
   * Increase max number of LPM entry.
