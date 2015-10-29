@@ -2233,7 +2233,7 @@ main(int argc, char **argv)
 	mask_tcp_179 = _mm_setr_epi32(0x00000600, 0, 0, 0xb3000000);
 
 	/* launch per-lcore init on every lcore */
-	RTE_LCORE_FOREACH_SLAVE(lcore_id)
+	RTE_LCORE_FOREACH(lcore_id)
 	{
 		qconf = &lcore_conf[lcore_id];
 		if (qconf->n_rx_queue != 0) {
@@ -2246,16 +2246,29 @@ main(int argc, char **argv)
 		for (portid = 0; portid < nb_ports; portid++) {
 			if (kni_port_params_array[portid]->lcore_tx ==
 			    lcore_id) {
+				pthread_t kni_tid;
+
 				RTE_LOG(INFO, PKTJ1,
 					"launching kni thread on lcore %u\n",
 					lcore_id);
-				rte_eal_remote_launch(kni_main_loop, NULL,
-						      lcore_id);
-				snprintf(thread_name, 16, "kni-%u", lcore_id);
-				pthread_setname_np(
-				    lcore_config[lcore_id].thread_id,
-				    thread_name);
-				break;
+				pthread_create(&kni_tid, NULL,
+					       (void *)kni_main_loop,
+					       (void *)(uintptr_t)lcore_id);
+
+				CPU_ZERO(&cpuset);
+				CPU_SET(lcore_id, &cpuset);
+				ret = pthread_setaffinity_np(
+				    kni_tid, sizeof(cpu_set_t), &cpuset);
+				if (ret != 0) {
+					perror("kni pthread_setaffinity_np: ");
+					rte_exit(EXIT_FAILURE,
+						 "kni pthread_setaffinity_np "
+						 "returned error: err=%d,",
+						 ret);
+				}
+				snprintf(thread_name, 16, "kni-%u-%u", portid,
+					 lcore_id);
+				pthread_setname_np(kni_tid, thread_name);
 			}
 		}
 	}
