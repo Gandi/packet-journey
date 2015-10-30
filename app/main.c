@@ -2189,9 +2189,18 @@ main(int argc, char **argv)
 						 ret);
 				}
 
-				pktj_cmdline_init(unixsock_path, ctrlsock);
-				pktj_cmdline_launch(
+				ret =
+				    pktj_cmdline_init(unixsock_path, ctrlsock);
+				if (ret != 0) {
+					rte_exit(EXIT_FAILURE,
+						 "pktj_cmdline_init failed");
+				}
+				ret = pktj_cmdline_launch(
 				    ctrlsock, &lcore_config[lcore_id].cpuset);
+				if (ret != 0) {
+					rte_exit(EXIT_FAILURE,
+						 "pktj_cmdline_launch failed");
+				}
 			}
 		}
 	} else {
@@ -2224,8 +2233,14 @@ main(int argc, char **argv)
 				 ret);
 		}
 
-		pktj_cmdline_init(unixsock_path, 0);
-		pktj_cmdline_launch(0, &cpuset);
+		ret = pktj_cmdline_init(unixsock_path, 0);
+		if (ret != 0) {
+			rte_exit(EXIT_FAILURE, "pktj_cmdline_init failed");
+		}
+		ret = pktj_cmdline_launch(0, &cpuset);
+		if (ret != 0) {
+			rte_exit(EXIT_FAILURE, "pktj_cmdline_launch failed");
+		}
 	}
 
 	/* set a mask for tcp dst_port 179, the mask is applied to body starting

@@ -104,8 +104,7 @@
 
 #define CMDLINE_POLL_TIMEOUT 500
 
-void
-__wrap_cmdline_printf(const struct cmdline *cl, const char *fmt, ...);
+void __wrap_cmdline_printf(const struct cmdline *cl, const char *fmt, ...);
 
 void
 __wrap_cmdline_printf(const struct cmdline *cl, const char *fmt, ...)
@@ -1130,8 +1129,9 @@ create_unixsock(const char *path)
 	unsigned len;
 
 	if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
-		perror("failed to create cmdline unixsock");
-		rte_exit(EXIT_FAILURE, "create_unixsock failure");
+		RTE_LOG(ERR, CMDLINE1, "failed to create cmdline unixsock: %s",
+			strerror(errno));
+		return -1;
 	}
 
 	local.sun_family = AF_UNIX;
@@ -1140,13 +1140,17 @@ create_unixsock(const char *path)
 	len = strlen(local.sun_path) + sizeof(local.sun_family);
 
 	if (bind(sock, (struct sockaddr *)&local, len) == -1) {
-		perror("failed to bind cmdline unixsock");
-		rte_exit(EXIT_FAILURE, "create_unixsock failure");
+		RTE_LOG(ERR, CMDLINE1, "failed to bind cmdline unixsock: %s",
+			strerror(errno));
+		return -1;
 	}
 
 	if (listen(sock, 10) == -1) {
-		perror("failed to put the cmdline unixsock in listen state");
-		rte_exit(EXIT_FAILURE, "create_unixsock failure");
+		RTE_LOG(
+		    ERR, CMDLINE1,
+		    "failed to put the cmdline unixsock in listen state: %s",
+		    strerror(errno));
+		return -1;
 	}
 
 	return sock;
@@ -1203,14 +1207,13 @@ pktj_cmdline_init(const char *path, uint32_t socket_id)
 
 	fd = create_unixsock(buf);
 	if (fd < 0) {
-		RTE_LOG(ERR, CMDLINE1, "open() failed\n");
+		RTE_LOG(ERR, CMDLINE1, "create_unixsock() failed\n");
 		return -1;
 	}
 
 	if (socket_id == 0) {
 		if (symlink(buf, path) < 0) {
-			RTE_LOG(ERR, CMDLINE1, "symlink() failed\n");
-			return -1;
+			RTE_LOG(WARNING, CMDLINE1, "symlink() failed %s\n", strerror(errno));
 		}
 	}
 
@@ -1218,7 +1221,7 @@ pktj_cmdline_init(const char *path, uint32_t socket_id)
 
 	memset(&cmdline_clients[socket_id], 0,
 	       sizeof(cmdline_clients[socket_id]));
-	return fd;
+	return 0;
 }
 
 static int
@@ -1239,7 +1242,9 @@ pktj_cmdline_terminate(int sock, const char *path)
 	char buf[128];
 
 	if (pthread_join(cmdline_tid[sock], NULL)) {
-		perror("error during free cmdline pthread_join");
+		RTE_LOG(ERR, CMDLINE1,
+			"error during free cmdline pthread_join: %s",
+			strerror(errno));
 	}
 	close(cmdline_thread_unixsock[sock]);
 	if (sock == 0) {
@@ -1296,8 +1301,9 @@ cmdline_run(void *data)
 	while (cmdline_thread_loop[RTE_PER_LCORE(g_socket_id)]) {
 		int res = poll(fds, nfds, CMDLINE_POLL_TIMEOUT);
 		if (res < 0 && errno != EINTR) {
-			perror("error during cmdline_run poll");
-			RTE_LOG(ERR, CMDLINE1, "failed to deletie route...\n");
+			RTE_LOG(ERR, CMDLINE1,
+				"error during cmdline_run poll: %s",
+				strerror(errno));
 			return 0;
 		}
 		if (fds[0].revents & POLLIN) {
@@ -1317,7 +1323,8 @@ cmdline_run(void *data)
 			if (i == CMDLINE_MAX_CLIENTS) {
 #define CMDLINE_MCLI_MSG "Max client reached... \n"
 				ret = send(res, CMDLINE_MCLI_MSG,
-					    sizeof(CMDLINE_MCLI_MSG), MSG_NOSIGNAL);
+					   sizeof(CMDLINE_MCLI_MSG),
+					   MSG_NOSIGNAL);
 				close(res);
 			}
 		}
@@ -1417,8 +1424,9 @@ pktj_cmdline_launch(int sock, cpu_set_t *cpuset)
 	ret = pthread_create(&cmdline_tid[sock], NULL, cmdline_run,
 			     (void *)(intptr_t)sock);
 	if (ret != 0) {
-		perror("failed to create cmdline thread");
-		rte_exit(EXIT_FAILURE, "failed to launch cmdline thread");
+		RTE_LOG(ERR, CMDLINE1, "failed to create cmdline thread: %s",
+			strerror(errno));
+		return -1;
 	}
 
 	snprintf(thread_name, 16, "cmdline-%d", sock);
@@ -1427,12 +1435,11 @@ pktj_cmdline_launch(int sock, cpu_set_t *cpuset)
 	ret = pthread_setaffinity_np(cmdline_tid[sock], sizeof(cpu_set_t),
 				     cpuset);
 	if (ret != 0) {
-		perror("control pthread_setaffinity_np: ");
-		rte_exit(
-		    EXIT_FAILURE,
-		    "control pthread_setaffinity_np returned error: err=%d,",
-		    ret);
+		RTE_LOG(ERR, CMDLINE1,
+			"failed to call pthread_setaffinity_np: %s",
+			strerror(errno));
+		return -1;
 	}
 
-	return cmdline_tid[sock];
+	return 0;
 }
