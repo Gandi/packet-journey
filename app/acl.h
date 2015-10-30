@@ -29,6 +29,8 @@
 #ifndef __PKTJ_ACL_H
 #define __PKTJ_ACL_H
 
+#include <rte_version.h>
+
 #define DEFAULT_MAX_CATEGORIES 1
 #define ACL_DENY_SIGNATURE 0xf0000000
 
@@ -71,5 +73,25 @@ extern struct acl_parm acl_parm_config;
 
 extern struct rte_acl_ctx *ipv4_acx[NB_SOCKETS];
 extern struct rte_acl_ctx *ipv6_acx[NB_SOCKETS];
+
+#if RTE_VER_MINOR > 1 && RTE_VER_MAJOR == 2
+/*
+ * That effectively defines order of IPV4VLAN classifications:
+ *  - PROTO
+ *  - VLAN (TAG and DOMAIN)
+ *  - SRC IP ADDRESS
+ *  - DST IP ADDRESS
+ *  - PORTS (SRC and DST)
+ */
+enum {
+        RTE_ACL_IPV4VLAN_PROTO,
+        RTE_ACL_IPV4VLAN_VLAN,
+        RTE_ACL_IPV4VLAN_SRC,
+        RTE_ACL_IPV4VLAN_DST,
+        RTE_ACL_IPV4VLAN_PORTS,
+        RTE_ACL_IPV4VLAN_NUM
+};
+
+#endif
 
 #endif
