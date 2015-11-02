@@ -101,6 +101,8 @@ sleep 15s
 /usr/lib/quagga/bgpd &
 ```
 
+You can try this out using our [QEMU test lab](tests/integration).
+
 ## Performances
 
 The test scenario is done between 2 physical machines having both a XL710 NIC

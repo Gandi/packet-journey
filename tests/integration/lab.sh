@@ -89,7 +89,7 @@ start_vm() {
         \
         -gdb unix:$TMP/vm-$name-kernel-gdb.pipe,server,nowait \
         -kernel $LINUX \
-        -append "console=ttyS0 isolcpus=1,2,3 uts=$name root=/dev/root rootflags=trans=virtio,version=9p2000.u ro rootfstype=9p init=/bin/bash -c \"mount -t 9p labshare /media; exec /media/init $RTE_SDK ${PWD%%/tests/integration}" \
+        -append "console=ttyS0 isolcpus=1,2,3 uts=$name root=/dev/root rootflags=trans=virtio,version=9p2000.u ro rootfstype=9p init=/bin/bash -- -c \"mount -t 9p labshare /media; exec /media/init $RTE_SDK ${PWD%%/tests/integration}\"" \
         -net user,hostfwd=tcp::$sshport-:22 -net nic,macaddr=00:16:3e:47:fe:5f,model=e1000 \
         $netargs \
         "$@"
