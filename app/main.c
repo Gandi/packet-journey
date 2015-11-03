@@ -698,7 +698,7 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 	uint32_t nb_kni, k;
 	struct rte_mbuf *knimbuf[FWDSTEP];
 	struct kni_port_params *p;
-	uint8_t process, is_ipv4;
+	uint8_t process, action, is_ipv4;
 	uint16_t vlan_tci;
 
 	p = kni_port_params_array[portid];
@@ -707,24 +707,27 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 #define PROCESSX4_STEP(step)                                                   \
 	if (likely(PKTJ_TEST_IPV4_HDR(pkt[j]))) {                              \
 		is_ipv4 = 1;                                                   \
+		action = qconf->neighbor4_struct->entries.t4[dst_port[j]]      \
+			     .neighbor.action;                                 \
 		process = !qconf->neighbor4_struct->entries.t4[dst_port[j]]    \
 			       .neighbor.valid ||                              \
-			  qconf->neighbor4_struct->entries.t4[dst_port[j]]     \
-				  .neighbor.action == NEI_ACTION_KNI;          \
+			  action == NEI_ACTION_KNI;                            \
 		RTE_LOG(DEBUG, PKTJ1,                                          \
 			#step ": j %d process %d dst_port %d ipv4\n", j,       \
 			process, dst_port[j]);                                 \
 	} else if (PKTJ_TEST_IPV6_HDR(pkt[j])) {                               \
 		is_ipv4 = 0;                                                   \
+		action = qconf->neighbor6_struct->entries.t6[dst_port[j]]      \
+			     .neighbor.action;                                 \
 		process = !qconf->neighbor6_struct->entries.t6[dst_port[j]]    \
 			       .neighbor.valid ||                              \
-			  qconf->neighbor6_struct->entries.t6[dst_port[j]]     \
-				  .neighbor.action == NEI_ACTION_KNI;          \
+			  action == NEI_ACTION_KNI;                            \
 		RTE_LOG(DEBUG, PKTJ1, #step ": j %d process %d ipv6\n", j,     \
 			process);                                              \
 	} else {                                                               \
 		is_ipv4 = 0;                                                   \
 		process = 1;                                                   \
+		action = NEI_ACTION_KNI;                                       \
 		RTE_LOG(                                                       \
 		    DEBUG, PKTJ1,                                              \
 		    #step ": j %d process %d olflags%lx eth_type %x\n", j,     \
@@ -741,7 +744,8 @@ processx4_step_checkneighbor(struct lcore_conf *qconf, struct rte_mbuf **pkt,
 	if (process) {                                                         \
 		/* test if we need to rate-limit that packet before sending it \
 		 * to kni */                                                   \
-		if (!kni_rate_limit_step(qconf, pkt[j]))                       \
+		if (action != NEI_ACTION_DROP &&                               \
+		    !kni_rate_limit_step(qconf, pkt[j]))                       \
 			knimbuf[i++] = pkt[j];                                 \
 		else {                                                         \
 			rte_pktmbuf_free(pkt[j]);                              \

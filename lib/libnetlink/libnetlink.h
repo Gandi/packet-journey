@@ -48,10 +48,10 @@ struct netl_handle {
 					  void *args);
 		int (*route4) (struct rtmsg * route, route_action_t action,
 					   struct in_addr * addr, uint8_t len,
-					   struct in_addr * nexthop, void *args);
+					   struct in_addr * nexthop, uint8_t type, void *args);
 		int (*route6) (struct rtmsg * route, route_action_t action,
 					   struct in6_addr * addr, uint8_t len,
-					   struct in6_addr * nexthop, void *args);
+					   struct in6_addr * nexthop, uint8_t type, void *args);
 		int (*neighbor4) (neighbor_action_t action, int32_t port_id,
 						  struct in_addr * addr,
 						  struct ether_addr * lladdr, uint8_t flags,

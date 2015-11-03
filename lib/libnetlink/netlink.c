@@ -246,27 +246,32 @@ netl_handler(struct netl_handle *h,
 			parse_rtattr_flags(tb, RTA_MAX, RTM_RTA(r), len, 0);
 			//table = rtm_get_table(r, tb);
 
-			if (r->rtm_type != RTN_UNICAST)
-				return 0;
-			if (!tb[RTA_DST])
-				return 0;
+			switch(r->rtm_type) {
+				case RTN_UNICAST:
+					if (!tb[RTA_DST])
+						return 0;
 
-			if (!tb[RTA_GATEWAY])
-				return 0;
+					if (!tb[RTA_GATEWAY])
+						return 0;
+				case RTN_BLACKHOLE:
+					break;
+				default:
+					return 0;
+			}
 
 			switch (r->rtm_family) {
 			case AF_INET:
 				if (h->cb.route4 != NULL) {
 					h->cb.route4(r, action, RTA_DATA(tb[RTA_DST]),
 								 r->rtm_dst_len, RTA_DATA(tb[RTA_GATEWAY]),
-								 args);
+								 r->rtm_type, args);
 				}
 				break;
 			case AF_INET6:
 				if (h->cb.route6 != NULL) {
 					h->cb.route6(r, action, RTA_DATA(tb[RTA_DST]),
 								 r->rtm_dst_len, RTA_DATA(tb[RTA_GATEWAY]),
-								 args);
+								 r->rtm_type, args);
 				}
 				break;
 			default:

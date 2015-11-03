@@ -141,7 +141,8 @@ int control_add_ipv6_local_entry(struct in6_addr *nexthop,
 				 uint32_t port_id, int32_t socket_id);
 static int
 route4(__rte_unused struct rtmsg *route, route_action_t action,
-       struct in_addr *addr, uint8_t depth, struct in_addr *nexthop, void *args)
+       struct in_addr *addr, uint8_t depth, struct in_addr *nexthop,
+       uint8_t type, void *args)
 {
 	// If route add
 	//   lookup next hop in neighbor table ipv4
@@ -165,6 +166,11 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 	uint8_t nexthop_id;
 	int s;
 	int32_t socket_id = handle->socket_id;
+	struct in_addr blackhole_addr4 = {rte_be_to_cpu_32(INADDR_ANY)};
+
+	if (type == RTN_BLACKHOLE) {
+		nexthop = &blackhole_addr4;
+	}
 
 	if (action == ROUTE_ADD) {
 		RTE_LOG(DEBUG, PKTJ_CTRL1, "adding an ipv4 route...\n");
@@ -226,7 +232,7 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 static int
 route6(__rte_unused struct rtmsg *route, route_action_t action,
        struct in6_addr *addr, uint8_t depth, struct in6_addr *nexthop,
-       void *args)
+       uint8_t type, void *args)
 {
 	// If route add
 	//   lookup next hop in neighbor table ipv4
@@ -250,6 +256,11 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 	uint8_t nexthop_id;
 	int s;
 	int32_t socket_id = handle->socket_id;
+	static struct in6_addr blackhole_addr6 = IN6ADDR_ANY_INIT;
+
+	if (type == RTN_BLACKHOLE) {
+		nexthop = &blackhole_addr6;
+	}
 
 	if (action == ROUTE_ADD) {
 		RTE_LOG(DEBUG, PKTJ_CTRL1, "adding an ipv6 route...\n");
@@ -713,6 +724,41 @@ eth_link(link_action_t action, int ifid, struct ether_addr *lladdr, int mtu,
 	return 0;
 }
 
+static int
+add_invalid_neighbor4(neighbor_struct_t *neighbor_struct, struct in_addr *ip,
+		      uint16_t dst_port)
+{
+	struct ether_addr invalid_mac = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
+	uint8_t nexthop_id;
+
+	if (neighbor4_add_nexthop(neighbor_struct, ip, &nexthop_id,
+				  NEI_ACTION_DROP) < 0) {
+		return -1;
+	}
+	neighbor4_refcount_incr(neighbor_struct, nexthop_id);
+	neighbor4_set_lladdr_port(neighbor_struct, nexthop_id, &invalid_mac,
+				  &invalid_mac, dst_port, -1);
+	return 0;
+}
+
+static int
+add_invalid_neighbor6(neighbor_struct_t *neighbor_struct, struct in6_addr *ip,
+		      uint16_t dst_port)
+{
+	struct ether_addr invalid_mac = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
+	uint8_t nexthop_id;
+
+	if (neighbor6_add_nexthop(neighbor_struct, ip, &nexthop_id,
+				  NEI_ACTION_DROP) < 0) {
+		return -1;
+	}
+
+	neighbor6_refcount_incr(neighbor_struct, nexthop_id);
+	neighbor6_set_lladdr_port(neighbor_struct, nexthop_id, &invalid_mac,
+				  &invalid_mac, dst_port, -1);
+	return 0;
+}
+
 void *
 control_init(int32_t socket_id)
 {
@@ -747,28 +793,22 @@ control_init(int32_t socket_id)
 	netl_h->cb.route6 = route6;
 	netl_h->cb.link = eth_link;
 
-	struct ether_addr invalid_mac = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
 	struct in_addr invalid_ip = {INADDR_ANY};
 	struct in6_addr invalid_ip6 = IN6ADDR_ANY_INIT;
-	uint8_t nexthop_id;
-	if (neighbor4_add_nexthop(neighbor4_struct[socket_id], &invalid_ip,
-				  &nexthop_id, NEI_ACTION_DROP) < 0) {
+
+	if (add_invalid_neighbor4(neighbor4_struct[socket_id], &invalid_ip,
+				  BAD_PORT) < 0) {
 		RTE_LOG(ERR, PKTJ_CTRL1,
-			"Couldn't add drop target in neighbor table");
+			"Couldn't add drop target in neighbor4 table");
 		goto err;
 	}
-	neighbor4_refcount_incr(neighbor4_struct[socket_id], nexthop_id);
-	neighbor4_set_lladdr_port(neighbor4_struct[socket_id], nexthop_id,
-				  &invalid_mac, &invalid_mac, BAD_PORT, -1);
-	if (neighbor6_add_nexthop(neighbor6_struct[socket_id], &invalid_ip6,
-				  &nexthop_id, NEI_ACTION_DROP) < 0) {
+
+	if (add_invalid_neighbor6(neighbor6_struct[socket_id], &invalid_ip6,
+				  BAD_PORT) < 0) {
 		RTE_LOG(ERR, PKTJ_CTRL1,
-			"Couldn't add drop target in neighbor table");
+			"Couldn't add drop target in neighbor6 table");
 		goto err;
 	}
-	neighbor6_refcount_incr(neighbor6_struct[socket_id], nexthop_id);
-	neighbor6_set_lladdr_port(neighbor6_struct[socket_id], nexthop_id,
-				  &invalid_mac, &invalid_mac, BAD_PORT, -1);
 
 	res = rte_malloc("handle-res", sizeof(*res), socket_id);
 	res->socket_id = socket_id;
