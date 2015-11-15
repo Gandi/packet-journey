@@ -337,7 +337,7 @@ kni_parse_config_from_file(uint8_t port_id, char *q_arg)
 		goto fail;
 	}
 	if (kni_port_params_array[port_id]) {
-		RTE_LOG(ERR, KNI, "Port %d has been configured\n", port_id);
+		RTE_LOG(ERR, KNI, "Port %d has already been configured\n", port_id);
 		goto fail;
 	}
 	kni_port_params_array[port_id] = (struct kni_port_params *)rte_zmalloc(
@@ -354,7 +354,7 @@ kni_parse_config_from_file(uint8_t port_id, char *q_arg)
 				  "exceed the maximum %u\n",
 			kni_port_params_array[port_id]->lcore_tx,
 			(unsigned)RTE_MAX_LCORE);
-		goto fail;
+		goto kni_fail;
 	}
 	i = FLD_LCORE + 1;
 	for (j = 0; i < nb_token && j < KNI_MAX_KTHREAD; i++, j++)
@@ -364,11 +364,12 @@ kni_parse_config_from_file(uint8_t port_id, char *q_arg)
 
 	return 0;
 
-fail:
+kni_fail:
 	if (kni_port_params_array[port_id]) {
 		rte_free(kni_port_params_array[port_id]);
 		kni_port_params_array[port_id] = NULL;
 	}
+fail:
 
 	return -1;
 }
