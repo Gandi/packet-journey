@@ -899,7 +899,7 @@ control_callback_setup(const char *cb, uint8_t nb_ports)
 		len += snprintf(&cmd[len], CTRL_CBK_MAX_SIZE - len,
 				" dpdk%d %s", port, ether1);
 
-		if (len > CTRL_CBK_MAX_SIZE) {
+		if (len >= CTRL_CBK_MAX_SIZE) {
 			rte_panic("control callback too long");
 		}
 	}
