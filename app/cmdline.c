@@ -1211,7 +1211,7 @@ create_unixsock(const char *path)
 	}
 
 	local.sun_family = AF_UNIX;
-	strcpy(local.sun_path, path);
+	strncpy(local.sun_path, path, sizeof(local.sun_path));
 	unlink(local.sun_path);
 	len = strlen(local.sun_path) + sizeof(local.sun_family);
 
@@ -1278,7 +1278,7 @@ int
 pktj_cmdline_init(const char *path, uint32_t socket_id)
 {
 	int fd;
-	char buf[128];
+	char buf[108];
 
 	/* everything else is checked in cmdline_new() */
 	if (!path)
