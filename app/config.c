@@ -337,7 +337,8 @@ kni_parse_config_from_file(uint8_t port_id, char *q_arg)
 		goto fail;
 	}
 	if (kni_port_params_array[port_id]) {
-		RTE_LOG(ERR, KNI, "Port %d has already been configured\n", port_id);
+		RTE_LOG(ERR, KNI, "Port %d has already been configured\n",
+			port_id);
 		goto fail;
 	}
 	kni_port_params_array[port_id] = (struct kni_port_params *)rte_zmalloc(

@@ -1207,7 +1207,7 @@ create_unixsock(const char *path)
 	if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
 		RTE_LOG(ERR, CMDLINE1, "failed to create cmdline unixsock: %s",
 			strerror(errno));
-		return -1;
+		goto err;
 	}
 
 	local.sun_family = AF_UNIX;
@@ -1218,7 +1218,7 @@ create_unixsock(const char *path)
 	if (bind(sock, (struct sockaddr *)&local, len) == -1) {
 		RTE_LOG(ERR, CMDLINE1, "failed to bind cmdline unixsock: %s",
 			strerror(errno));
-		return -1;
+		goto err;
 	}
 
 	if (listen(sock, 10) == -1) {
@@ -1226,10 +1226,14 @@ create_unixsock(const char *path)
 		    ERR, CMDLINE1,
 		    "failed to put the cmdline unixsock in listen state: %s",
 		    strerror(errno));
-		return -1;
+		goto err;
 	}
 
 	return sock;
+err:
+	if (sock != -1)
+		close(sock);
+	return -1;
 }
 
 static int
@@ -1289,7 +1293,8 @@ pktj_cmdline_init(const char *path, uint32_t socket_id)
 
 	if (socket_id == 0) {
 		if (symlink(buf, path) < 0) {
-			RTE_LOG(WARNING, CMDLINE1, "symlink() failed %s\n", strerror(errno));
+			RTE_LOG(WARNING, CMDLINE1, "symlink() failed %s\n",
+				strerror(errno));
 		}
 	}
 
