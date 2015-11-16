@@ -1382,7 +1382,9 @@ cmdline_run(void *data)
 	fds[0].fd = cmdline_thread_unixsock[RTE_PER_LCORE(g_socket_id)];
 	while (cmdline_thread_loop[RTE_PER_LCORE(g_socket_id)]) {
 		int res = poll(fds, nfds, CMDLINE_POLL_TIMEOUT);
-		if (res < 0 && errno != EINTR) {
+		if (res < 0) {
+			if (errno == EINTR)
+				break;
 			RTE_LOG(ERR, CMDLINE1,
 				"error during cmdline_run poll: %s",
 				strerror(errno));
@@ -1390,7 +1392,12 @@ cmdline_run(void *data)
 		}
 		if (fds[0].revents & POLLIN) {
 			res = accept(fds[0].fd, NULL, NULL);
-
+			if (res < 0) {
+				RTE_LOG(ERR, CMDLINE1,
+					"error during cmdline_run accept: %s",
+					strerror(errno));
+				break;
+			}
 			for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
 				if (cmdline_clients[RTE_PER_LCORE(
 					g_socket_id)][i]

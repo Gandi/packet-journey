@@ -692,15 +692,17 @@ eth_link(link_action_t action, int ifid, struct ether_addr *lladdr, int mtu,
 	l = 0;
 	for (i = 0; i < sizeof(*lladdr); i++) {
 		if (i == 0) {
-			snprintf(ebuf + l, sizeof(ebuf) - l, "%02x", lladdr->addr_bytes[i]);
+			snprintf(ebuf + l, sizeof(ebuf) - l, "%02x",
+				 lladdr->addr_bytes[i]);
 			l += 2;
 		} else {
-			snprintf(ebuf + l, sizeof(ebuf) - l, ":%02x", lladdr->addr_bytes[i]);
+			snprintf(ebuf + l, sizeof(ebuf) - l, ":%02x",
+				 lladdr->addr_bytes[i]);
 			l += 3;
 		}
 	}
-    if (l >= 32)
-        l = 31;
+	if (l >= 32)
+		l = 31;
 	ebuf[l] = '\0';
 
 	fprintf(stdout, "%d: link %s %s mtu %d label %s vlan %d ", ifid,
