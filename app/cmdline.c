@@ -1265,10 +1265,11 @@ cmdline_new_unixsock(int sock)
 	struct cmdline *cl;
 
 	cl = cmdline_unixsock_new(main_ctx, "pktj> ", sock);
-	cl->rdl.write_char = cmdline_send_char;
 
 	if (cl == NULL)
 		rte_exit(EXIT_FAILURE, "Cannot create cmdline instance\n");
+
+	cl->rdl.write_char = cmdline_send_char;
 
 	return cl;
 }
