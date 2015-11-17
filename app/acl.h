@@ -83,14 +83,12 @@ extern struct rte_acl_ctx *ipv6_acx[NB_SOCKETS];
  *  - DST IP ADDRESS
  *  - PORTS (SRC and DST)
  */
-enum {
-        RTE_ACL_IPV4VLAN_PROTO,
-        RTE_ACL_IPV4VLAN_VLAN,
-        RTE_ACL_IPV4VLAN_SRC,
-        RTE_ACL_IPV4VLAN_DST,
-        RTE_ACL_IPV4VLAN_PORTS,
-        RTE_ACL_IPV4VLAN_NUM
-};
+enum { RTE_ACL_IPV4VLAN_PROTO,
+       RTE_ACL_IPV4VLAN_VLAN,
+       RTE_ACL_IPV4VLAN_SRC,
+       RTE_ACL_IPV4VLAN_DST,
+       RTE_ACL_IPV4VLAN_PORTS,
+       RTE_ACL_IPV4VLAN_NUM };
 
 #endif
 

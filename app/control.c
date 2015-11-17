@@ -692,13 +692,17 @@ eth_link(link_action_t action, int ifid, struct ether_addr *lladdr, int mtu,
 	l = 0;
 	for (i = 0; i < sizeof(*lladdr); i++) {
 		if (i == 0) {
-			snprintf(ebuf + l, 32, "%02x", lladdr->addr_bytes[i]);
+			snprintf(ebuf + l, sizeof(ebuf) - l, "%02x",
+				 lladdr->addr_bytes[i]);
 			l += 2;
 		} else {
-			snprintf(ebuf + l, 32, ":%02x", lladdr->addr_bytes[i]);
+			snprintf(ebuf + l, sizeof(ebuf) - l, ":%02x",
+				 lladdr->addr_bytes[i]);
 			l += 3;
 		}
 	}
+	if (l >= 32)
+		l = 31;
 	ebuf[l] = '\0';
 
 	fprintf(stdout, "%d: link %s %s mtu %d label %s vlan %d ", ifid,
@@ -897,7 +901,7 @@ control_callback_setup(const char *cb, uint8_t nb_ports)
 		len += snprintf(&cmd[len], CTRL_CBK_MAX_SIZE - len,
 				" dpdk%d %s", port, ether1);
 
-		if (len > CTRL_CBK_MAX_SIZE) {
+		if (len >= CTRL_CBK_MAX_SIZE) {
 			rte_panic("control callback too long");
 		}
 	}

@@ -133,7 +133,10 @@ __wrap_cmdline_printf(const struct cmdline *cl, const char *fmt, ...)
 	}
 	if (ret >= BUFSIZ)
 		ret = BUFSIZ - 1;
-	send(cl->s_out, buf, ret, MSG_NOSIGNAL);
+	if (send(cl->s_out, buf, ret, MSG_NOSIGNAL) == -1) {
+		RTE_LOG(ERR, CMDLINE1,
+			"Failed to send data to the cmdline %d: %s\n", cl->s_out, strerror(errno));
+    }
 	free(buf);
 }
 
@@ -1207,18 +1210,18 @@ create_unixsock(const char *path)
 	if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
 		RTE_LOG(ERR, CMDLINE1, "failed to create cmdline unixsock: %s",
 			strerror(errno));
-		return -1;
+		goto err;
 	}
 
 	local.sun_family = AF_UNIX;
-	strcpy(local.sun_path, path);
+	strncpy(local.sun_path, path, sizeof(local.sun_path));
 	unlink(local.sun_path);
 	len = strlen(local.sun_path) + sizeof(local.sun_family);
 
 	if (bind(sock, (struct sockaddr *)&local, len) == -1) {
 		RTE_LOG(ERR, CMDLINE1, "failed to bind cmdline unixsock: %s",
 			strerror(errno));
-		return -1;
+		goto err;
 	}
 
 	if (listen(sock, 10) == -1) {
@@ -1226,10 +1229,14 @@ create_unixsock(const char *path)
 		    ERR, CMDLINE1,
 		    "failed to put the cmdline unixsock in listen state: %s",
 		    strerror(errno));
-		return -1;
+		goto err;
 	}
 
 	return sock;
+err:
+	if (sock != -1)
+		close(sock);
+	return -1;
 }
 
 static int
@@ -1261,10 +1268,11 @@ cmdline_new_unixsock(int sock)
 	struct cmdline *cl;
 
 	cl = cmdline_unixsock_new(main_ctx, "pktj> ", sock);
-	cl->rdl.write_char = cmdline_send_char;
 
 	if (cl == NULL)
 		rte_exit(EXIT_FAILURE, "Cannot create cmdline instance\n");
+
+	cl->rdl.write_char = cmdline_send_char;
 
 	return cl;
 }
@@ -1273,7 +1281,7 @@ int
 pktj_cmdline_init(const char *path, uint32_t socket_id)
 {
 	int fd;
-	char buf[128];
+	char buf[108];
 
 	/* everything else is checked in cmdline_new() */
 	if (!path)
@@ -1289,7 +1297,8 @@ pktj_cmdline_init(const char *path, uint32_t socket_id)
 
 	if (socket_id == 0) {
 		if (symlink(buf, path) < 0) {
-			RTE_LOG(WARNING, CMDLINE1, "symlink() failed %s\n", strerror(errno));
+			RTE_LOG(WARNING, CMDLINE1, "symlink() failed %s\n",
+				strerror(errno));
 		}
 	}
 
@@ -1376,7 +1385,9 @@ cmdline_run(void *data)
 	fds[0].fd = cmdline_thread_unixsock[RTE_PER_LCORE(g_socket_id)];
 	while (cmdline_thread_loop[RTE_PER_LCORE(g_socket_id)]) {
 		int res = poll(fds, nfds, CMDLINE_POLL_TIMEOUT);
-		if (res < 0 && errno != EINTR) {
+		if (res < 0) {
+			if (errno == EINTR)
+				break;
 			RTE_LOG(ERR, CMDLINE1,
 				"error during cmdline_run poll: %s",
 				strerror(errno));
@@ -1384,7 +1395,12 @@ cmdline_run(void *data)
 		}
 		if (fds[0].revents & POLLIN) {
 			res = accept(fds[0].fd, NULL, NULL);
-
+			if (res < 0) {
+				RTE_LOG(ERR, CMDLINE1,
+					"error during cmdline_run accept: %s",
+					strerror(errno));
+				break;
+			}
 			for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
 				if (cmdline_clients[RTE_PER_LCORE(
 					g_socket_id)][i]

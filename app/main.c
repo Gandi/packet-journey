@@ -1542,6 +1542,7 @@ main_loop(__rte_unused void *dummy)
 			}
 		}
 	}
+	return 0;
 }
 
 static int
