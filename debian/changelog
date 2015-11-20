@@ -1,3 +1,11 @@
+pktj (0.1.21) unstable; urgency=low
+
+  * Add BLACKHOLE route type.
+  * Fix some coverity warning.
+  * Add an SNMP export script.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Fri, 28 Nov 2015 11:28:29 +0200
+
 pktj (0.1.20) unstable; urgency=low
 
   * Decrease usleep time in rdtsc thread.
