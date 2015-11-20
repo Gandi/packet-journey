@@ -652,7 +652,7 @@ addr4(__rte_unused addr_action_t action, int32_t port_id, struct in_addr *addr,
 	RTE_LOG(DEBUG, PKTJ_CTRL1, "addr4 port=%s %s/%d with port_id %d\n",
 		ibuf, inet_ntop(AF_INET, addr, buf, 255), prefixlen, port_id);
 
-	control_add_ipv4_local_entry(addr, addr, 32, port_id, socket_id);
+	control_add_ipv4_local_entry(addr, addr, prefixlen, port_id, socket_id);
 
 	return 0;
 }
@@ -672,7 +672,7 @@ addr6(__rte_unused addr_action_t action, int32_t port_id, struct in6_addr *addr,
 	RTE_LOG(DEBUG, PKTJ_CTRL1, "addr6 port=%s %s/%d with port_id %d\n",
 		ibuf, inet_ntop(AF_INET6, addr, buf, 255), prefixlen, port_id);
 
-	control_add_ipv6_local_entry(addr, addr, 128, port_id, socket_id);
+	control_add_ipv6_local_entry(addr, addr, prefixlen, port_id, socket_id);
 
 	// multicast ipv6
 	struct in6_addr mc_linklocal = IN6ADDR_ANY_INIT;
