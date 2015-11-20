@@ -1,3 +1,9 @@
+pktj (0.1.22) unstable; urgency=low
+
+  * Fix packaging of new scripts.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Fri, 28 Nov 2015 13:07:29 +0200
+
 pktj (0.1.21) unstable; urgency=low
 
   * Add BLACKHOLE route type.
