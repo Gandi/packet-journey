@@ -317,17 +317,13 @@ nic_stats_display(struct cmdline *cl, portid_t port_id, int option)
 		    cl, "{\"portid\": %d, "
 			"\"rx\": {\"packets\": %" PRIu64
 			", \"errors\": %" PRIu64 ", \"bytes\": %" PRIu64 ", "
-			"\"badcrc\": %" PRIu64 ", \"badlen\": %" PRIu64
 			", \"nombuf\": %" PRIu64 ", "
-			"\"xon\": %" PRIu64 ", \"xoff\": %" PRIu64 "}, "
 			"\"tx\": {\"packets\": %" PRIu64
-			", \"errors\": %" PRIu64 ", \"bytes\": %" PRIu64 ", "
-			"\"xon\": %" PRIu64 ", \"xoff\": %" PRIu64 "}, ",
+			", \"errors\": %" PRIu64 ", \"bytes\": %" PRIu64 ", ",
 		    port_id, stats.ipackets, stats.ierrors, stats.ibytes,
-		    stats.ibadcrc, stats.ibadlen, stats.rx_nombuf,
-		    stats.rx_pause_xon, stats.rx_pause_xoff, stats.opackets,
-		    stats.oerrors, stats.obytes, stats.tx_pause_xon,
-		    stats.tx_pause_xoff);
+		    stats.rx_nombuf,
+		    stats.opackets,
+		    stats.oerrors, stats.obytes);
 
 		cmdline_printf(cl, "\"queues\": [");
 
@@ -357,10 +353,6 @@ nic_stats_display(struct cmdline *cl, portid_t port_id, int option)
 				   "    RX-errors: %10" PRIu64
 				   "    RX-bytes: %10" PRIu64 "\n",
 			       stats.ipackets, stats.ierrors, stats.ibytes);
-		cmdline_printf(cl, "  RX-badcrc:               %10" PRIu64
-				   "    RX-badlen: %10" PRIu64
-				   "  RX-errors:  %10" PRIu64 "\n",
-			       stats.ibadcrc, stats.ibadlen, stats.ierrors);
 		cmdline_printf(cl, "  RX-nombuf:               %10" PRIu64 "\n",
 			       stats.rx_nombuf);
 		cmdline_printf(cl, "  TX-packets:              %10" PRIu64
@@ -387,16 +379,6 @@ nic_stats_display(struct cmdline *cl, portid_t port_id, int option)
 			    i, stats.q_opackets[i], stats.q_obytes[i]);
 		}
 
-		/* Display statistics of XON/XOFF pause frames, if any. */
-		if ((stats.tx_pause_xon | stats.rx_pause_xon |
-		     stats.tx_pause_xoff | stats.rx_pause_xoff) > 0) {
-			cmdline_printf(cl, "  RX-XOFF:    %-10" PRIu64
-					   " RX-XON:    %-10" PRIu64 "\n",
-				       stats.rx_pause_xoff, stats.rx_pause_xon);
-			cmdline_printf(cl, "  TX-XOFF:    %-10" PRIu64
-					   " TX-XON:    %-10" PRIu64 "\n",
-				       stats.tx_pause_xoff, stats.tx_pause_xon);
-		}
 		cmdline_printf(cl, "  %s=======================%s\n",
 			       nic_stats_border, nic_stats_border);
 	}
