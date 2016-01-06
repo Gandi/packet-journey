@@ -2,56 +2,22 @@ Source: pktj
 Section: net
 Priority: optional
 Maintainer: Nikita Kozlov <nikita@gandi.net>
-Build-Depends: debhelper (>= 9), dpdk-westmere, dpdk-sandybridge, dpdk-ivybridge
+Build-Depends: debhelper (>= 9), libdpdk-dev, dpdk-dev
 Standards-Version: 3.9.6
 Homepage: http://dpdk.org/
-#Vcs-Git: git://anonscm.debian.org/collab-maint/dpdk.git
-#Vcs-Browser: http://anonscm.debian.org/?p=collab-maint/dpdk.git;a=summary
 
-Package: pktj-westmere
+Package: pktj
 Architecture: any
-Depends: ${misc:Depends}, dpdk-westmere
+Depends: ${misc:Depends}, libdpdk0
 Description: Packet-journey
  Packet-journey is doing packet processing using the Data Plane Development Kit (DPDK).
 
-Package: pktj-ivybridge
-Architecture: any
-Depends: ${misc:Depends}, dpdk-ivybridge
-Description: Packet-journey
- Packet-journey is doing packet processing using the Data Plane Development Kit (DPDK).
-
-Package: pktj-sandybridge
-Architecture: any
-Depends: ${misc:Depends}, dpdk-sandybridge
-Description: Packet-journey
- Packet-journey is doing packet processing using the Data Plane Development Kit (DPDK).
-
-Package: pktj-westmere-dbg
+Package: pktj-dbg
 Architecture: any
 Section: debug
 Priority: extra
 Depends:
-    pktj-westmere (= ${binary:Version}),
+    pktj (= ${binary:Version}),
     ${misc:Depends}
-Description: debugging symbols for pktj-westmere
- This package contains the debugging symbols for pktj-westmere.
-
-Package: pktj-sandybridge-dbg
-Architecture: any
-Section: debug
-Priority: extra
-Depends:
-    pktj-sandybridge (= ${binary:Version}),
-    ${misc:Depends}
-Description: debugging symbols for pktj-sandybridge
- This package contains the debugging symbols for pktj-sandybridge.
-
-Package: pktj-ivybridge-dbg
-Architecture: any
-Section: debug
-Priority: extra
-Depends:
-    pktj-ivybridge (= ${binary:Version}),
-    ${misc:Depends}
-Description: debugging symbols for pktj-ivybridge
- This package contains the debugging symbols for pktj-ivybridge.
+Description: debugging symbols for pktj
+ This package contains the debugging symbols for pktj

@@ -1,8 +1,20 @@
+pktj (0.1.24) unstable; urgency=low
+
+  * Modify the packaging for building with ubuntu dpdk packages.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 06 Jan 2016 13:41:29 +0100
+
+pktj (0.1.23) unstable; urgency=low
+
+  * Set the correct prefix length for the local route.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Fri, 27 Nov 2015 16:12:29 +0200
+
 pktj (0.1.22) unstable; urgency=low
 
   * Fix packaging of new scripts.
 
- -- Nikita Kozlov <nikita@gandi.net>  Fri, 28 Nov 2015 13:07:29 +0200
+ -- Nikita Kozlov <nikita@gandi.net>  Fri, 27 Nov 2015 13:07:29 +0200
 
 pktj (0.1.21) unstable; urgency=low
 
@@ -10,7 +22,7 @@ pktj (0.1.21) unstable; urgency=low
   * Fix some coverity warning.
   * Add an SNMP export script.
 
- -- Nikita Kozlov <nikita@gandi.net>  Fri, 28 Nov 2015 11:28:29 +0200
+ -- Nikita Kozlov <nikita@gandi.net>  Fri, 27 Nov 2015 11:28:29 +0200
 
 pktj (0.1.20) unstable; urgency=low
 
