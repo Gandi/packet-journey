@@ -135,8 +135,9 @@ __wrap_cmdline_printf(const struct cmdline *cl, const char *fmt, ...)
 		ret = BUFSIZ - 1;
 	if (send(cl->s_out, buf, ret, MSG_NOSIGNAL) == -1) {
 		RTE_LOG(ERR, CMDLINE1,
-			"Failed to send data to the cmdline %d: %s\n", cl->s_out, strerror(errno));
-    }
+			"Failed to send data to the cmdline %d: %s\n",
+			cl->s_out, strerror(errno));
+	}
 	free(buf);
 }
 

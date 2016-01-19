@@ -321,9 +321,8 @@ nic_stats_display(struct cmdline *cl, portid_t port_id, int option)
 			"\"tx\": {\"packets\": %" PRIu64
 			", \"errors\": %" PRIu64 ", \"bytes\": %" PRIu64 ", ",
 		    port_id, stats.ipackets, stats.ierrors, stats.ibytes,
-		    stats.rx_nombuf,
-		    stats.opackets,
-		    stats.oerrors, stats.obytes);
+		    stats.rx_nombuf, stats.opackets, stats.oerrors,
+		    stats.obytes);
 
 		cmdline_printf(cl, "\"queues\": [");
 
