@@ -67,5 +67,9 @@ int netl_close(struct netl_handle *);
 int netl_terminate(struct netl_handle *);
 
 int netl_listen(struct netl_handle *, void *args);
-struct netl_handle *netl_create(void);
+
+#define NETLINK4_EVENTS 0x1
+#define NETLINK6_EVENTS 0x2
+
+struct netl_handle *netl_create(unsigned events);
 int netl_free(struct netl_handle *);

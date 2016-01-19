@@ -447,35 +447,31 @@ static inline __u32 nl_mgrp(__u32 group)
 	return group ? (1 << (group - 1)) : 0;
 }
 
-
-struct netl_handle *netl_create(void)
+struct netl_handle *netl_create(unsigned events)
 {
 	struct netl_handle *netl_handle;
 	int rcvbuf = 1024 * 1024 * 1024;
 	socklen_t addr_len;
 	unsigned subscriptions = 0;
 
-	// get notified whenever interface change (new vlans / ...)
-	subscriptions |= nl_mgrp(RTNLGRP_LINK);
-
-	// get notified whenever ip changes
-	subscriptions |= nl_mgrp(RTNLGRP_IPV4_IFADDR);
-	subscriptions |= nl_mgrp(RTNLGRP_IPV6_IFADDR);
-
-	// get notified on new routes
-	subscriptions |= nl_mgrp(RTNLGRP_IPV4_ROUTE);
-	subscriptions |= nl_mgrp(RTNLGRP_IPV6_ROUTE);
-
-	// subscriptions |= RTNLGRP_IPV6_PREFIX;
-	// prefix is for ipv6 RA
-
-	// get notified by arp or ipv6 nd
+    switch (events) {
+        case NETLINK4_EVENTS:
+            subscriptions |= nl_mgrp(RTNLGRP_LINK);
+            subscriptions |= nl_mgrp(RTNLGRP_IPV4_IFADDR);
+            subscriptions |= nl_mgrp(RTNLGRP_IPV4_ROUTE);
+            break;
+        case NETLINK6_EVENTS:
+            subscriptions |= nl_mgrp(RTNLGRP_IPV6_IFADDR);
+            subscriptions |= nl_mgrp(RTNLGRP_IPV6_ROUTE);
+            break;
+        case NETLINK4_EVENTS | NETLINK6_EVENTS:
+            subscriptions |= nl_mgrp(RTNLGRP_LINK);
+            subscriptions |= nl_mgrp(RTNLGRP_IPV4_IFADDR);
+            subscriptions |= nl_mgrp(RTNLGRP_IPV4_ROUTE);
+            subscriptions |= nl_mgrp(RTNLGRP_IPV6_IFADDR);
+            subscriptions |= nl_mgrp(RTNLGRP_IPV6_ROUTE);
+    }
 	subscriptions |= nl_mgrp(RTNLGRP_NEIGH);
-
-	// called whenever an iface is added/removed
-	// subscriptions |= RTNLGRP_IPV4_NETCONF;
-	// subscriptions |= RTNLGRP_IPV6_NETCONF;
-
 
 	netl_handle =
 		pktj_calloc("netl_handle", 1, sizeof(struct netl_handle), 0,

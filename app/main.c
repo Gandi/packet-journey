@@ -114,6 +114,7 @@
 #include <rte_acl.h>
 
 #include <libneighbour.h>
+#include <libnetlink.h>
 
 #include "common.h"
 #include "routing.h"
@@ -150,7 +151,8 @@ struct control_params_t {
 	void *addr;
 	int lcore_id;
 };
-struct control_params_t control_handle[NB_SOCKETS];
+struct control_params_t control_handle4[NB_SOCKETS];
+struct control_params_t control_handle6[NB_SOCKETS];
 
 #ifdef RTE_NEXT_ABI
 #define PKTJ_PKT_TYPE(m) (m)->packet_type
@@ -2027,9 +2029,10 @@ signal_handler(int signum, __rte_unused siginfo_t *si,
 		rte_atomic32_inc(&main_loop_stop);
 
 		for (sock = 0; sock < NB_SOCKETS; sock++) {
-			if (control_handle[sock].addr) {
+			if (control_handle4[sock].addr) {
 				pktj_cmdline_stop(sock);
-				control_stop(control_handle[sock].addr);
+				control_stop(control_handle4[sock].addr);
+				control_stop(control_handle6[sock].addr);
 			}
 		}
 	} else if (signum == SIGCHLD) {
@@ -2064,6 +2067,61 @@ rdtsc_thread(__rte_unused void *args)
 	return 0;
 }
 
+static void
+spawn_management_threads(uint32_t ctrlsock, pthread_t *control_tid, pthread_t *rdtsc_tid)
+{
+	unsigned lcore_id;
+    int ret;
+	char thread_name[16];
+
+    lcore_id = control_handle4[ctrlsock].lcore_id;
+
+    RTE_LOG(INFO, PKTJ1, "launching control thread for socketid "
+            "%d on lcore %u\n", ctrlsock, lcore_id);
+    pthread_create(&control_tid[0], NULL, (void *)control_main,
+            control_handle4[ctrlsock].addr);
+    snprintf(thread_name, sizeof(thread_name), "control4-%d", ctrlsock);
+    pthread_setname_np(control_tid[0], thread_name);
+    ret = pthread_setaffinity_np(control_tid[0], sizeof(cpu_set_t),
+            &lcore_config[lcore_id].cpuset);
+    if (ret != 0) {
+        perror("control4 pthread_setaffinity_np: ");
+        rte_exit(EXIT_FAILURE, "control4 pthread_setaffinity_np "
+                "returned error: err=%d,", ret);
+    }
+    pthread_create(&control_tid[1], NULL, (void *)control_main,
+            control_handle6[ctrlsock].addr);
+    snprintf(thread_name, sizeof(thread_name), "control6-%d", ctrlsock);
+    pthread_setname_np(control_tid[1], thread_name);
+    ret = pthread_setaffinity_np(control_tid[1], sizeof(cpu_set_t),
+            &lcore_config[lcore_id].cpuset);
+    if (ret != 0) {
+        perror("control6 pthread_setaffinity_np: ");
+        rte_exit(EXIT_FAILURE, "control6 pthread_setaffinity_np "
+                "returned error: err=%d,", ret);
+    }
+    pthread_create(rdtsc_tid, NULL, (void *)rdtsc_thread, NULL);
+    snprintf(thread_name, sizeof(thread_name), "rdtsc-%d", ctrlsock);
+    pthread_setname_np(*rdtsc_tid, thread_name);
+    ret = pthread_setaffinity_np(*rdtsc_tid, sizeof(cpu_set_t),
+            &lcore_config[lcore_id].cpuset);
+
+    if (ret != 0) {
+        perror("rdtsc pthread_setaffinity_np: ");
+        rte_exit(EXIT_FAILURE, "rdtsc pthread_setaffinity_np "
+                "returned error: err=%d,", ret);
+    }
+
+    ret = pktj_cmdline_init(unixsock_path, ctrlsock);
+    if (ret != 0) {
+        rte_exit(EXIT_FAILURE, "pktj_cmdline_init failed");
+    }
+    ret = pktj_cmdline_launch(ctrlsock, &lcore_config[lcore_id].cpuset);
+    if (ret != 0) {
+        rte_exit(EXIT_FAILURE, "pktj_cmdline_launch failed");
+    }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -2072,7 +2130,7 @@ main(int argc, char **argv)
 	unsigned nb_ports;
 	unsigned lcore_id;
 	uint8_t portid;
-	pthread_t control_tid;
+	pthread_t control_tid[2] = { 0 }; //ipv4 and ipv6 thread
 	pthread_t rdtsc_tid;
 	char thread_name[16];
 	struct sigaction sa;
@@ -2146,8 +2204,10 @@ main(int argc, char **argv)
 	// look for any lcore not bound by dpdk (kni and eal) on each socket,
 	// use it when found
 	if (numa_on) {
+        int ipv4_sock_found = 0;
 		for (ctrlsock = 0; ctrlsock < NB_SOCKETS; ctrlsock++) {
-			control_handle[ctrlsock].addr = NULL;
+			control_handle4[ctrlsock].addr = NULL;
+			control_handle6[ctrlsock].addr = NULL;
 			qconf = NULL;
 
 			// TODO: look for all available vcpus (not only eal
@@ -2158,23 +2218,32 @@ main(int argc, char **argv)
 				    ctrlsock) {
 					qconf = &lcore_conf[lcore_id];
 					if (qconf->n_rx_queue == 0) {
-						control_handle[ctrlsock].addr =
-						    control_init(ctrlsock);
-						control_handle[ctrlsock]
-						    .lcore_id = lcore_id;
-						break;
+                        if (!ipv4_sock_found) {
+                            control_handle4[ctrlsock].addr =
+                                control_init(ctrlsock, NETLINK4_EVENTS);
+                            control_handle4[ctrlsock]
+                                .lcore_id = lcore_id;
+                            ipv4_sock_found = 1;
+                            continue;
+                        } else {
+                            control_handle6[ctrlsock].addr =
+                                control_init(ctrlsock, NETLINK6_EVENTS);
+                            control_handle6[ctrlsock]
+                                .lcore_id = lcore_id;
+                            break;
+                        }
 					}
 				}
 			}
 
 			if (qconf) { // check if any lcore is enabled on this
 				     // socket
-				if (control_handle[ctrlsock].addr ==
-				    NULL) { // if no lcore is available on this
-					    // socket
+				if (control_handle4[ctrlsock].addr == NULL ||
+                     control_handle6[ctrlsock].addr == NULL) { 
+                    // if no lcore is available on this socket
 					rte_exit(EXIT_FAILURE,
 						 "no free lcore found on "
-						 "socket %d for control, "
+						 "socket %d for control 4 or 6, "
 						 "exiting ...\n",
 						 ctrlsock);
 				}
@@ -2183,11 +2252,11 @@ main(int argc, char **argv)
 	}
 
 	ctrlsock = 0;
-	control_tid = 0;
 
 	// launch in a thread on socket 0 if numa is disabled
 	if (!numa_on) {
-		control_handle[0].addr = control_init(ctrlsock);
+		control_handle4[0].addr = control_init(ctrlsock, NETLINK4_EVENTS);
+		control_handle6[0].addr = control_init(ctrlsock, NETLINK6_EVENTS);
 	}
 
 	/* init memory */
@@ -2235,105 +2304,12 @@ main(int argc, char **argv)
 
 	if (numa_on) {
 		for (ctrlsock = 0; ctrlsock < NB_SOCKETS; ctrlsock++) {
-			if (control_handle[ctrlsock].addr) {
-				lcore_id = control_handle[ctrlsock].lcore_id;
-				printf("launching control thread for socketid "
-				       "%d on lcore %u\n",
-				       ctrlsock, lcore_id);
-
-				pthread_create(&control_tid, NULL,
-					       (void *)control_main,
-					       control_handle[ctrlsock].addr);
-
-				snprintf(thread_name, 16, "control-%d",
-					 ctrlsock);
-				pthread_setname_np(control_tid, thread_name);
-
-				ret = pthread_setaffinity_np(
-				    control_tid, sizeof(cpu_set_t),
-				    &lcore_config[lcore_id].cpuset);
-
-				if (ret != 0) {
-					perror(
-					    "control pthread_setaffinity_np: ");
-					rte_exit(
-					    EXIT_FAILURE,
-					    "control pthread_setaffinity_np "
-					    "returned error: err=%d,",
-					    ret);
-				}
-
-				pthread_create(&rdtsc_tid, NULL,
-					       (void *)rdtsc_thread, NULL);
-
-				snprintf(thread_name, 16, "rdtsc-%d", ctrlsock);
-				pthread_setname_np(rdtsc_tid, thread_name);
-
-				ret = pthread_setaffinity_np(
-				    rdtsc_tid, sizeof(cpu_set_t),
-				    &lcore_config[lcore_id].cpuset);
-
-				if (ret != 0) {
-					perror(
-					    "rdtsc pthread_setaffinity_np: ");
-					rte_exit(EXIT_FAILURE,
-						 "rdtsc pthread_setaffinity_np "
-						 "returned error: err=%d,",
-						 ret);
-				}
-
-				ret =
-				    pktj_cmdline_init(unixsock_path, ctrlsock);
-				if (ret != 0) {
-					rte_exit(EXIT_FAILURE,
-						 "pktj_cmdline_init failed");
-				}
-				ret = pktj_cmdline_launch(
-				    ctrlsock, &lcore_config[lcore_id].cpuset);
-				if (ret != 0) {
-					rte_exit(EXIT_FAILURE,
-						 "pktj_cmdline_launch failed");
-				}
+			if (control_handle4[ctrlsock].addr) {
+                spawn_management_threads(ctrlsock, control_tid, &rdtsc_tid);
 			}
 		}
 	} else {
-		pthread_create(&control_tid, NULL, (void *)control_main,
-			       control_handle[0].addr);
-		snprintf(thread_name, 16, "control-0");
-		pthread_setname_np(control_tid, thread_name);
-
-		CPU_ZERO(&cpuset);
-		CPU_SET(0, &cpuset);
-		ret = pthread_setaffinity_np(control_tid, sizeof(cpu_set_t),
-					     &cpuset);
-
-		if (ret != 0) {
-			perror("control pthread_setaffinity_np: ");
-			rte_exit(EXIT_FAILURE, "control pthread_setaffinity_np "
-					       "returned error: err=%d,",
-				 ret);
-		}
-		pthread_create(&rdtsc_tid, NULL, (void *)rdtsc_thread, NULL);
-		snprintf(thread_name, 16, "rdtsc-0");
-		pthread_setname_np(rdtsc_tid, thread_name);
-		ret = pthread_setaffinity_np(rdtsc_tid, sizeof(cpu_set_t),
-					     &cpuset);
-
-		if (ret != 0) {
-			perror("rdtsc pthread_setaffinity_np: ");
-			rte_exit(EXIT_FAILURE, "rdtsc pthread_setaffinity_np "
-					       "returned error: err=%d,",
-				 ret);
-		}
-
-		ret = pktj_cmdline_init(unixsock_path, 0);
-		if (ret != 0) {
-			rte_exit(EXIT_FAILURE, "pktj_cmdline_init failed");
-		}
-		ret = pktj_cmdline_launch(0, &cpuset);
-		if (ret != 0) {
-			rte_exit(EXIT_FAILURE, "pktj_cmdline_launch failed");
-		}
+        spawn_management_threads(0, control_tid, &rdtsc_tid);
 	}
 
 	/* set a mask for tcp dst_port 179, the mask is applied to body starting
@@ -2387,8 +2363,11 @@ main(int argc, char **argv)
 			 "control callback setup returned error: err=%d,", ret);
 	}
 
-	if (control_tid) {
-		pthread_join(control_tid, NULL);
+	if (control_tid[0]) {
+		pthread_join(control_tid[0], NULL);
+	}
+	if (control_tid[1]) {
+		pthread_join(control_tid[1], NULL);
 	}
 
 	RTE_LCORE_FOREACH_SLAVE(lcore_id)
@@ -2426,9 +2405,10 @@ main(int argc, char **argv)
 	}
 
 	for (ctrlsock = 0; ctrlsock < NB_SOCKETS; ctrlsock++) {
-		if (control_handle[ctrlsock].addr) {
+		if (control_handle4[ctrlsock].addr) {
 			pktj_cmdline_terminate(ctrlsock, unixsock_path);
-			control_terminate(control_handle[ctrlsock].addr);
+			control_terminate(control_handle4[ctrlsock].addr);
+			control_terminate(control_handle6[ctrlsock].addr);
 		}
 	}
 

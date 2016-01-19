@@ -176,7 +176,7 @@ static int addr6(addr_action_t action, __s32 port_id,
 static int
 route6(pktj_unused(struct rtmsg *route), route_action_t action,
 	   struct in6_addr *addr, uint8_t len, struct in6_addr *nexthop,
-	   pktj_unused(void *args))
+	   pktj_unused(uint8_t type), pktj_unused(void *args))
 {
 	char action_buf[4];
 	char buf[256];
@@ -196,7 +196,7 @@ route6(pktj_unused(struct rtmsg *route), route_action_t action,
 static int
 route4(pktj_unused(struct rtmsg *route), route_action_t action,
 	   struct in_addr *addr, uint8_t len, struct in_addr *nexthop,
-	   pktj_unused(void *args))
+	   pktj_unused(uint8_t type), pktj_unused(void *args))
 {
 	char action_buf[4];
 	char buf[256];
@@ -273,7 +273,7 @@ int main(void)
 	char *argv[7] = { "test", "-l", "0", "-n", "1", "--log-level", "0" };
 	pktj_init(7, argv);
 
-	h = netl_create();
+	h = netl_create(NETLINK4_EVENTS | NETLINK6_EVENTS);
 	if (h == NULL) {
 		perror("Couldn't create netlink handler");
 		goto fail;

@@ -760,12 +760,12 @@ add_invalid_neighbor6(neighbor_struct_t *neighbor_struct, struct in6_addr *ip,
 }
 
 void *
-control_init(int32_t socket_id)
+control_init(int32_t socket_id, unsigned events)
 {
 	struct netl_handle *netl_h;
 	struct handle_res *res;
 
-	netl_h = netl_create();
+	netl_h = netl_create(events);
 	if (netl_h == NULL) {
 		RTE_LOG(ERR, PKTJ_CTRL1, "Couldn't initialize netlink socket");
 		goto err;
