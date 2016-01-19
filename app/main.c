@@ -2134,7 +2134,9 @@ main(int argc, char **argv)
 	pthread_t rdtsc_tid;
 	char thread_name[16];
 	struct sigaction sa;
-	cpu_set_t cpuset;
+	uint32_t ctrlsock;
+    uint16_t maxsock;
+    int ipv4_sock_found = 0;
 
 	sa.sa_flags = 0;
 	sigemptyset(&sa.sa_mask);
@@ -2199,70 +2201,64 @@ main(int argc, char **argv)
 	if (acl_init(1) < 0)
 		rte_exit(EXIT_FAILURE, "acl_init ipv6 failed\n");
 
-	uint32_t ctrlsock;
 
 	// look for any lcore not bound by dpdk (kni and eal) on each socket,
 	// use it when found
 	if (numa_on) {
-        int ipv4_sock_found = 0;
-		for (ctrlsock = 0; ctrlsock < NB_SOCKETS; ctrlsock++) {
-			control_handle4[ctrlsock].addr = NULL;
-			control_handle6[ctrlsock].addr = NULL;
-			qconf = NULL;
+        maxsock = NB_SOCKETS;
+    } else {
+        maxsock = 1;
+    }
 
-			// TODO: look for all available vcpus (not only eal
-			// enabled lcores)
-			RTE_LCORE_FOREACH(lcore_id)
-			{
-				if (rte_lcore_to_socket_id(lcore_id) ==
-				    ctrlsock) {
-					qconf = &lcore_conf[lcore_id];
-					if (qconf->n_rx_queue == 0) {
-                        if (!ipv4_sock_found) {
-                            control_handle4[ctrlsock].addr =
-                                control_init(ctrlsock, NETLINK4_EVENTS);
-                            control_handle4[ctrlsock]
-                                .lcore_id = lcore_id;
-                            ipv4_sock_found = 1;
-                            continue;
-                        } else {
-                            control_handle6[ctrlsock].addr =
-                                control_init(ctrlsock, NETLINK6_EVENTS);
-                            control_handle6[ctrlsock]
-                                .lcore_id = lcore_id;
-                            break;
-                        }
-					}
-				}
-			}
+    for (ctrlsock = 0; ctrlsock < maxsock; ctrlsock++) {
+        control_handle4[ctrlsock].addr = NULL;
+        control_handle6[ctrlsock].addr = NULL;
+        qconf = NULL;
 
-			if (qconf) { // check if any lcore is enabled on this
-				     // socket
-				if (control_handle4[ctrlsock].addr == NULL ||
-                     control_handle6[ctrlsock].addr == NULL) { 
-                    // if no lcore is available on this socket
-					rte_exit(EXIT_FAILURE,
-						 "no free lcore found on "
-						 "socket %d for control 4 or 6, "
-						 "exiting ...\n",
-						 ctrlsock);
-				}
-			}
-		}
-	}
+        // TODO: look for all available vcpus (not only eal
+        // enabled lcores)
+        RTE_LCORE_FOREACH(lcore_id)
+        {
+            if (rte_lcore_to_socket_id(lcore_id) ==
+                    ctrlsock) {
+                qconf = &lcore_conf[lcore_id];
+                if (qconf->n_rx_queue == 0) {
+                    if (!ipv4_sock_found) {
+                        control_handle4[ctrlsock].addr =
+                            control_init(ctrlsock, NETLINK4_EVENTS);
+                        control_handle4[ctrlsock]
+                            .lcore_id = lcore_id;
+                        ipv4_sock_found = 1;
+                        continue;
+                    } else {
+                        control_handle6[ctrlsock].addr =
+                            control_init(ctrlsock, NETLINK6_EVENTS);
+                        control_handle6[ctrlsock]
+                            .lcore_id = lcore_id;
+                        break;
+                    }
+                }
+            }
+        }
 
-	ctrlsock = 0;
+        if (qconf) { // check if any lcore is enabled on this
+            // socket
+            if (control_handle4[ctrlsock].addr == NULL ||
+                    control_handle6[ctrlsock].addr == NULL) {
+                // if no lcore is available on this socket
+                rte_exit(EXIT_FAILURE,
+                        "no free lcore found on "
+                        "socket %d for control 4 or 6, "
+                        "exiting ...\n",
+                        ctrlsock);
+            }
+        }
+    }
 
-	// launch in a thread on socket 0 if numa is disabled
-	if (!numa_on) {
-		control_handle4[0].addr = control_init(ctrlsock, NETLINK4_EVENTS);
-		control_handle6[0].addr = control_init(ctrlsock, NETLINK6_EVENTS);
-	}
-
-	/* init memory */
-	ret = init_mem(nb_ports);
-	if (ret < 0)
-		rte_exit(EXIT_FAILURE, "init_mem failed\n");
+    /* init memory */
+    ret = init_mem(nb_ports);
+    if (ret < 0)
+        rte_exit(EXIT_FAILURE, "init_mem failed\n");
 
 	/* Initialize KNI subsystem */
 	init_kni();
@@ -2331,6 +2327,7 @@ main(int argc, char **argv)
 			if (kni_port_params_array[portid]->lcore_tx ==
 			    lcore_id) {
 				pthread_t kni_tid;
+                cpu_set_t cpuset;
 
 				RTE_LOG(INFO, PKTJ1,
 					"launching kni thread on lcore %u\n",
