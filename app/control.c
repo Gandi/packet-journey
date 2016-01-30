@@ -62,6 +62,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <net/if.h>
+#include <arpa/inet.h>
 #include <spawn.h>
 
 #include <rte_common.h>
@@ -353,13 +354,14 @@ neighbor4(neighbor_action_t action, __s32 port_id, struct in_addr *addr,
 	int s;
 	uint8_t nexthop_id, find_id;
 	int32_t socket_id = handle->socket_id;
+	char ipbuf[INET_ADDRSTRLEN];
 
 	assert(neighbor4_struct != NULL);
 
 	if (addr == NULL)
 		return -1;
+	inet_ntop(AF_INET, addr, ipbuf, INET_ADDRSTRLEN);
 
-	// FIXME must check that state is not NUD_FAILED or NUD_INVALID
 	if (action == NEIGHBOR_ADD) {
 		if (lladdr == NULL)
 			return -1;
@@ -383,15 +385,17 @@ neighbor4(neighbor_action_t action, __s32 port_id, struct in_addr *addr,
 			    flags != NUD_STALE) {
 				RTE_LOG(ERR, PKTJ_CTRL1,
 					"failed to change state in neighbor4 "
-					"table (state %d)...\n",
-					flags);
+					"table (state %d, %s)...\n",
+					flags, ipbuf);
 				return -1;
 			}
 
-			RTE_LOG(DEBUG, PKTJ_CTRL1,
-				"adding ipv4 neighbor with port %s "
-				"vlan_id %d...\n",
-				ibuf, kni_vlan);
+			{
+				RTE_LOG(DEBUG, PKTJ_CTRL1,
+					"adding ipv4 neighbor %s with port %s "
+					"vlan_id %d...\n",
+					ipbuf, ibuf, kni_vlan);
+			}
 
 			s = neighbor4_add_nexthop(neighbor4_struct[socket_id],
 						  addr, &nexthop_id,
@@ -472,7 +476,7 @@ neighbor4(neighbor_action_t action, __s32 port_id, struct in_addr *addr,
 			lpm4_stats[socket_id].nb_del_ok++;
 		}
 	}
-	RTE_LOG(DEBUG, PKTJ_CTRL1, "neigh ope success\n");
+	RTE_LOG(DEBUG, PKTJ_CTRL1, "neigh %s ope success\n", ipbuf);
 	return 0;
 }
 
@@ -507,13 +511,14 @@ neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
 	int s;
 	uint8_t nexthop_id, find_id;
 	int32_t socket_id = handle->socket_id;
+	char ipbuf[INET6_ADDRSTRLEN];
 
 	assert(neighbor6_struct != NULL);
 
 	if (addr == NULL)
 		return -1;
+	inet_ntop(AF_INET6, addr, ipbuf, INET6_ADDRSTRLEN);
 
-	// FIXME must check that state is not NUD_FAILED or NUD_INVALID
 	if (action == NEIGHBOR_ADD) {
 		if (lladdr == NULL)
 			return -1;
@@ -538,15 +543,18 @@ neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
 			    flags != NUD_STALE) {
 				RTE_LOG(ERR, PKTJ_CTRL1,
 					"failed to change state in neighbor6 "
-					"table (state %d)...\n",
-					flags);
+					"table (state %d, %s)...\n",
+					flags, ipbuf);
 				return -1;
 			}
 
-			RTE_LOG(DEBUG, PKTJ_CTRL1,
-				"adding ipv6 neighbor with port_id %d "
-				"vlan_id %d...\n",
-				port_id, kni_vlan);
+			{
+				RTE_LOG(
+				    DEBUG, PKTJ_CTRL1,
+				    "adding ipv6 neighbor %s with port_id %d "
+				    "vlan_id %d...\n",
+				    ipbuf, port_id, kni_vlan);
+			}
 
 			s = neighbor6_add_nexthop(neighbor6_struct[socket_id],
 						  addr, &nexthop_id,
@@ -633,7 +641,7 @@ neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
 			lpm6_stats[socket_id].nb_del_ok++;
 		}
 	}
-	RTE_LOG(DEBUG, PKTJ_CTRL1, "neigh ope success\n");
+	RTE_LOG(DEBUG, PKTJ_CTRL1, "neigh %s ope success\n", ipbuf);
 	return 0;
 }
 
