@@ -1,3 +1,9 @@
+pktj (0.1.25) unstable; urgency=medium
+
+  * Rewrite control thread spawning logic.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 03 Feb 2016 14:39:51 +0100
+
 pktj (0.1.24) unstable; urgency=low
 
   * Modify the packaging for building with ubuntu dpdk packages.
