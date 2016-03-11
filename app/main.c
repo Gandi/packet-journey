@@ -124,6 +124,11 @@
 #include "acl.h"
 #include "config.h"
 
+/* Ethernet (should be..) */
+#ifndef ETH_ALEN
+#define ETH_ALEN 6
+#endif
+
 /**
  * ICMPv6 Header
  */
@@ -280,9 +285,6 @@ static uint16_t nb_txd = RTE_TEST_TX_DESC_DEFAULT;
 
 /* ethernet addresses of ports */
 struct ether_addr ports_eth_addr[RTE_MAX_ETHPORTS];
-
-/* replace first 12B of the ethernet header. */
-#define MASK_ETH 0x3f
 
 static struct rte_mempool *pktmbuf_pool[NB_SOCKETS];
 static uint64_t glob_tsc[RTE_MAX_LCORE];
@@ -845,8 +847,6 @@ process_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	      uint16_t *dst_port)
 {
 	struct ether_hdr *eth_hdr;
-	__m128i te;
-	__m128i ve;
 	struct nei_entry *entries;
 
 	eth_hdr = (rte_pktmbuf_mtod(pkt, struct ether_hdr *));
@@ -857,18 +857,8 @@ process_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 		entries =
 		    &qconf->neighbor6_struct->entries.t6[*dst_port].neighbor;
 
-	ve = _mm_load_si128((__m128i *)&entries->nexthop_hwaddr);
+    memcpy(&eth_hdr->d_addr, &entries->nexthop_hwaddr, ETH_ALEN);
 
-	// requires unaligned load to prevent segfaults
-	// happens on any packet when using virtio because of soft vlan
-	// stripping,
-	// eth_hdr is always at (headroom + sizeof(struct vlan_hdr))
-	// also happens when not using virtio but packet type is still
-	// unknown...
-	te = _mm_loadu_si128((__m128i *)eth_hdr);
-
-	te = _mm_blend_epi16(te, ve, MASK_ETH);
-	_mm_storeu_si128((__m128i *)&eth_hdr->d_addr, te);
 	*dst_port = entries->port_id;
 }
 
@@ -880,9 +870,7 @@ static inline void
 processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 		uint16_t dst_port[FWDSTEP])
 {
-	__m128i te[FWDSTEP];
-	__m128i ve[FWDSTEP];
-	__m128i *p[FWDSTEP];
+	struct ether_hdr *p[FWDSTEP];
 	struct nei_entry *entries[FWDSTEP];
 
 	if (likely(PKTJ_TEST_IPV4_HDR(pkt[0])))
@@ -919,31 +907,15 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	dst_port[2] = entries[2]->port_id;
 	dst_port[3] = entries[3]->port_id;
 
-	p[0] = (rte_pktmbuf_mtod(pkt[0], __m128i *));
-	p[1] = (rte_pktmbuf_mtod(pkt[1], __m128i *));
-	p[2] = (rte_pktmbuf_mtod(pkt[2], __m128i *));
-	p[3] = (rte_pktmbuf_mtod(pkt[3], __m128i *));
+	p[0] = (rte_pktmbuf_mtod(pkt[0], struct ether_hdr *));
+	p[1] = (rte_pktmbuf_mtod(pkt[1], struct ether_hdr *));
+	p[2] = (rte_pktmbuf_mtod(pkt[2], struct ether_hdr *));
+	p[3] = (rte_pktmbuf_mtod(pkt[3], struct ether_hdr *));
 
-	ve[0] = _mm_load_si128((__m128i *)&entries[0]->nexthop_hwaddr);
-	ve[1] = _mm_load_si128((__m128i *)&entries[1]->nexthop_hwaddr);
-	ve[2] = _mm_load_si128((__m128i *)&entries[2]->nexthop_hwaddr);
-	ve[3] = _mm_load_si128((__m128i *)&entries[3]->nexthop_hwaddr);
-
-	te[0] = pktj_mm_load_si128(p[0]);
-	te[1] = pktj_mm_load_si128(p[1]);
-	te[2] = pktj_mm_load_si128(p[2]);
-	te[3] = pktj_mm_load_si128(p[3]);
-
-	/* Update first 12 bytes, keep rest bytes intact. */
-	te[0] = _mm_blend_epi16(te[0], ve[0], MASK_ETH);
-	te[1] = _mm_blend_epi16(te[1], ve[1], MASK_ETH);
-	te[2] = _mm_blend_epi16(te[2], ve[2], MASK_ETH);
-	te[3] = _mm_blend_epi16(te[3], ve[3], MASK_ETH);
-
-	pktj_mm_store_si128(p[0], te[0]);
-	pktj_mm_store_si128(p[1], te[1]);
-	pktj_mm_store_si128(p[2], te[2]);
-	pktj_mm_store_si128(p[3], te[3]);
+	memcpy(&p[0]->d_addr, &entries[0]->nexthop_hwaddr, ETH_ALEN);
+	memcpy(&p[1]->d_addr, &entries[1]->nexthop_hwaddr, ETH_ALEN);
+	memcpy(&p[2]->d_addr, &entries[2]->nexthop_hwaddr, ETH_ALEN);
+	memcpy(&p[3]->d_addr, &entries[3]->nexthop_hwaddr, ETH_ALEN);
 }
 
 #define GRPSZ (1 << FWDSTEP)
