@@ -526,22 +526,18 @@ process_step2(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 	return 0;
 }
 
-static __m128i mask_tcp_179;
-
 static inline int
 kni_rate_limit_step(struct lcore_conf *qconf, struct rte_mbuf *pkt)
 {
-	__m128i data;
-
 	if (PKTJ_TEST_IPV4_HDR(pkt)) {
 		// not limit tcp 179 (bgp)
-		uint8_t *hdr = rte_pktmbuf_mtod_offset(
-		    pkt, uint8_t *,
-		    sizeof(struct ether_hdr) +
-			offsetof(struct ipv4_hdr, time_to_live));
-		data = _mm_loadu_si128((__m128i *)(hdr));
-		data = _mm_andnot_si128(data, mask_tcp_179);
-		if (_mm_testz_si128(data, data)) {
+		struct ipv4_hdr *ip_hdr = rte_pktmbuf_mtod_offset(
+			pkt, struct ipv4_hdr *, sizeof(struct ether_hdr));
+		struct tcp_hdr * tcp = (struct tcp_hdr *)(
+			(unsigned char *)ip_hdr + sizeof(struct ipv4_hdr));
+
+		if (ip_hdr->next_proto_id == IPPROTO_TCP &&
+			rte_be_to_cpu_16(tcp->dst_port) == 179) {
 			// don't rate-limit bgp
 			return 0;
 		}
@@ -2315,10 +2311,6 @@ main(int argc, char **argv)
 	} else {
 		spawn_management_threads(0, control_tid, &rdtsc_tid);
 	}
-
-	/* set a mask for tcp dst_port 179, the mask is applied to body starting
-	 * at ttl field */
-	mask_tcp_179 = _mm_setr_epi32(0x00000600, 0, 0, 0xb3000000);
 
 	/* launch per-lcore init on every lcore */
 	RTE_LCORE_FOREACH(lcore_id)
