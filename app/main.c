@@ -124,11 +124,6 @@
 #include "acl.h"
 #include "config.h"
 
-/* Ethernet (should be..) */
-#ifndef ETH_ALEN
-#define ETH_ALEN 6
-#endif
-
 /**
  * ICMPv6 Header
  */
@@ -301,6 +296,11 @@ struct lcore_stats stats[RTE_MAX_LCORE];
 
 struct lcore_conf lcore_conf[RTE_MAX_LCORE];
 static rte_atomic32_t main_loop_stop = RTE_ATOMIC32_INIT(0);
+
+#define neighbor_set(dst, n) do { \
+    ether_addr_copy(&n->nexthop_hwaddr, (struct ether_addr *)dst); \
+    ether_addr_copy(&n->port_addr, (struct ether_addr *)dst + 1); \
+} while(0);
 
 static void
 print_ethaddr(const char *name, const struct ether_addr *eth_addr)
@@ -857,7 +857,7 @@ process_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt,
 		entries =
 		    &qconf->neighbor6_struct->entries.t6[*dst_port].neighbor;
 
-    memcpy(&eth_hdr->d_addr, &entries->nexthop_hwaddr, ETH_ALEN);
+	neighbor_set(&eth_hdr->d_addr, entries);
 
 	*dst_port = entries->port_id;
 }
@@ -912,10 +912,10 @@ processx4_step3(struct lcore_conf *qconf, struct rte_mbuf *pkt[FWDSTEP],
 	p[2] = (rte_pktmbuf_mtod(pkt[2], struct ether_hdr *));
 	p[3] = (rte_pktmbuf_mtod(pkt[3], struct ether_hdr *));
 
-	memcpy(&p[0]->d_addr, &entries[0]->nexthop_hwaddr, ETH_ALEN);
-	memcpy(&p[1]->d_addr, &entries[1]->nexthop_hwaddr, ETH_ALEN);
-	memcpy(&p[2]->d_addr, &entries[2]->nexthop_hwaddr, ETH_ALEN);
-	memcpy(&p[3]->d_addr, &entries[3]->nexthop_hwaddr, ETH_ALEN);
+	neighbor_set(&p[0]->d_addr, entries[0]);
+	neighbor_set(&p[1]->d_addr, entries[1]);
+	neighbor_set(&p[2]->d_addr, entries[2]);
+	neighbor_set(&p[3]->d_addr, entries[3]);
 }
 
 #define GRPSZ (1 << FWDSTEP)
