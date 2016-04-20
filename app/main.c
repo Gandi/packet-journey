@@ -1173,7 +1173,7 @@ filter_packets(uint32_t lcore_id, struct rte_mbuf **pkts,
 	for (i = 0; i < nb_res; ++i) {
 		// if the packet must be filtered, free it and don't add it back
 		// in pkts
-		if (unlikely(acl4 != 0 && (res[i] & ACL_DENY_SIGNATURE) != 0)) {
+		if (unlikely(acl4 != NULL && (res[i] & ACL_DENY_SIGNATURE) != 0)) {
 /* in the ACL list, drop it */
 #ifdef L3FWDACL_DEBUG
 			dump_acl4_rule(acl_pkts[i], res[i]);
@@ -1199,7 +1199,7 @@ filter_packets(uint32_t lcore_id, struct rte_mbuf **pkts,
 	for (i = 0; i < nb_res; ++i) {
 		// if the packet must be filtered, free it and don't add it back
 		// in pkts
-		if (unlikely(acl6 != 0 && (res[i] & ACL_DENY_SIGNATURE) != 0)) {
+		if (unlikely(acl6 != NULL && (res[i] & ACL_DENY_SIGNATURE) != 0)) {
 /* in the ACL list, drop it */
 #ifdef L3FWDACL_DEBUG
 			dump_acl6_rule(acl_pkts[i], res[i]);
