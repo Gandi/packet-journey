@@ -594,7 +594,7 @@ rate_limit_step_ipv4(struct lcore_conf* qconf,
 	ipv4_hdr = rte_pktmbuf_mtod_offset(pkt, struct ipv4_hdr*,
 					   sizeof(struct ether_hdr));
 	naddr = rte_be_to_cpu_32(ipv4_hdr->dst_addr);
-	dst_addr = (union rlimit_addr*)&naddr;
+	dst_addr = (union rlimit_addr *)&naddr;
 	range_id = rlimit4_lookup_table[rte_lcore_to_socket_id(lcore_id)]
 				       [dst_addr->network];
 	// check if the dest cidr range is in the lookup table

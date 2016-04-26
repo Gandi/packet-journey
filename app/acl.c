@@ -436,9 +436,9 @@ dump_acl4_rule(struct rte_mbuf* m, uint32_t sig)
 {
 	uint32_t offset = sig & ~ACL_DENY_SIGNATURE;
 	unsigned char a, b, c, d;
-	struct ipv4_hdr* ipv4_hdr =
-	    (struct ipv4_hdr*)(rte_pktmbuf_mtod(m, unsigned char*) +
-			       sizeof(struct ether_hdr));
+	struct ipv4_hdr *ipv4_hdr =
+	    (struct ipv4_hdr *)(rte_pktmbuf_mtod(m, unsigned char *) +
+				sizeof(struct ether_hdr));
 
 	uint32_t_to_char(rte_bswap32(ipv4_hdr->src_addr), &a, &b, &c, &d);
 	acl_log("Packet Src:%hhu.%hhu.%hhu.%hhu ", a, b, c, d);
@@ -460,9 +460,9 @@ dump_acl6_rule(struct rte_mbuf* m, uint32_t sig)
 {
 	unsigned i;
 	uint32_t offset = sig & ~ACL_DENY_SIGNATURE;
-	struct ipv6_hdr* ipv6_hdr =
-	    (struct ipv6_hdr*)(rte_pktmbuf_mtod(m, unsigned char*) +
-			       sizeof(struct ether_hdr));
+	struct ipv6_hdr *ipv6_hdr =
+	    (struct ipv6_hdr *)(rte_pktmbuf_mtod(m, unsigned char *) +
+				sizeof(struct ether_hdr));
 
 	acl_log("Packet Src");
 	for (i = 0; i < RTE_DIM(ipv6_hdr->src_addr); i += sizeof(uint16_t))
