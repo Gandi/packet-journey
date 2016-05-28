@@ -814,7 +814,13 @@ add_invalid_neighbor6(neighbor_struct_t* neighbor_struct,
 	return 0;
 }
 
-void*
+static void
+netl_log(const char *msg, uint32_t lvl)
+{
+	rte_log(lvl, RTE_LOGTYPE_PKTJ_CTRL1, "PKTJ_CRTL1: ", msg);
+}
+
+void *
 control_init(int32_t socket_id, unsigned events)
 {
 	struct netl_handle* netl_h;
@@ -847,6 +853,7 @@ control_init(int32_t socket_id, unsigned events)
 	netl_h->cb.route4 = route4;
 	netl_h->cb.route6 = route6;
 	netl_h->cb.link = eth_link;
+	netl_h->cb.log = netl_log;
 
 	struct in_addr invalid_ip = {INADDR_ANY};
 	struct in6_addr invalid_ip6 = IN6ADDR_ANY_INIT;

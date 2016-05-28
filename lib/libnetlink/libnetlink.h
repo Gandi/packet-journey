@@ -60,6 +60,7 @@ struct netl_handle {
 						  struct in6_addr * addr,
 						  struct ether_addr * lladdr, uint8_t flags,
 						  uint16_t vlanid, void *args);
+		void (*log) (const char* msg, uint32_t lvl);
 	} cb;
 };
 
