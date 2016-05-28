@@ -100,7 +100,7 @@ netl_handler(struct netl_handle *h,
 			 pktj_unused(struct sockaddr_nl *nladdr),
 			 struct nlmsghdr *hdr, void *args)
 {
-  h->cb.log("This is a log callback", INFO)
+  h->cb.log("This is a log callback", INFO);
 	int len = hdr->nlmsg_len;
 
 	switch (hdr->nlmsg_type) {

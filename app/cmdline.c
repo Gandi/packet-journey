@@ -105,10 +105,10 @@
 
 #define CMDLINE_POLL_TIMEOUT 500
 
-void __wrap_cmdline_printf(const struct cmdline *cl, const char *fmt, ...);
+void __wrap_cmdline_printf(const struct cmdline* cl, const char* fmt, ...);
 
 void
-__wrap_cmdline_printf(const struct cmdline *cl, const char *fmt, ...)
+__wrap_cmdline_printf(const struct cmdline* cl, const char* fmt, ...)
 {
 	va_list ap;
 
@@ -116,7 +116,7 @@ __wrap_cmdline_printf(const struct cmdline *cl, const char *fmt, ...)
 		return;
 
 	int ret;
-	char *buf;
+	char* buf;
 
 	if (cl->s_out < 0)
 		return;
@@ -151,7 +151,8 @@ RTE_DEFINE_PER_LCORE(uint32_t, g_socket_id);
 typedef uint8_t portid_t;
 
 static void
-port_rss_reta_info(portid_t port_id, struct rte_eth_rss_reta_entry64 *reta_conf,
+port_rss_reta_info(portid_t port_id,
+		   struct rte_eth_rss_reta_entry64* reta_conf,
 		   uint16_t nb_entries)
 {
 	uint16_t i, idx, shift;
@@ -182,10 +183,11 @@ struct cmd_loglevel_result {
 };
 
 static void
-cmd_loglevel_parsed(void *parsed_result, __rte_unused struct cmdline *cl,
-		    __rte_unused void *data)
+cmd_loglevel_parsed(void* parsed_result,
+		    __rte_unused struct cmdline* cl,
+		    __rte_unused void* data)
 {
-	struct cmd_loglevel_result *res = parsed_result;
+	struct cmd_loglevel_result* res = parsed_result;
 	rte_set_log_level(res->level);
 }
 
@@ -200,7 +202,7 @@ cmdline_parse_inst_t cmd_loglevel = {
     .help_str = "loglevel level",
     .tokens =
 	{
-	    (void *)&cmd_loglevel_loglevel, (void *) & cmd_loglevel_level, NULL,
+	    (void*)&cmd_loglevel_loglevel, (void*)&cmd_loglevel_level, NULL,
 	},
 };
 
@@ -212,10 +214,11 @@ struct cmd_logtype_result {
 };
 
 static void
-cmd_logtype_parsed(void *parsed_result, __rte_unused struct cmdline *cl,
-		   __rte_unused void *data)
+cmd_logtype_parsed(void* parsed_result,
+		   __rte_unused struct cmdline* cl,
+		   __rte_unused void* data)
 {
-	struct cmd_logtype_result *res = parsed_result;
+	struct cmd_logtype_result* res = parsed_result;
 	rte_set_log_type(res->type, res->enable);
 }
 
@@ -232,8 +235,8 @@ cmdline_parse_inst_t cmd_logtype = {
     .help_str = "logtype type enable",
     .tokens =
 	{
-	    (void *)&cmd_logtype_logtype, (void *) & cmd_logtype_type,
-	    (void *) & cmd_logtype_enable, NULL,
+	    (void*)&cmd_logtype_logtype, (void*)&cmd_logtype_type,
+	    (void*)&cmd_logtype_enable, NULL,
 	},
 };
 
@@ -247,9 +250,9 @@ struct cmd_showport_result {
 };
 
 static void
-cmd_showport_parsed(void *parsed_result, struct cmdline *cl, void *data)
+cmd_showport_parsed(void* parsed_result, struct cmdline* cl, void* data)
 {
-	struct cmd_showport_result *res = parsed_result;
+	struct cmd_showport_result* res = parsed_result;
 	if (!strcmp(res->show, "clear")) {
 		if (!strcmp(res->what, "stats"))
 			nic_stats_clear(cl, res->portnum);
@@ -267,8 +270,10 @@ cmdline_parse_token_string_t cmd_showport_show =
     TOKEN_STRING_INITIALIZER(struct cmd_showport_result, show, "show#clear");
 cmdline_parse_token_string_t cmd_showport_port =
     TOKEN_STRING_INITIALIZER(struct cmd_showport_result, port, "port");
-cmdline_parse_token_string_t cmd_showport_what = TOKEN_STRING_INITIALIZER(
-    struct cmd_showport_result, what, "info#stats#xstats");
+cmdline_parse_token_string_t cmd_showport_what =
+    TOKEN_STRING_INITIALIZER(struct cmd_showport_result,
+			     what,
+			     "info#stats#xstats");
 cmdline_parse_token_num_t cmd_showport_portnum =
     TOKEN_NUM_INITIALIZER(struct cmd_showport_result, portnum, UINT8);
 cmdline_parse_token_string_t cmd_showport_option =
@@ -280,20 +285,20 @@ cmdline_parse_inst_t cmd_showport = {
     .help_str = "show|clear port info|stats|xstats X (X = port number)",
     .tokens =
 	{
-	    (void *)&cmd_showport_show, (void *) & cmd_showport_port,
-	    (void *) & cmd_showport_what, (void *) & cmd_showport_portnum, NULL,
+	    (void*)&cmd_showport_show, (void*)&cmd_showport_port,
+	    (void*)&cmd_showport_what, (void*)&cmd_showport_portnum, NULL,
 	},
 };
 
 cmdline_parse_inst_t cmd_showport_json = {
     .f = cmd_showport_parsed,
-    .data = (void *)1,
+    .data = (void*)1,
     .help_str = "show|clear port info|stats|xstats X (X = port number)",
     .tokens =
 	{
-	    (void *)&cmd_showport_show, (void *) & cmd_showport_port,
-	    (void *) & cmd_showport_what, (void *) & cmd_showport_portnum,
-	    (void *) & cmd_showport_option, NULL,
+	    (void*)&cmd_showport_show, (void*)&cmd_showport_port,
+	    (void*)&cmd_showport_what, (void*)&cmd_showport_portnum,
+	    (void*)&cmd_showport_option, NULL,
 	},
 };
 
@@ -311,10 +316,11 @@ struct cmd_showport_rss_hash {
 };
 
 static void
-cmd_showport_rss_hash_parsed(void *parsed_result, struct cmdline *cl,
-			     void *show_rss_key)
+cmd_showport_rss_hash_parsed(void* parsed_result,
+			     struct cmdline* cl,
+			     void* show_rss_key)
 {
-	struct cmd_showport_rss_hash *res = parsed_result;
+	struct cmd_showport_rss_hash* res = parsed_result;
 
 	port_rss_hash_conf_show(cl, res->port_id, show_rss_key != NULL);
 }
@@ -326,7 +332,8 @@ cmdline_parse_token_string_t cmd_showport_rss_hash_port =
 cmdline_parse_token_num_t cmd_showport_rss_hash_port_id =
     TOKEN_NUM_INITIALIZER(struct cmd_showport_rss_hash, port_id, UINT8);
 cmdline_parse_token_string_t cmd_showport_rss_hash_rss_hash =
-    TOKEN_STRING_INITIALIZER(struct cmd_showport_rss_hash, rss_hash,
+    TOKEN_STRING_INITIALIZER(struct cmd_showport_rss_hash,
+			     rss_hash,
 			     "rss-hash");
 cmdline_parse_token_string_t cmd_showport_rss_hash_rss_key =
     TOKEN_STRING_INITIALIZER(struct cmd_showport_rss_hash, key, "key");
@@ -337,24 +344,24 @@ cmdline_parse_inst_t cmd_showport_rss_hash = {
     .help_str = "show port X rss-hash (X = port number)\n",
     .tokens =
 	{
-	    (void *)&cmd_showport_rss_hash_show,
-	    (void *) & cmd_showport_rss_hash_port,
-	    (void *) & cmd_showport_rss_hash_port_id,
-	    (void *) & cmd_showport_rss_hash_rss_hash, NULL,
+	    (void*)&cmd_showport_rss_hash_show,
+	    (void*)&cmd_showport_rss_hash_port,
+	    (void*)&cmd_showport_rss_hash_port_id,
+	    (void*)&cmd_showport_rss_hash_rss_hash, NULL,
 	},
 };
 
 cmdline_parse_inst_t cmd_showport_rss_hash_key = {
     .f = cmd_showport_rss_hash_parsed,
-    .data = (void *)1,
+    .data = (void*)1,
     .help_str = "show port X rss-hash key (X = port number)\n",
     .tokens =
 	{
-	    (void *)&cmd_showport_rss_hash_show,
-	    (void *) & cmd_showport_rss_hash_port,
-	    (void *) & cmd_showport_rss_hash_port_id,
-	    (void *) & cmd_showport_rss_hash_rss_hash,
-	    (void *) & cmd_showport_rss_hash_rss_key, NULL,
+	    (void*)&cmd_showport_rss_hash_show,
+	    (void*)&cmd_showport_rss_hash_port,
+	    (void*)&cmd_showport_rss_hash_port_id,
+	    (void*)&cmd_showport_rss_hash_rss_hash,
+	    (void*)&cmd_showport_rss_hash_rss_key, NULL,
 	},
 };
 
@@ -368,11 +375,11 @@ struct cmd_config_rss {
 };
 
 static void
-cmd_config_rss_parsed(void *parsed_result,
-		      __attribute__((unused)) struct cmdline *cl,
-		      __attribute__((unused)) void *data)
+cmd_config_rss_parsed(void* parsed_result,
+		      __attribute__((unused)) struct cmdline* cl,
+		      __attribute__((unused)) void* data)
 {
-	struct cmd_config_rss *res = parsed_result;
+	struct cmd_config_rss* res = parsed_result;
 	struct rte_eth_rss_conf rss_conf;
 	uint8_t i;
 
@@ -408,8 +415,10 @@ cmdline_parse_token_string_t cmd_config_rss_all =
     TOKEN_STRING_INITIALIZER(struct cmd_config_rss, all, "all");
 cmdline_parse_token_string_t cmd_config_rss_name =
     TOKEN_STRING_INITIALIZER(struct cmd_config_rss, name, "rss");
-cmdline_parse_token_string_t cmd_config_rss_value = TOKEN_STRING_INITIALIZER(
-    struct cmd_config_rss, value, "all#ip#tcp#udp#sctp#ether#none");
+cmdline_parse_token_string_t cmd_config_rss_value =
+    TOKEN_STRING_INITIALIZER(struct cmd_config_rss,
+			     value,
+			     "all#ip#tcp#udp#sctp#ether#none");
 
 cmdline_parse_inst_t cmd_config_rss = {
     .f = cmd_config_rss_parsed,
@@ -417,9 +426,9 @@ cmdline_parse_inst_t cmd_config_rss = {
     .help_str = "port config all rss all|ip|tcp|udp|sctp|ether|none",
     .tokens =
 	{
-	    (void *)&cmd_config_rss_port, (void *) & cmd_config_rss_keyword,
-	    (void *) & cmd_config_rss_all, (void *) & cmd_config_rss_name,
-	    (void *) & cmd_config_rss_value, NULL,
+	    (void*)&cmd_config_rss_port, (void*)&cmd_config_rss_keyword,
+	    (void*)&cmd_config_rss_all, (void*)&cmd_config_rss_name,
+	    (void*)&cmd_config_rss_value, NULL,
 	},
 };
 
@@ -446,24 +455,26 @@ hexa_digit_to_value(char hexa_digit)
 }
 
 static uint8_t
-parse_and_check_key_hexa_digit(struct cmdline *cl, char *key, int idx)
+parse_and_check_key_hexa_digit(struct cmdline* cl, char* key, int idx)
 {
 	uint8_t hexa_v;
 
 	hexa_v = hexa_digit_to_value(key[idx]);
 	if (hexa_v == 0xFF)
 		cmdline_printf(
-		    cl, "invalid key: character %c at position %d is not a "
-			"valid hexa digit\n",
+		    cl,
+		    "invalid key: character %c at position %d is not a "
+		    "valid hexa digit\n",
 		    key[idx], idx);
 	return hexa_v;
 }
 
 static void
-cmd_config_rss_hash_key_parsed(void *parsed_result, struct cmdline *cl,
-			       __rte_unused void *data)
+cmd_config_rss_hash_key_parsed(void* parsed_result,
+			       struct cmdline* cl,
+			       __rte_unused void* data)
 {
-	struct cmd_config_rss_hash_key *res = parsed_result;
+	struct cmd_config_rss_hash_key* res = parsed_result;
 	uint8_t hash_key[RSS_HASH_KEY_LENGTH];
 	uint8_t xdgt0;
 	uint8_t xdgt1;
@@ -472,8 +483,9 @@ cmd_config_rss_hash_key_parsed(void *parsed_result, struct cmdline *cl,
 	/* Check the length of the RSS hash key */
 	if (strlen(res->key) != (RSS_HASH_KEY_LENGTH * 2)) {
 		cmdline_printf(
-		    cl, "key length: %d invalid - key must be a string of %d"
-			"hexa-decimal numbers\n",
+		    cl,
+		    "key length: %d invalid - key must be a string of %d"
+		    "hexa-decimal numbers\n",
 		    (int)strlen(res->key), RSS_HASH_KEY_LENGTH * 2);
 		return;
 	}
@@ -498,7 +510,8 @@ cmdline_parse_token_string_t cmd_config_rss_hash_key_config =
 cmdline_parse_token_num_t cmd_config_rss_hash_key_port_id =
     TOKEN_NUM_INITIALIZER(struct cmd_config_rss_hash_key, port_id, UINT8);
 cmdline_parse_token_string_t cmd_config_rss_hash_key_rss_hash_key =
-    TOKEN_STRING_INITIALIZER(struct cmd_config_rss_hash_key, rss_hash_key,
+    TOKEN_STRING_INITIALIZER(struct cmd_config_rss_hash_key,
+			     rss_hash_key,
 			     "rss-hash-key");
 cmdline_parse_token_string_t cmd_config_rss_hash_key_value =
     TOKEN_STRING_INITIALIZER(struct cmd_config_rss_hash_key, key, NULL);
@@ -509,11 +522,11 @@ cmdline_parse_inst_t cmd_config_rss_hash_key = {
     .help_str = "port config X rss-hash-key 104 hexa digits",
     .tokens =
 	{
-	    (void *)&cmd_config_rss_hash_key_port,
-	    (void *) & cmd_config_rss_hash_key_config,
-	    (void *) & cmd_config_rss_hash_key_port_id,
-	    (void *) & cmd_config_rss_hash_key_rss_hash_key,
-	    (void *) & cmd_config_rss_hash_key_value, NULL,
+	    (void*)&cmd_config_rss_hash_key_port,
+	    (void*)&cmd_config_rss_hash_key_config,
+	    (void*)&cmd_config_rss_hash_key_port_id,
+	    (void*)&cmd_config_rss_hash_key_rss_hash_key,
+	    (void*)&cmd_config_rss_hash_key_value, NULL,
 	},
 };
 
@@ -528,7 +541,8 @@ struct cmd_config_rss_reta {
 };
 
 static int
-parse_reta_config(const char *str, struct rte_eth_rss_reta_entry64 *reta_conf,
+parse_reta_config(const char* str,
+		  struct rte_eth_rss_reta_entry64* reta_conf,
 		  uint16_t nb_entries)
 {
 	int i;
@@ -537,10 +551,10 @@ parse_reta_config(const char *str, struct rte_eth_rss_reta_entry64 *reta_conf,
 	uint8_t nb_queue;
 	char s[256];
 	const char *p, *p0 = str;
-	char *end;
+	char* end;
 	enum fieldnames { FLD_HASH_INDEX = 0, FLD_QUEUE, _NUM_FLD };
 	unsigned long int_fld[_NUM_FLD];
-	char *str_fld[_NUM_FLD];
+	char* str_fld[_NUM_FLD];
 
 	while ((p = strchr(p0, '(')) != NULL) {
 		++p;
@@ -582,27 +596,30 @@ parse_reta_config(const char *str, struct rte_eth_rss_reta_entry64 *reta_conf,
 }
 
 static void
-cmd_set_rss_reta_parsed(void *parsed_result, struct cmdline *cl,
-			__rte_unused void *data)
+cmd_set_rss_reta_parsed(void* parsed_result,
+			struct cmdline* cl,
+			__rte_unused void* data)
 {
 	int ret;
 	struct rte_eth_dev_info dev_info;
 	struct rte_eth_rss_reta_entry64 reta_conf[8];
-	struct cmd_config_rss_reta *res = parsed_result;
+	struct cmd_config_rss_reta* res = parsed_result;
 
 	memset(&dev_info, 0, sizeof(dev_info));
 	rte_eth_dev_info_get(res->port_id, &dev_info);
 	if (dev_info.reta_size == 0) {
-		cmdline_printf(cl, "Redirection table size is 0 which is "
-				   "invalid for RSS\n");
+		cmdline_printf(cl,
+			       "Redirection table size is 0 which is "
+			       "invalid for RSS\n");
 		return;
 	} else
 		cmdline_printf(cl, "The reta size of port %d is %u\n",
 			       res->port_id, dev_info.reta_size);
 	if (dev_info.reta_size > ETH_RSS_RETA_SIZE_512) {
 		cmdline_printf(
-		    cl, "Currently do not support more than %u entries of "
-			"redirection table\n",
+		    cl,
+		    "Currently do not support more than %u entries of "
+		    "redirection table\n",
 		    ETH_RSS_RETA_SIZE_512);
 		return;
 	}
@@ -611,15 +628,17 @@ cmd_set_rss_reta_parsed(void *parsed_result, struct cmdline *cl,
 	if (!strcmp(res->list_name, "reta")) {
 		if (parse_reta_config(res->list_of_items, reta_conf,
 				      dev_info.reta_size)) {
-			cmdline_printf(cl, "Invalid RSS Redirection Table "
-					   "config entered\n");
+			cmdline_printf(cl,
+				       "Invalid RSS Redirection Table "
+				       "config entered\n");
 			return;
 		}
 		ret = rte_eth_dev_rss_reta_update(res->port_id, reta_conf,
 						  dev_info.reta_size);
 		if (ret != 0)
-			cmdline_printf(cl, "Bad redirection table parameter, "
-					   "return code = %d \n",
+			cmdline_printf(cl,
+				       "Bad redirection table parameter, "
+				       "return code = %d \n",
 				       ret);
 	}
 }
@@ -642,12 +661,12 @@ cmdline_parse_inst_t cmd_config_rss_reta = {
     .help_str = "port config X rss reta (hash,queue)[,(hash,queue)]",
     .tokens =
 	{
-	    (void *)&cmd_config_rss_reta_port,
-	    (void *) & cmd_config_rss_reta_keyword,
-	    (void *) & cmd_config_rss_reta_port_id,
-	    (void *) & cmd_config_rss_reta_name,
-	    (void *) & cmd_config_rss_reta_list_name,
-	    (void *) & cmd_config_rss_reta_list_of_items, NULL,
+	    (void*)&cmd_config_rss_reta_port,
+	    (void*)&cmd_config_rss_reta_keyword,
+	    (void*)&cmd_config_rss_reta_port_id,
+	    (void*)&cmd_config_rss_reta_name,
+	    (void*)&cmd_config_rss_reta_list_name,
+	    (void*)&cmd_config_rss_reta_list_of_items, NULL,
 	},
 };
 
@@ -663,14 +682,15 @@ struct cmd_showport_reta {
 };
 
 static int
-showport_parse_reta_config(struct rte_eth_rss_reta_entry64 *conf,
-			   uint16_t nb_entries, char *str)
+showport_parse_reta_config(struct rte_eth_rss_reta_entry64* conf,
+			   uint16_t nb_entries,
+			   char* str)
 {
 	uint32_t size;
 	const char *p, *p0 = str;
 	char s[256];
-	char *end;
-	char *str_fld[8];
+	char* end;
+	char* str_fld[8];
 	uint16_t i, num = nb_entries / RTE_RETA_GROUP_SIZE;
 	int ret;
 
@@ -703,11 +723,11 @@ showport_parse_reta_config(struct rte_eth_rss_reta_entry64 *conf,
 }
 
 static void
-cmd_showport_reta_parsed(void *parsed_result,
-			 __attribute__((unused)) struct cmdline *cl,
-			 __attribute__((unused)) void *data)
+cmd_showport_reta_parsed(void* parsed_result,
+			 __attribute__((unused)) struct cmdline* cl,
+			 __attribute__((unused)) void* data)
 {
-	struct cmd_showport_reta *res = parsed_result;
+	struct cmd_showport_reta* res = parsed_result;
 	struct rte_eth_rss_reta_entry64 reta_conf[8];
 	struct rte_eth_dev_info dev_info;
 
@@ -751,11 +771,10 @@ cmdline_parse_inst_t cmd_showport_reta = {
     .help_str = "show port X rss reta (size) (mask0,mask1,...)",
     .tokens =
 	{
-	    (void *)&cmd_showport_reta_show, (void *) & cmd_showport_reta_port,
-	    (void *) & cmd_showport_reta_port_id,
-	    (void *) & cmd_showport_reta_rss, (void *) & cmd_showport_reta_reta,
-	    (void *) & cmd_showport_reta_size,
-	    (void *) & cmd_showport_reta_list_of_items, NULL,
+	    (void*)&cmd_showport_reta_show, (void*)&cmd_showport_reta_port,
+	    (void*)&cmd_showport_reta_port_id, (void*)&cmd_showport_reta_rss,
+	    (void*)&cmd_showport_reta_reta, (void*)&cmd_showport_reta_size,
+	    (void*)&cmd_showport_reta_list_of_items, NULL,
 	},
 };
 
@@ -767,10 +786,11 @@ struct cmd_obj_lpm_lkp_result {
 };
 
 static void
-cmd_obj_lpm_lkp_parsed(void *parsed_result, struct cmdline *cl,
-		       __rte_unused void *data)
+cmd_obj_lpm_lkp_parsed(void* parsed_result,
+		       struct cmdline* cl,
+		       __rte_unused void* data)
 {
-	struct cmd_obj_lpm_lkp_result *res = parsed_result;
+	struct cmd_obj_lpm_lkp_result* res = parsed_result;
 	uint8_t next_hop;
 	int i;
 	char buf[INET6_ADDRSTRLEN];
@@ -782,7 +802,7 @@ cmd_obj_lpm_lkp_parsed(void *parsed_result, struct cmdline *cl,
 		if (i < 0) {
 			cmdline_printf(cl, "not found\n");
 		} else {
-			struct in_addr *addr =
+			struct in_addr* addr =
 			    &neighbor4_struct[RTE_PER_LCORE(g_socket_id)]
 				 ->entries.t4[next_hop]
 				 .addr;
@@ -797,7 +817,7 @@ cmd_obj_lpm_lkp_parsed(void *parsed_result, struct cmdline *cl,
 		if (i < 0) {
 			cmdline_printf(cl, "not found\n");
 		} else {
-			struct in6_addr *addr =
+			struct in6_addr* addr =
 			    &neighbor6_struct[RTE_PER_LCORE(g_socket_id)]
 				 ->entries.t6[next_hop]
 				 .addr;
@@ -820,7 +840,7 @@ cmdline_parse_inst_t cmd_obj_lpm_lkp = {
     .tokens =
 	{
 	    /* token list, NULL terminated */
-	    (void *)&cmd_obj_action_lpm_lkp, (void *) & cmd_obj_lpm_ip, NULL,
+	    (void*)&cmd_obj_action_lpm_lkp, (void*)&cmd_obj_lpm_ip, NULL,
 	},
 };
 
@@ -833,14 +853,15 @@ struct cmd_obj_rlimit_result {
 };
 
 static void
-cmd_obj_rlimit_parsed(void *parsed_result, struct cmdline *cl,
-		      __rte_unused void *data)
+cmd_obj_rlimit_parsed(void* parsed_result,
+		      struct cmdline* cl,
+		      __rte_unused void* data)
 {
-	struct cmd_obj_rlimit_result *res = parsed_result;
+	struct cmd_obj_rlimit_result* res = parsed_result;
 	char buf[INET6_ADDRSTRLEN];
 	int ret;
 
-	if (res->num == 0) { // remove rate limiting
+	if (res->num == 0) {  // remove rate limiting
 		res->num = UINT32_MAX;
 	}
 	ret =
@@ -879,8 +900,8 @@ cmdline_parse_inst_t cmd_obj_rlimit = {
     .tokens =
 	{
 	    /* token list, NULL terminated */
-	    (void *)&cmd_obj_action_rlimit, (void *) & cmd_obj_rlimit_ip,
-	    (void *) & cmd_obj_rlimit_num, NULL,
+	    (void*)&cmd_obj_action_rlimit, (void*)&cmd_obj_rlimit_ip,
+	    (void*)&cmd_obj_rlimit_num, NULL,
 	},
 };
 
@@ -891,8 +912,8 @@ cmdline_parse_inst_t cmd_obj_rlimit_net = {
     .tokens =
 	{
 	    /* token list, NULL terminated */
-	    (void *)&cmd_obj_action_rlimit, (void *) & cmd_obj_rlimit_ipnet,
-	    (void *) & cmd_obj_rlimit_num, NULL,
+	    (void*)&cmd_obj_action_rlimit, (void*)&cmd_obj_rlimit_ipnet,
+	    (void*)&cmd_obj_rlimit_num, NULL,
 	},
 };
 
@@ -905,10 +926,11 @@ struct cmd_obj_acl_add_result {
 };
 
 static void
-cmd_obj_acl_add_parsed(void *parsed_result, struct cmdline *cl,
-		       __rte_unused void *data)
+cmd_obj_acl_add_parsed(void* parsed_result,
+		       struct cmdline* cl,
+		       __rte_unused void* data)
 {
-	struct cmd_obj_acl_add_result *res = parsed_result;
+	struct cmd_obj_acl_add_result* res = parsed_result;
 	int is_ipv4;
 
 	is_ipv4 = !strcmp(res->proto, "ipv4");
@@ -936,8 +958,8 @@ cmdline_parse_inst_t cmd_obj_acl_add = {
     .tokens =
 	{
 	    /* token list, NULL terminated */
-	    (void *)&cmd_obj_action_acl_add, (void *) & cmd_obj_acl_proto,
-	    (void *) & cmd_obj_acl_path, NULL,
+	    (void*)&cmd_obj_action_acl_add, (void*)&cmd_obj_acl_proto,
+	    (void*)&cmd_obj_acl_path, NULL,
 	},
 };
 
@@ -950,9 +972,9 @@ struct cmd_stats_result {
 };
 
 static void
-cmd_stats_parsed(void *parsed_result, struct cmdline *cl, void *data)
+cmd_stats_parsed(void* parsed_result, struct cmdline* cl, void* data)
 {
-	struct cmd_stats_result *res = (struct cmd_stats_result *)parsed_result;
+	struct cmd_stats_result* res = (struct cmd_stats_result*)parsed_result;
 	pktj_stats_display(cl, (intptr_t)data, res->delay);
 }
 
@@ -972,30 +994,30 @@ cmdline_parse_inst_t cmd_stats = {
     .tokens =
 	{
 	    /* token list, NULL terminated */
-	    (void *)&cmd_stats_stats, NULL,
+	    (void*)&cmd_stats_stats, NULL,
 	},
 };
 
 cmdline_parse_inst_t cmd_stats_json = {
-    .f = cmd_stats_parsed,	  /* function to call */
-    .data = (void *)CMD_STATS_JSON, /* 2nd arg of func */
+    .f = cmd_stats_parsed,	 /* function to call */
+    .data = (void*)CMD_STATS_JSON, /* 2nd arg of func */
     .help_str = "show stats",
     .tokens =
 	{
 	    /* token list, NULL terminated */
-	    (void *)&cmd_stats_stats, (void *) & cmd_stats_stats_json, NULL,
+	    (void*)&cmd_stats_stats, (void*)&cmd_stats_stats_json, NULL,
 	},
 };
 
 cmdline_parse_inst_t cmd_stats_csv = {
-    .f = cmd_stats_parsed,	 /* function to call */
-    .data = (void *)CMD_STATS_CSV, /* 2nd arg of func */
+    .f = cmd_stats_parsed,	/* function to call */
+    .data = (void*)CMD_STATS_CSV, /* 2nd arg of func */
     .help_str = "show stats",
     .tokens =
 	{
 	    /* token list, NULL terminated */
-	    (void *)&cmd_stats_stats, (void *) & cmd_stats_stats_csv,
-	    (void *) & cmd_stats_stats_delay, NULL,
+	    (void*)&cmd_stats_stats, (void*)&cmd_stats_stats_csv,
+	    (void*)&cmd_stats_stats_delay, NULL,
 	},
 };
 
@@ -1008,9 +1030,9 @@ struct cmd_lpm_stats_result {
 };
 
 static void
-cmd_lpm_stats_parsed(void *parsed_result, struct cmdline *cl, void *data)
+cmd_lpm_stats_parsed(void* parsed_result, struct cmdline* cl, void* data)
 {
-	struct cmd_lpm_stats_result *res = parsed_result;
+	struct cmd_lpm_stats_result* res = parsed_result;
 	int is_ipv4;
 
 	is_ipv4 = !strcmp(res->proto, "ipv4");
@@ -1025,25 +1047,25 @@ cmdline_parse_token_string_t cmd_lpm_stats_stats_json =
     TOKEN_STRING_INITIALIZER(struct cmd_lpm_stats_result, option, "-j#json");
 
 cmdline_parse_inst_t cmd_lpm_stats = {
-    .f = cmd_lpm_stats_parsed,     /* function to call */
-    .data = (void *)CMD_LPM_STATS, /* 2nd arg of func */
+    .f = cmd_lpm_stats_parsed,    /* function to call */
+    .data = (void*)CMD_LPM_STATS, /* 2nd arg of func */
     .help_str = "show lpm_stats",
     .tokens =
 	{
 	    /* token list, NULL terminated */
-	    (void *)&cmd_lpm_stats_stats, (void *) & cmd_lpm_stats_proto, NULL,
+	    (void*)&cmd_lpm_stats_stats, (void*)&cmd_lpm_stats_proto, NULL,
 	},
 };
 
 cmdline_parse_inst_t cmd_lpm_stats_json = {
-    .f = cmd_lpm_stats_parsed,		/* function to call */
-    .data = (void *)CMD_LPM_STATS_JSON, /* 2nd arg of func */
+    .f = cmd_lpm_stats_parsed,	 /* function to call */
+    .data = (void*)CMD_LPM_STATS_JSON, /* 2nd arg of func */
     .help_str = "show lpm_stats",
     .tokens =
 	{
 	    /* token list, NULL terminated */
-	    (void *)&cmd_lpm_stats_stats, (void *) & cmd_lpm_stats_proto,
-	    (void *) & cmd_lpm_stats_stats_json, NULL,
+	    (void*)&cmd_lpm_stats_stats, (void*)&cmd_lpm_stats_proto,
+	    (void*)&cmd_lpm_stats_stats_json, NULL,
 	},
 };
 
@@ -1054,19 +1076,20 @@ struct cmd_neigh_result {
 };
 
 static void
-cmd_neigh_parsed(__attribute__((unused)) void *parsed_result,
-		 struct cmdline *cl, __attribute__((unused)) void *data)
+cmd_neigh_parsed(__attribute__((unused)) void* parsed_result,
+		 struct cmdline* cl,
+		 __attribute__((unused)) void* data)
 {
-	struct cmd_obj_acl_add_result *res = parsed_result;
+	struct cmd_obj_acl_add_result* res = parsed_result;
 	int is_ipv4;
 	int i;
-	struct nei_table *t;
+	struct nei_table* t;
 	char buf_eth[ETHER_ADDR_FMT_SIZE];
 	char buf_ip[INET6_ADDRSTRLEN];
 
 	is_ipv4 = !strcmp(res->proto, "ipv4");
 	if (is_ipv4) {
-		struct nei_entry4 *entry;
+		struct nei_entry4* entry;
 		t = neighbor4_struct[RTE_PER_LCORE(g_socket_id)];
 
 		for (i = 0; i < NEI_NUM_ENTRIES; i++) {
@@ -1076,8 +1099,9 @@ cmd_neigh_parsed(__attribute__((unused)) void *parsed_result,
 				    buf_eth, sizeof(buf_eth),
 				    &entry->neighbor.nexthop_hwaddr);
 				cmdline_printf(
-				    cl, "hw addr(%s) addr(%s) action %d state "
-					"%d vlan %d port %d\n",
+				    cl,
+				    "hw addr(%s) addr(%s) action %d state "
+				    "%d vlan %d port %d\n",
 				    buf_eth,
 				    inet_ntop(AF_INET, &entry->addr, buf_ip,
 					      INET6_ADDRSTRLEN),
@@ -1088,7 +1112,7 @@ cmd_neigh_parsed(__attribute__((unused)) void *parsed_result,
 			}
 		}
 	} else {
-		struct nei_entry6 *entry;
+		struct nei_entry6* entry;
 		t = neighbor6_struct[RTE_PER_LCORE(g_socket_id)];
 
 		for (i = 0; i < NEI_NUM_ENTRIES; i++) {
@@ -1098,8 +1122,9 @@ cmd_neigh_parsed(__attribute__((unused)) void *parsed_result,
 				    buf_eth, sizeof(buf_eth),
 				    &entry->neighbor.nexthop_hwaddr);
 				cmdline_printf(
-				    cl, "hw addr(%s) addr(%s) action %d state "
-					"%d vlan %d port %d\n",
+				    cl,
+				    "hw addr(%s) addr(%s) action %d state "
+				    "%d vlan %d port %d\n",
 				    buf_eth,
 				    inet_ntop(AF_INET6, &entry->addr, buf_ip,
 					      INET6_ADDRSTRLEN),
@@ -1124,7 +1149,7 @@ cmdline_parse_inst_t cmd_neigh = {
     .tokens =
 	{
 	    /* token list, NULL terminated */
-	    (void *)&cmd_neigh_neigh, (void *) & cmd_neigh_proto, NULL,
+	    (void*)&cmd_neigh_neigh, (void*)&cmd_neigh_proto, NULL,
 	},
 };
 
@@ -1135,29 +1160,31 @@ struct cmd_help_result {
 };
 
 static void
-cmd_help_parsed(__attribute__((unused)) void *parsed_result, struct cmdline *cl,
-		__attribute__((unused)) void *data)
+cmd_help_parsed(__attribute__((unused)) void* parsed_result,
+		struct cmdline* cl,
+		__attribute__((unused)) void* data)
 {
 	cmdline_printf(
-	    cl, "commands:\n"
-		"- acl_add ipv4|ipv6 file_path\n"
-		"- stats [-j , -c sec]\n"
-		"- { show | clear } port { info | stats | xstats } port_id\n"
-		"- show port X rss-hash key\n"
-		"- port config all rss { all | ip | tcp | udp | sctp | ether | "
-		"none }\n"
-		"- port config X rss-hash-key 104 hexa digits\n"
-		"- port config X rss reta (hash,queue)[,(hash,queue)]\n"
-		"- show port X rss reta (size) (mask0,mask1,...)\n"
-		"- neigh ipv4|ipv6\n"
-		"- acl_add { ipv4 | ipv6 } file_path\n"
-		"- lpm_lkp IP[/DEPTH]\n"
-		"- lpm_stats {ipv4 | ipv6}\n"
-		"- loglevel level\n"
-		"- logtype type_id { 0 | 1 }\n"
-		"- rlimit IP rate\n"
+	    cl,
+	    "commands:\n"
+	    "- acl_add ipv4|ipv6 file_path\n"
+	    "- stats [-j , -c sec]\n"
+	    "- { show | clear } port { info | stats | xstats } port_id\n"
+	    "- show port X rss-hash key\n"
+	    "- port config all rss { all | ip | tcp | udp | sctp | ether | "
+	    "none }\n"
+	    "- port config X rss-hash-key 104 hexa digits\n"
+	    "- port config X rss reta (hash,queue)[,(hash,queue)]\n"
+	    "- show port X rss reta (size) (mask0,mask1,...)\n"
+	    "- neigh ipv4|ipv6\n"
+	    "- acl_add { ipv4 | ipv6 } file_path\n"
+	    "- lpm_lkp IP[/DEPTH]\n"
+	    "- lpm_stats {ipv4 | ipv6}\n"
+	    "- loglevel level\n"
+	    "- logtype type_id { 0 | 1 }\n"
+	    "- rlimit IP rate\n"
 
-		"- help\n\n");
+	    "- help\n\n");
 }
 
 cmdline_parse_token_string_t cmd_help_help =
@@ -1170,39 +1197,39 @@ cmdline_parse_inst_t cmd_help = {
     .tokens =
 	{
 	    /* token list, NULL terminated */
-	    (void *)&cmd_help_help, NULL,
+	    (void*)&cmd_help_help, NULL,
 	},
 };
 
 //----- !CMD HELP
 
 cmdline_parse_ctx_t main_ctx[] = {
-    (cmdline_parse_inst_t *)&cmd_obj_acl_add,
-    (cmdline_parse_inst_t *)&cmd_obj_lpm_lkp,
-    (cmdline_parse_inst_t *)&cmd_obj_rlimit,
-    (cmdline_parse_inst_t *)&cmd_obj_rlimit_net,
-    (cmdline_parse_inst_t *)&cmd_stats,
-    (cmdline_parse_inst_t *)&cmd_loglevel,
-    (cmdline_parse_inst_t *)&cmd_logtype,
-    (cmdline_parse_inst_t *)&cmd_neigh,
-    (cmdline_parse_inst_t *)&cmd_stats_json,
-    (cmdline_parse_inst_t *)&cmd_stats_csv,
-    (cmdline_parse_inst_t *)&cmd_showport,
-    (cmdline_parse_inst_t *)&cmd_showport_json,
-    (cmdline_parse_inst_t *)&cmd_config_rss,
-    (cmdline_parse_inst_t *)&cmd_config_rss_reta,
-    (cmdline_parse_inst_t *)&cmd_showport_reta,
-    (cmdline_parse_inst_t *)&cmd_showport_rss_hash,
-    (cmdline_parse_inst_t *)&cmd_showport_rss_hash_key,
-    (cmdline_parse_inst_t *)&cmd_config_rss_hash_key,
-    (cmdline_parse_inst_t *)&cmd_help,
-    (cmdline_parse_inst_t *)&cmd_lpm_stats,
-    (cmdline_parse_inst_t *)&cmd_lpm_stats_json,
+    (cmdline_parse_inst_t*)&cmd_obj_acl_add,
+    (cmdline_parse_inst_t*)&cmd_obj_lpm_lkp,
+    (cmdline_parse_inst_t*)&cmd_obj_rlimit,
+    (cmdline_parse_inst_t*)&cmd_obj_rlimit_net,
+    (cmdline_parse_inst_t*)&cmd_stats,
+    (cmdline_parse_inst_t*)&cmd_loglevel,
+    (cmdline_parse_inst_t*)&cmd_logtype,
+    (cmdline_parse_inst_t*)&cmd_neigh,
+    (cmdline_parse_inst_t*)&cmd_stats_json,
+    (cmdline_parse_inst_t*)&cmd_stats_csv,
+    (cmdline_parse_inst_t*)&cmd_showport,
+    (cmdline_parse_inst_t*)&cmd_showport_json,
+    (cmdline_parse_inst_t*)&cmd_config_rss,
+    (cmdline_parse_inst_t*)&cmd_config_rss_reta,
+    (cmdline_parse_inst_t*)&cmd_showport_reta,
+    (cmdline_parse_inst_t*)&cmd_showport_rss_hash,
+    (cmdline_parse_inst_t*)&cmd_showport_rss_hash_key,
+    (cmdline_parse_inst_t*)&cmd_config_rss_hash_key,
+    (cmdline_parse_inst_t*)&cmd_help,
+    (cmdline_parse_inst_t*)&cmd_lpm_stats,
+    (cmdline_parse_inst_t*)&cmd_lpm_stats_json,
     NULL,
 };
 
 static int
-create_unixsock(const char *path)
+create_unixsock(const char* path)
 {
 	int sock;
 	struct sockaddr_un local;
@@ -1219,7 +1246,7 @@ create_unixsock(const char *path)
 	unlink(local.sun_path);
 	len = strlen(local.sun_path) + sizeof(local.sun_family);
 
-	if (bind(sock, (struct sockaddr *)&local, len) == -1) {
+	if (bind(sock, (struct sockaddr*)&local, len) == -1) {
 		RTE_LOG(ERR, CMDLINE1, "failed to bind cmdline unixsock: %s",
 			strerror(errno));
 		goto err;
@@ -1241,10 +1268,10 @@ err:
 }
 
 static int
-cmdline_send_char(struct rdline *rdl, char c)
+cmdline_send_char(struct rdline* rdl, char c)
 {
 	int ret = -1;
-	struct cmdline *cl;
+	struct cmdline* cl;
 
 	if (!rdl)
 		return -1;
@@ -1257,16 +1284,16 @@ cmdline_send_char(struct rdline *rdl, char c)
 	return ret;
 }
 
-static struct cmdline *
-cmdline_unixsock_new(cmdline_parse_ctx_t *ctx, const char *prompt, int sock)
+static struct cmdline*
+cmdline_unixsock_new(cmdline_parse_ctx_t* ctx, const char* prompt, int sock)
 {
 	return (cmdline_new(ctx, prompt, sock, sock));
 }
 
-static void *
+static void*
 cmdline_new_unixsock(int sock)
 {
-	struct cmdline *cl;
+	struct cmdline* cl;
 
 	cl = cmdline_unixsock_new(main_ctx, "pktj> ", sock);
 
@@ -1279,7 +1306,7 @@ cmdline_new_unixsock(int sock)
 }
 
 int
-pktj_cmdline_init(const char *path, uint32_t socket_id)
+pktj_cmdline_init(const char* path, uint32_t socket_id)
 {
 	int fd;
 	char buf[108];
@@ -1311,9 +1338,9 @@ pktj_cmdline_init(const char *path, uint32_t socket_id)
 }
 
 static int
-pktj_cmdline_free(void *cmdline)
+pktj_cmdline_free(void* cmdline)
 {
-	struct cmdline *cl = cmdline;
+	struct cmdline* cl = cmdline;
 	// cmdline_thread_loop = 0;
 
 	cmdline_quit(cl);
@@ -1322,9 +1349,9 @@ pktj_cmdline_free(void *cmdline)
 }
 
 int
-pktj_cmdline_terminate(int sock, const char *path)
+pktj_cmdline_terminate(int sock, const char* path)
 {
-	int ret = 0; // here for silence write warning
+	int ret = 0;  // here for silence write warning
 	char buf[128];
 
 	if (pthread_join(cmdline_tid[sock], NULL)) {
@@ -1373,11 +1400,11 @@ cmdline_clients_close(int id)
 	RTE_LOG(INFO, CMDLINE1, "Client id %d disconnected \n", id);
 }
 
-static void *
-cmdline_run(void *data)
+static void*
+cmdline_run(void* data)
 {
 	struct pollfd
-	    fds[CMDLINE_MAX_CLIENTS + 1]; // +1 for the listenning sock
+	    fds[CMDLINE_MAX_CLIENTS + 1];  // +1 for the listenning sock
 	RTE_PER_LCORE(g_socket_id) = (intptr_t)data;
 	int nfds = 1;
 	int i, j, ret = 0;
@@ -1403,9 +1430,8 @@ cmdline_run(void *data)
 				break;
 			}
 			for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
-				if (cmdline_clients[RTE_PER_LCORE(
-					g_socket_id)][i]
-					.cl == NULL) {
+				if (cmdline_clients[RTE_PER_LCORE(g_socket_id)]
+						   [i].cl == NULL) {
 					cmdline_clients[RTE_PER_LCORE(
 					    g_socket_id)][i]
 					    .cl = cmdline_new_unixsock(res);
@@ -1434,14 +1460,14 @@ cmdline_run(void *data)
 					continue;
 				}
 				// read error, closing conn
-				ret = cmdline_in(cmdline_clients[RTE_PER_LCORE(
-						     g_socket_id)][j]
-						     .cl,
-						 buf, ret);
+				ret = cmdline_in(
+				    cmdline_clients[RTE_PER_LCORE(g_socket_id)]
+						   [j].cl,
+				    buf, ret);
 				if (ret < 0 &&
-				    cmdline_clients[RTE_PER_LCORE(
-					g_socket_id)][j]
-					    .cl->rdl.status == RDLINE_EXITED) {
+				    cmdline_clients[RTE_PER_LCORE(g_socket_id)]
+						   [j].cl->rdl.status ==
+					RDLINE_EXITED) {
 					cmdline_clients_close(j);
 				}
 			}
@@ -1450,9 +1476,8 @@ cmdline_run(void *data)
 		nfds = 1;
 		for (i = 0; i < CMDLINE_MAX_CLIENTS; i++) {
 			if (cmdline_clients[RTE_PER_LCORE(g_socket_id)][i].cl) {
-				if (cmdline_clients[RTE_PER_LCORE(
-					g_socket_id)][i]
-					.csv_delay) {
+				if (cmdline_clients[RTE_PER_LCORE(g_socket_id)]
+						   [i].csv_delay) {
 					if ((time(NULL) -
 					     cmdline_clients[RTE_PER_LCORE(
 						 g_socket_id)][i]
@@ -1472,9 +1497,9 @@ cmdline_run(void *data)
 					}
 				}
 
-				fds[nfds].fd = cmdline_clients[RTE_PER_LCORE(
-				    g_socket_id)][i]
-						   .cl->s_in;
+				fds[nfds].fd =
+				    cmdline_clients[RTE_PER_LCORE(g_socket_id)]
+						   [i].cl->s_in;
 				fds[nfds].events = POLLIN;
 				nfds++;
 			}
@@ -1507,7 +1532,7 @@ cmdline_run(void *data)
 }
 
 pthread_t
-pktj_cmdline_launch(int sock, cpu_set_t *cpuset)
+pktj_cmdline_launch(int sock, cpu_set_t* cpuset)
 {
 	char thread_name[16];
 	int ret;
@@ -1515,7 +1540,7 @@ pktj_cmdline_launch(int sock, cpu_set_t *cpuset)
 	cmdline_thread_loop[sock] = 1;
 
 	ret = pthread_create(&cmdline_tid[sock], NULL, cmdline_run,
-			     (void *)(intptr_t)sock);
+			     (void*)(intptr_t)sock);
 	if (ret != 0) {
 		RTE_LOG(ERR, CMDLINE1, "failed to create cmdline thread: %s",
 			strerror(errno));
