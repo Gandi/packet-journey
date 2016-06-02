@@ -1,5 +1,5 @@
 AlwaysBreakAfterDefinitionReturnType: true
-BasedOnStyle: LLVM
+BasedOnStyle: Chromium
 IndentWidth: 8
 UseTab: Always
 BreakBeforeBraces: Linux

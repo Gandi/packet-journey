@@ -29,14 +29,14 @@
 #ifndef __PKTJ_CMDLINE_H
 #define __PKTJ_CMDLINE_H
 
-int pktj_cmdline_init(const char *path, uint32_t socket_id);
-pthread_t pktj_cmdline_launch(int sock, cpu_set_t *cpuset);
+int pktj_cmdline_init(const char* path, uint32_t socket_id);
+pthread_t pktj_cmdline_launch(int sock, cpu_set_t* cpuset);
 int pktj_cmdline_stop(int sock);
-int pktj_cmdline_terminate(int sock, const char *path);
+int pktj_cmdline_terminate(int sock, const char* path);
 
 #define CMDLINE_MAX_CLIENTS 32
 struct client_data_t {
-	struct cmdline *cl;
+	struct cmdline* cl;
 	uint8_t csv_delay;
 	time_t delay_timer;
 };

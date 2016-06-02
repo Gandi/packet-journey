@@ -116,24 +116,24 @@
 #define COMMENT_LEAD_CHAR ('#')
 #define RTE_LOGTYPE_PKTJ_ACL RTE_LOGTYPE_USER3
 #define acl_log(format, ...) RTE_LOG(ERR, PKTJ_ACL, format, ##__VA_ARGS__)
-#define uint32_t_to_char(ip, a, b, c, d)                                       \
-	do {                                                                   \
-		*a = (unsigned char)(ip >> 24 & 0xff);                         \
-		*b = (unsigned char)(ip >> 16 & 0xff);                         \
-		*c = (unsigned char)(ip >> 8 & 0xff);                          \
-		*d = (unsigned char)(ip & 0xff);                               \
+#define uint32_t_to_char(ip, a, b, c, d)               \
+	do {                                           \
+		*a = (unsigned char)(ip >> 24 & 0xff); \
+		*b = (unsigned char)(ip >> 16 & 0xff); \
+		*c = (unsigned char)(ip >> 8 & 0xff);  \
+		*d = (unsigned char)(ip & 0xff);       \
 	} while (0)
 
-#define GET_CB_FIELD(in, fd, base, lim, dlm)                                   \
-	do {                                                                   \
-		unsigned long val;                                             \
-		char *end;                                                     \
-		errno = 0;                                                     \
-		val = strtoul((in), &end, (base));                             \
-		if (errno != 0 || end[0] != (dlm) || val > (lim))              \
-			return -EINVAL;                                        \
-		(fd) = (typeof(fd))val;                                        \
-		(in) = end + 1;                                                \
+#define GET_CB_FIELD(in, fd, base, lim, dlm)                      \
+	do {                                                      \
+		unsigned long val;                                \
+		char* end;                                        \
+		errno = 0;                                        \
+		val = strtoul((in), &end, (base));                \
+		if (errno != 0 || end[0] != (dlm) || val > (lim)) \
+			return -EINVAL;                           \
+		(fd) = (typeof(fd))val;                           \
+		(in) = end + 1;                                   \
 	} while (0)
 
 /*
@@ -192,7 +192,8 @@ struct rte_acl_field_def ipv4_defs[NUM_FIELDS_IPV4] = {
 	.field_index = DSTP_FIELD_IPV4,
 	.input_index = RTE_ACL_IPV4VLAN_PORTS,
 	.offset = sizeof(struct ipv4_hdr) -
-		  offsetof(struct ipv4_hdr, next_proto_id) + sizeof(uint16_t),
+		  offsetof(struct ipv4_hdr, next_proto_id) +
+		  sizeof(uint16_t),
     },
 };
 
@@ -235,7 +236,8 @@ struct rte_acl_field_def ipv6_defs[NUM_FIELDS_IPV6] = {
 	.field_index = SRC2_FIELD_IPV6,
 	.input_index = SRC2_FIELD_IPV6,
 	.offset = offsetof(struct ipv6_hdr, src_addr) -
-		  offsetof(struct ipv6_hdr, proto) + sizeof(uint32_t),
+		  offsetof(struct ipv6_hdr, proto) +
+		  sizeof(uint32_t),
     },
     {
 	.type = RTE_ACL_FIELD_TYPE_MASK,
@@ -243,7 +245,8 @@ struct rte_acl_field_def ipv6_defs[NUM_FIELDS_IPV6] = {
 	.field_index = SRC3_FIELD_IPV6,
 	.input_index = SRC3_FIELD_IPV6,
 	.offset = offsetof(struct ipv6_hdr, src_addr) -
-		  offsetof(struct ipv6_hdr, proto) + 2 * sizeof(uint32_t),
+		  offsetof(struct ipv6_hdr, proto) +
+		  2 * sizeof(uint32_t),
     },
     {
 	.type = RTE_ACL_FIELD_TYPE_MASK,
@@ -251,7 +254,8 @@ struct rte_acl_field_def ipv6_defs[NUM_FIELDS_IPV6] = {
 	.field_index = SRC4_FIELD_IPV6,
 	.input_index = SRC4_FIELD_IPV6,
 	.offset = offsetof(struct ipv6_hdr, src_addr) -
-		  offsetof(struct ipv6_hdr, proto) + 3 * sizeof(uint32_t),
+		  offsetof(struct ipv6_hdr, proto) +
+		  3 * sizeof(uint32_t),
     },
     {
 	.type = RTE_ACL_FIELD_TYPE_MASK,
@@ -267,7 +271,8 @@ struct rte_acl_field_def ipv6_defs[NUM_FIELDS_IPV6] = {
 	.field_index = DST2_FIELD_IPV6,
 	.input_index = DST2_FIELD_IPV6,
 	.offset = offsetof(struct ipv6_hdr, dst_addr) -
-		  offsetof(struct ipv6_hdr, proto) + sizeof(uint32_t),
+		  offsetof(struct ipv6_hdr, proto) +
+		  sizeof(uint32_t),
     },
     {
 	.type = RTE_ACL_FIELD_TYPE_MASK,
@@ -275,7 +280,8 @@ struct rte_acl_field_def ipv6_defs[NUM_FIELDS_IPV6] = {
 	.field_index = DST3_FIELD_IPV6,
 	.input_index = DST3_FIELD_IPV6,
 	.offset = offsetof(struct ipv6_hdr, dst_addr) -
-		  offsetof(struct ipv6_hdr, proto) + 2 * sizeof(uint32_t),
+		  offsetof(struct ipv6_hdr, proto) +
+		  2 * sizeof(uint32_t),
     },
     {
 	.type = RTE_ACL_FIELD_TYPE_MASK,
@@ -283,7 +289,8 @@ struct rte_acl_field_def ipv6_defs[NUM_FIELDS_IPV6] = {
 	.field_index = DST4_FIELD_IPV6,
 	.input_index = DST4_FIELD_IPV6,
 	.offset = offsetof(struct ipv6_hdr, dst_addr) -
-		  offsetof(struct ipv6_hdr, proto) + 3 * sizeof(uint32_t),
+		  offsetof(struct ipv6_hdr, proto) +
+		  3 * sizeof(uint32_t),
     },
     {
 	.type = RTE_ACL_FIELD_TYPE_RANGE,
@@ -319,20 +326,20 @@ RTE_ACL_RULE_DEF(acl6_rule, RTE_DIM(ipv6_defs));
 
 #ifdef L3FWDACL_DEBUG
 static struct {
-	struct acl4_rule *rule_ipv4;
-	struct acl6_rule *rule_ipv6;
+	struct acl4_rule* rule_ipv4;
+	struct acl6_rule* rule_ipv6;
 } acl_config;
 #endif
 
-struct rte_acl_ctx *ipv4_acx[NB_SOCKETS];
-struct rte_acl_ctx *ipv6_acx[NB_SOCKETS];
+struct rte_acl_ctx* ipv4_acx[NB_SOCKETS];
+struct rte_acl_ctx* ipv6_acx[NB_SOCKETS];
 
 struct acl_parm acl_parm_config;
 
 const char cb_port_delim[] = ":";
 
 static inline void
-print_one_ipv4_rule(struct acl4_rule *rule, int extra)
+print_one_ipv4_rule(struct acl4_rule* rule, int extra)
 {
 	unsigned char a, b, c, d;
 
@@ -355,7 +362,7 @@ print_one_ipv4_rule(struct acl4_rule *rule, int extra)
 }
 
 static inline void
-print_one_ipv6_rule(struct acl6_rule *rule, int extra)
+print_one_ipv6_rule(struct acl6_rule* rule, int extra)
 {
 	unsigned char a, b, c, d;
 
@@ -407,7 +414,7 @@ print_one_ipv6_rule(struct acl6_rule *rule, int extra)
 
 /* Bypass comment and empty lines */
 static inline int
-is_bypass_line(char *buff)
+is_bypass_line(char* buff)
 {
 	int i = 0;
 
@@ -425,12 +432,13 @@ is_bypass_line(char *buff)
 
 #ifdef L3FWDACL_DEBUG
 void
-dump_acl4_rule(struct rte_mbuf *m, uint32_t sig)
+dump_acl4_rule(struct rte_mbuf* m, uint32_t sig)
 {
 	uint32_t offset = sig & ~ACL_DENY_SIGNATURE;
 	unsigned char a, b, c, d;
-	struct ipv4_hdr *ipv4_hdr = (struct ipv4_hdr *)(rte_pktmbuf_mtod(
-	    m, unsigned char *)+sizeof(struct ether_hdr));
+	struct ipv4_hdr* ipv4_hdr =
+	    (struct ipv4_hdr*)(rte_pktmbuf_mtod(m, unsigned char*) +
+			       sizeof(struct ether_hdr));
 
 	uint32_t_to_char(rte_bswap32(ipv4_hdr->src_addr), &a, &b, &c, &d);
 	acl_log("Packet Src:%hhu.%hhu.%hhu.%hhu ", a, b, c, d);
@@ -438,8 +446,8 @@ dump_acl4_rule(struct rte_mbuf *m, uint32_t sig)
 	acl_log("Dst:%hhu.%hhu.%hhu.%hhu ", a, b, c, d);
 
 	acl_log("Src port:%hu,Dst port:%hu ",
-		rte_bswap16(*(uint16_t *)(ipv4_hdr + 1)),
-		rte_bswap16(*((uint16_t *)(ipv4_hdr + 1) + 1)));
+		rte_bswap16(*(uint16_t*)(ipv4_hdr + 1)),
+		rte_bswap16(*((uint16_t*)(ipv4_hdr + 1) + 1)));
 	acl_log("hit ACL %d - ", offset);
 
 	print_one_ipv4_rule(acl_config.rule_ipv4 + offset, 1);
@@ -448,12 +456,13 @@ dump_acl4_rule(struct rte_mbuf *m, uint32_t sig)
 }
 
 void
-dump_acl6_rule(struct rte_mbuf *m, uint32_t sig)
+dump_acl6_rule(struct rte_mbuf* m, uint32_t sig)
 {
 	unsigned i;
 	uint32_t offset = sig & ~ACL_DENY_SIGNATURE;
-	struct ipv6_hdr *ipv6_hdr = (struct ipv6_hdr *)(rte_pktmbuf_mtod(
-	    m, unsigned char *)+sizeof(struct ether_hdr));
+	struct ipv6_hdr* ipv6_hdr =
+	    (struct ipv6_hdr*)(rte_pktmbuf_mtod(m, unsigned char*) +
+			       sizeof(struct ether_hdr));
 
 	acl_log("Packet Src");
 	for (i = 0; i < RTE_DIM(ipv6_hdr->src_addr); i += sizeof(uint16_t))
@@ -466,8 +475,8 @@ dump_acl6_rule(struct rte_mbuf *m, uint32_t sig)
 			ipv6_hdr->dst_addr[i + 1]);
 
 	acl_log("\nSrc port:%hu,Dst port:%hu ",
-		rte_bswap16(*(uint16_t *)(ipv6_hdr + 1)),
-		rte_bswap16(*((uint16_t *)(ipv6_hdr + 1) + 1)));
+		rte_bswap16(*(uint16_t*)(ipv6_hdr + 1)),
+		rte_bswap16(*((uint16_t*)(ipv6_hdr + 1) + 1)));
 	acl_log("hit ACL %d - ", offset);
 
 	print_one_ipv6_rule(acl_config.rule_ipv6 + offset, 1);
@@ -477,7 +486,7 @@ dump_acl6_rule(struct rte_mbuf *m, uint32_t sig)
 #endif /* L3FWDACL_DEBUG */
 
 static inline void
-dump_ipv4_rules(struct acl4_rule *rule, int num, int extra)
+dump_ipv4_rules(struct acl4_rule* rule, int num, int extra)
 {
 	int i;
 
@@ -489,7 +498,7 @@ dump_ipv4_rules(struct acl4_rule *rule, int num, int extra)
 }
 
 static inline void
-dump_ipv6_rules(struct acl6_rule *rule, int num, int extra)
+dump_ipv6_rules(struct acl6_rule* rule, int num, int extra)
 {
 	int i;
 
@@ -505,7 +514,9 @@ dump_ipv6_rules(struct acl6_rule *rule, int num, int extra)
  * XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX (where X - is a hexedecimal digit).
  */
 static int
-parse_ipv6_addr(const char *in, const char **end, uint32_t v[IPV6_ADDR_U32],
+parse_ipv6_addr(const char* in,
+		const char** end,
+		uint32_t v[IPV6_ADDR_U32],
 		char dlm)
 {
 	uint32_t addr[IPV6_ADDR_U16];
@@ -530,10 +541,10 @@ parse_ipv6_addr(const char *in, const char **end, uint32_t v[IPV6_ADDR_U32],
 }
 
 static int
-parse_ipv6_net(const char *in, struct rte_acl_field field[4])
+parse_ipv6_net(const char* in, struct rte_acl_field field[4])
 {
 	int32_t rc;
-	const char *mp;
+	const char* mp;
 	uint32_t i, m, v[4];
 	const uint32_t nbu32 = sizeof(uint32_t) * CHAR_BIT;
 
@@ -561,11 +572,11 @@ parse_ipv6_net(const char *in, struct rte_acl_field field[4])
 }
 
 static int
-parse_cb_ipv6_rule(char *str, struct rte_acl_rule *v)
+parse_cb_ipv6_rule(char* str, struct rte_acl_rule* v)
 {
 	int i, rc;
 	char *s, *sp, *in[CB_FLD_NUM];
-	static const char *dlm = " \t\n";
+	static const char* dlm = " \t\n";
 	int dim = CB_FLD_NUM;
 	s = str;
 
@@ -634,7 +645,7 @@ parse_cb_ipv6_rule(char *str, struct rte_acl_rule *v)
  * <proto>'/'<mask>
  */
 static int
-parse_ipv4_net(const char *in, uint32_t *addr, uint32_t *mask_len)
+parse_ipv4_net(const char* in, uint32_t* addr, uint32_t* mask_len)
 {
 	uint8_t a, b, c, d, m;
 
@@ -652,11 +663,11 @@ parse_ipv4_net(const char *in, uint32_t *addr, uint32_t *mask_len)
 }
 
 static int
-parse_cb_ipv4vlan_rule(char *str, struct rte_acl_rule *v)
+parse_cb_ipv4vlan_rule(char* str, struct rte_acl_rule* v)
 {
 	int i, rc;
 	char *s, *sp, *in[CB_FLD_NUM];
-	static const char *dlm = " \t\n";
+	static const char* dlm = " \t\n";
 	int dim = CB_FLD_NUM;
 	s = str;
 
@@ -719,16 +730,18 @@ parse_cb_ipv4vlan_rule(char *str, struct rte_acl_rule *v)
 }
 
 static int
-add_rules(const char *rule_path, struct rte_acl_rule **pacl_base,
-	  unsigned int *pacl_num, uint32_t rule_size,
-	  int (*parser)(char *, struct rte_acl_rule *))
+add_rules(const char* rule_path,
+	  struct rte_acl_rule** pacl_base,
+	  unsigned int* pacl_num,
+	  uint32_t rule_size,
+	  int (*parser)(char*, struct rte_acl_rule*))
 {
 	char buff[LINE_MAX];
-	struct rte_acl_rule *next;
-	uint8_t *acl_rules = 0;
+	struct rte_acl_rule* next;
+	uint8_t* acl_rules = 0;
 	unsigned int acl_num = 0, total_num = 0;
 	unsigned int acl_cnt = 0;
-	FILE *fh = fopen(rule_path, "rb");
+	FILE* fh = fopen(rule_path, "rb");
 	unsigned int i = 0;
 
 	if (fh == NULL) {
@@ -767,14 +780,15 @@ add_rules(const char *rule_path, struct rte_acl_rule **pacl_base,
 
 		/* ACL entry */
 		if (s == ACL_LEAD_CHAR)
-			next = (struct rte_acl_rule *)(acl_rules +
-						       acl_cnt * rule_size);
+			next = (struct rte_acl_rule*)(acl_rules +
+						      acl_cnt * rule_size);
 
 		/* Illegal line */
 		else {
-			acl_log("%s Line %u: should start with leading "
-				"char %c\n",
-				rule_path, i, ACL_LEAD_CHAR);
+			acl_log(
+			    "%s Line %u: should start with leading "
+			    "char %c\n",
+			    rule_path, i, ACL_LEAD_CHAR);
 			goto err;
 		}
 
@@ -794,7 +808,7 @@ add_rules(const char *rule_path, struct rte_acl_rule **pacl_base,
 
 	fclose(fh);
 
-	*pacl_base = (struct rte_acl_rule *)acl_rules;
+	*pacl_base = (struct rte_acl_rule*)acl_rules;
 	*pacl_num = acl_num;
 
 	return 0;
@@ -830,14 +844,16 @@ check_acl_config(void)
 	return 0;
 }
 
-static struct rte_acl_ctx *
-setup_acl(struct rte_acl_rule *acl_base, unsigned int acl_num, int ipv6,
+static struct rte_acl_ctx*
+setup_acl(struct rte_acl_rule* acl_base,
+	  unsigned int acl_num,
+	  int ipv6,
 	  int socketid)
 {
 	char name[PATH_MAX];
 	struct rte_acl_param acl_param;
 	struct rte_acl_config acl_build_param;
-	struct rte_acl_ctx *context;
+	struct rte_acl_ctx* context;
 	int dim = ipv6 ? RTE_DIM(ipv6_defs) : RTE_DIM(ipv4_defs);
 	static uint32_t ctx_count[NB_SOCKETS] = {0};
 
@@ -897,7 +913,7 @@ acl_init(int is_ipv4)
 	unsigned int i;
 	struct rte_acl_rule *acl_base_ipv4 = NULL, *acl_base_ipv6 = NULL;
 	unsigned int acl_num_ipv4 = 0, acl_num_ipv6 = 0;
-	struct rte_acl_ctx *acl_ctx;
+	struct rte_acl_ctx* acl_ctx;
 
 	if (check_acl_config() != 0) {
 		acl_log("Failed to get valid ACL options\n");
@@ -916,7 +932,7 @@ acl_init(int is_ipv4)
 		}
 
 		acl_log("IPv4 ACL entries %u:\n", acl_num_ipv4);
-		dump_ipv4_rules((struct acl4_rule *)acl_base_ipv4, acl_num_ipv4,
+		dump_ipv4_rules((struct acl4_rule*)acl_base_ipv4, acl_num_ipv4,
 				1);
 		for (i = 0; i < NB_SOCKETS; i++) {
 			if ((acl_ctx = setup_acl(acl_base_ipv4, acl_num_ipv4, 0,
@@ -925,16 +941,16 @@ acl_init(int is_ipv4)
 			} else if (acl_num_ipv4 == 0) {
 				ipv4_acx[i] = NULL;
 			} else {
-				acl_log("setup_acl failed for ipv4 with "
-					"socketid %d, keeping previous rules "
-					"for that socket\n",
-					i);
+				acl_log(
+				    "setup_acl failed for ipv4 with "
+				    "socketid %d, keeping previous rules "
+				    "for that socket\n",
+				    i);
 			}
 		}
 #ifdef L3FWDACL_DEBUG
 		if (acl_base_ipv4) {
-			acl_config.rule_ipv4 =
-			    (struct acl4_rule *)acl_base_ipv4;
+			acl_config.rule_ipv4 = (struct acl4_rule*)acl_base_ipv4;
 		}
 #else
 		free(acl_base_ipv4);
@@ -948,7 +964,7 @@ acl_init(int is_ipv4)
 		}
 
 		acl_log("IPv6 ACL entries %u:\n", acl_num_ipv6);
-		dump_ipv6_rules((struct acl6_rule *)acl_base_ipv6, acl_num_ipv6,
+		dump_ipv6_rules((struct acl6_rule*)acl_base_ipv6, acl_num_ipv6,
 				1);
 		for (i = 0; i < NB_SOCKETS; i++) {
 			if ((acl_ctx = setup_acl(acl_base_ipv6, acl_num_ipv6, 1,
@@ -957,16 +973,16 @@ acl_init(int is_ipv4)
 			} else if (acl_num_ipv6 == 0) {
 				ipv6_acx[i] = NULL;
 			} else {
-				acl_log("setup_acl failed for ipv6 with "
-					"socketid %d, keeping previous rules "
-					"for that socket\n",
-					i);
+				acl_log(
+				    "setup_acl failed for ipv6 with "
+				    "socketid %d, keeping previous rules "
+				    "for that socket\n",
+				    i);
 			}
 		}
 #ifdef L3FWDACL_DEBUG
 		if (acl_base_ipv6) {
-			acl_config.rule_ipv6 =
-			    (struct acl6_rule *)acl_base_ipv6;
+			acl_config.rule_ipv6 = (struct acl6_rule*)acl_base_ipv6;
 		}
 #else
 		free(acl_base_ipv6);
@@ -984,11 +1000,11 @@ acl_init(int is_ipv4)
 			socketid = 0;
 
 		rte_atomic64_cmpset(
-		    (uintptr_t *)&lcore_conf[lcore_id].new_acx_ipv4,
+		    (uintptr_t*)&lcore_conf[lcore_id].new_acx_ipv4,
 		    (uintptr_t)lcore_conf[lcore_id].new_acx_ipv4,
 		    (uintptr_t)ipv4_acx[socketid]);
 		rte_atomic64_cmpset(
-		    (uintptr_t *)&lcore_conf[lcore_id].new_acx_ipv6,
+		    (uintptr_t*)&lcore_conf[lcore_id].new_acx_ipv6,
 		    (uintptr_t)lcore_conf[lcore_id].new_acx_ipv6,
 		    (uintptr_t)ipv6_acx[socketid]);
 	}
