@@ -85,29 +85,29 @@
 
 #define CTRL_CBK_MAX_SIZE 256
 #ifndef __DECONST
-#define __DECONST(type, var) ((type)(uintptr_t)(const void *)(var))
+#define __DECONST(type, var) ((type)(uintptr_t)(const void*)(var))
 #endif
 
-extern char **environ;
+extern char** environ;
 
 struct control_handle {
 	int32_t socket_id;
 };
 
 struct handle_res {
-	struct netl_handle *netl_h;
+	struct netl_handle* netl_h;
 	int32_t socket_id;
 };
 
 struct lpm_stats_t lpm4_stats[NB_SOCKETS];
 struct lpm_stats_t lpm6_stats[NB_SOCKETS];
 
-static const char *oper_states[] = {
+static const char* oper_states[] = {
     "UNKNOWN", "NOTPRESENT", "DOWN", "LOWERLAYERDOWN",
     "TESTING", "DORMANT",    "UP"};
 
 static void
-print_operstate(FILE *f, __u8 state)
+print_operstate(FILE* f, __u8 state)
 {
 	if (state >= sizeof(oper_states) / sizeof(oper_states[0]))
 		fprintf(f, "state %#x ", state);
@@ -116,7 +116,8 @@ print_operstate(FILE *f, __u8 state)
 }
 
 static void
-apply_rate_limit_ipv6(struct in6_addr *nexthop, uint8_t nexthop_id,
+apply_rate_limit_ipv6(struct in6_addr* nexthop,
+		      uint8_t nexthop_id,
 		      int socket_id)
 {
 	uint32_t i;
@@ -133,17 +134,25 @@ apply_rate_limit_ipv6(struct in6_addr *nexthop, uint8_t nexthop_id,
 	}
 }
 
-int control_add_ipv4_local_entry(struct in_addr *nexthop, struct in_addr *saddr,
-				 uint8_t depth, uint32_t port_id,
+int control_add_ipv4_local_entry(struct in_addr* nexthop,
+				 struct in_addr* saddr,
+				 uint8_t depth,
+				 uint32_t port_id,
 				 int32_t socket_id);
 
-int control_add_ipv6_local_entry(struct in6_addr *nexthop,
-				 struct in6_addr *saddr, uint8_t depth,
-				 uint32_t port_id, int32_t socket_id);
+int control_add_ipv6_local_entry(struct in6_addr* nexthop,
+				 struct in6_addr* saddr,
+				 uint8_t depth,
+				 uint32_t port_id,
+				 int32_t socket_id);
 static int
-route4(__rte_unused struct rtmsg *route, route_action_t action,
-       struct in_addr *addr, uint8_t depth, struct in_addr *nexthop,
-       uint8_t type, void *args)
+route4(__rte_unused struct rtmsg* route,
+       route_action_t action,
+       struct in_addr* addr,
+       uint8_t depth,
+       struct in_addr* nexthop,
+       uint8_t type,
+       void* args)
 {
 	// If route add
 	//   lookup next hop in neighbor table ipv4
@@ -162,7 +171,7 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 	//   if refcount reached 0
 	//     then flag entry empty
 
-	struct control_handle *handle = args;
+	struct control_handle* handle = args;
 	assert(handle != NULL);
 	uint8_t nexthop_id;
 	int s;
@@ -183,9 +192,10 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 						  nexthop, &nexthop_id,
 						  NEI_ACTION_FWD);
 			if (s < 0) {
-				RTE_LOG(ERR, PKTJ_CTRL1, "failed to add a "
-							 "nexthop during "
-							 "route adding...\n");
+				RTE_LOG(ERR, PKTJ_CTRL1,
+					"failed to add a "
+					"nexthop during "
+					"route adding...\n");
 				return -1;
 			}
 		}
@@ -194,9 +204,10 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 				nexthop_id);
 		if (s < 0) {
 			lpm4_stats[socket_id].nb_add_ko++;
-			RTE_LOG(ERR, PKTJ_CTRL1, "failed to add a route in "
-						 "lpm during route "
-						 "adding...\n");
+			RTE_LOG(ERR, PKTJ_CTRL1,
+				"failed to add a route in "
+				"lpm during route "
+				"adding...\n");
 			return -1;
 		}
 		neighbor4_refcount_incr(neighbor4_struct[socket_id],
@@ -210,8 +221,9 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 		s = neighbor4_lookup_nexthop(neighbor4_struct[socket_id],
 					     nexthop, &nexthop_id);
 		if (s < 0) {
-			RTE_LOG(ERR, PKTJ_CTRL1, "failed to find nexthop "
-						 "during route deletion...\n");
+			RTE_LOG(ERR, PKTJ_CTRL1,
+				"failed to find nexthop "
+				"during route deletion...\n");
 			return -1;
 		}
 
@@ -231,9 +243,13 @@ route4(__rte_unused struct rtmsg *route, route_action_t action,
 }
 
 static int
-route6(__rte_unused struct rtmsg *route, route_action_t action,
-       struct in6_addr *addr, uint8_t depth, struct in6_addr *nexthop,
-       uint8_t type, void *args)
+route6(__rte_unused struct rtmsg* route,
+       route_action_t action,
+       struct in6_addr* addr,
+       uint8_t depth,
+       struct in6_addr* nexthop,
+       uint8_t type,
+       void* args)
 {
 	// If route add
 	//   lookup next hop in neighbor table ipv4
@@ -252,7 +268,7 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 	//   if refcount reached 0
 	//     then flag entry empty
 
-	struct control_handle *handle = args;
+	struct control_handle* handle = args;
 	assert(handle != NULL);
 	uint8_t nexthop_id;
 	int s;
@@ -273,9 +289,10 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 						  nexthop, &nexthop_id,
 						  NEI_ACTION_FWD);
 			if (s < 0) {
-				RTE_LOG(ERR, PKTJ_CTRL1, "failed to add a "
-							 "nexthop during "
-							 "route adding...\n");
+				RTE_LOG(ERR, PKTJ_CTRL1,
+					"failed to add a "
+					"nexthop during "
+					"route adding...\n");
 				return -1;
 			}
 
@@ -287,9 +304,10 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 				 addr->s6_addr, depth, nexthop_id);
 		if (s < 0) {
 			lpm6_stats[socket_id].nb_add_ko++;
-			RTE_LOG(ERR, PKTJ_CTRL1, "failed to add a route in "
-						 "lpm during route "
-						 "adding...\n");
+			RTE_LOG(ERR, PKTJ_CTRL1,
+				"failed to add a route in "
+				"lpm during route "
+				"adding...\n");
 			return -1;
 		}
 		neighbor6_refcount_incr(neighbor6_struct[socket_id],
@@ -303,8 +321,9 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 		s = neighbor6_lookup_nexthop(neighbor6_struct[socket_id],
 					     nexthop, &nexthop_id);
 		if (s < 0) {
-			RTE_LOG(ERR, PKTJ_CTRL1, "failed to find nexthop "
-						 "during route deletion...\n");
+			RTE_LOG(ERR, PKTJ_CTRL1,
+				"failed to find nexthop "
+				"during route deletion...\n");
 			return -1;
 		}
 
@@ -324,9 +343,13 @@ route6(__rte_unused struct rtmsg *route, route_action_t action,
 }
 
 static int
-neighbor4(neighbor_action_t action, __s32 port_id, struct in_addr *addr,
-	  struct ether_addr *lladdr, __u8 flags, __rte_unused __u16 vlan_id,
-	  void *args)
+neighbor4(neighbor_action_t action,
+	  __s32 port_id,
+	  struct in_addr* addr,
+	  struct ether_addr* lladdr,
+	  __u8 flags,
+	  __rte_unused __u16 vlan_id,
+	  void* args)
 {
 	// if port_id is not handled
 	//   ignore, return immediatly
@@ -349,7 +372,7 @@ neighbor4(neighbor_action_t action, __s32 port_id, struct in_addr *addr,
 	//     do nothing
 	//     // this should not happen
 
-	struct control_handle *handle = args;
+	struct control_handle* handle = args;
 	assert(handle != NULL);
 	int s;
 	uint8_t nexthop_id, find_id;
@@ -371,9 +394,10 @@ neighbor4(neighbor_action_t action, __s32 port_id, struct in_addr *addr,
 		if_indextoname(port_id, ibuf);
 		s = sscanf(ibuf, "dpdk%10u.%10u", &port_id, &kni_vlan);
 		if (s <= 0) {
-			RTE_LOG(ERR, PKTJ_CTRL1, "received a neighbor "
-						 "announce for an unmanaged "
-						 "iface %s\n",
+			RTE_LOG(ERR, PKTJ_CTRL1,
+				"received a neighbor "
+				"announce for an unmanaged "
+				"iface %s\n",
 				ibuf);
 			return -1;
 		}
@@ -401,9 +425,10 @@ neighbor4(neighbor_action_t action, __s32 port_id, struct in_addr *addr,
 						  addr, &nexthop_id,
 						  NEI_ACTION_FWD);
 			if (s < 0) {
-				RTE_LOG(ERR, PKTJ_CTRL1, "failed to add a "
-							 "nexthop in neighbor "
-							 "table...\n");
+				RTE_LOG(ERR, PKTJ_CTRL1,
+					"failed to add a "
+					"nexthop in neighbor "
+					"table...\n");
 				return -1;
 			}
 
@@ -455,9 +480,10 @@ neighbor4(neighbor_action_t action, __s32 port_id, struct in_addr *addr,
 		s = neighbor4_lookup_nexthop(neighbor4_struct[socket_id], addr,
 					     &nexthop_id);
 		if (s < 0) {
-			RTE_LOG(ERR, PKTJ_CTRL1, "failed to find a nexthop to "
-						 "delete in neighbor "
-						 "table...\n");
+			RTE_LOG(ERR, PKTJ_CTRL1,
+				"failed to find a nexthop to "
+				"delete in neighbor "
+				"table...\n");
 			return 0;
 		}
 		neighbor4_delete(neighbor4_struct[socket_id], nexthop_id);
@@ -481,9 +507,13 @@ neighbor4(neighbor_action_t action, __s32 port_id, struct in_addr *addr,
 }
 
 static int
-neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
-	  struct ether_addr *lladdr, uint8_t flags,
-	  __rte_unused uint16_t vlan_id, void *args)
+neighbor6(neighbor_action_t action,
+	  int32_t port_id,
+	  struct in6_addr* addr,
+	  struct ether_addr* lladdr,
+	  uint8_t flags,
+	  __rte_unused uint16_t vlan_id,
+	  void* args)
 {
 	// if port_id is not handled
 	//   ignore, return immediatly
@@ -506,7 +536,7 @@ neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
 	//     do nothing
 	//     // this should not happen
 
-	struct control_handle *handle = args;
+	struct control_handle* handle = args;
 	assert(handle != NULL);
 	int s;
 	uint8_t nexthop_id, find_id;
@@ -529,9 +559,10 @@ neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
 		s = sscanf(ibuf, "dpdk%10u.%10u", &port_id, &kni_vlan);
 
 		if (s <= 0) {
-			RTE_LOG(ERR, PKTJ_CTRL1, "received a neighbor "
-						 "announce for an unmanaged "
-						 "iface %s\n",
+			RTE_LOG(ERR, PKTJ_CTRL1,
+				"received a neighbor "
+				"announce for an unmanaged "
+				"iface %s\n",
 				ibuf);
 			return -1;
 		}
@@ -560,9 +591,10 @@ neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
 						  addr, &nexthop_id,
 						  NEI_ACTION_FWD);
 			if (s < 0) {
-				RTE_LOG(ERR, PKTJ_CTRL1, "failed to add a "
-							 "nexthop in neighbor "
-							 "table...\n");
+				RTE_LOG(ERR, PKTJ_CTRL1,
+					"failed to add a "
+					"nexthop in neighbor "
+					"table...\n");
 				return -1;
 			}
 
@@ -616,9 +648,10 @@ neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
 		s = neighbor6_lookup_nexthop(neighbor6_struct[socket_id], addr,
 					     &nexthop_id);
 		if (s < 0) {
-			RTE_LOG(ERR, PKTJ_CTRL1, "failed to find a nexthop to "
-						 "delete in neighbor "
-						 "table...\n");
+			RTE_LOG(ERR, PKTJ_CTRL1,
+				"failed to find a nexthop to "
+				"delete in neighbor "
+				"table...\n");
 			return 0;
 		}
 		neighbor6_delete(neighbor6_struct[socket_id], nexthop_id);
@@ -646,12 +679,15 @@ neighbor6(neighbor_action_t action, int32_t port_id, struct in6_addr *addr,
 }
 
 static int
-addr4(__rte_unused addr_action_t action, int32_t port_id, struct in_addr *addr,
-      uint8_t prefixlen, void *args)
+addr4(__rte_unused addr_action_t action,
+      int32_t port_id,
+      struct in_addr* addr,
+      uint8_t prefixlen,
+      void* args)
 {
 	char buf[255];
 	char ibuf[IFNAMSIZ];
-	struct control_handle *handle = args;
+	struct control_handle* handle = args;
 	assert(handle != NULL);
 	int32_t socket_id = handle->socket_id;
 
@@ -666,12 +702,15 @@ addr4(__rte_unused addr_action_t action, int32_t port_id, struct in_addr *addr,
 }
 
 static int
-addr6(__rte_unused addr_action_t action, int32_t port_id, struct in6_addr *addr,
-      uint8_t prefixlen, void *args)
+addr6(__rte_unused addr_action_t action,
+      int32_t port_id,
+      struct in6_addr* addr,
+      uint8_t prefixlen,
+      void* args)
 {
 	char buf[255];
 	char ibuf[IFNAMSIZ];
-	struct control_handle *handle = args;
+	struct control_handle* handle = args;
 	assert(handle != NULL);
 	int32_t socket_id = handle->socket_id;
 
@@ -693,9 +732,14 @@ addr6(__rte_unused addr_action_t action, int32_t port_id, struct in6_addr *addr,
 }
 
 static int
-eth_link(link_action_t action, int ifid, struct ether_addr *lladdr, int mtu,
-	 const char *name, oper_state_t state, uint16_t vlanid,
-	 __rte_unused void *args)
+eth_link(link_action_t action,
+	 int ifid,
+	 struct ether_addr* lladdr,
+	 int mtu,
+	 const char* name,
+	 oper_state_t state,
+	 uint16_t vlanid,
+	 __rte_unused void* args)
 {
 	char action_buf[4];
 	char ebuf[32];
@@ -733,7 +777,8 @@ eth_link(link_action_t action, int ifid, struct ether_addr *lladdr, int mtu,
 }
 
 static int
-add_invalid_neighbor4(neighbor_struct_t *neighbor_struct, struct in_addr *ip,
+add_invalid_neighbor4(neighbor_struct_t* neighbor_struct,
+		      struct in_addr* ip,
 		      uint16_t dst_port)
 {
 	struct ether_addr invalid_mac = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
@@ -750,7 +795,8 @@ add_invalid_neighbor4(neighbor_struct_t *neighbor_struct, struct in_addr *ip,
 }
 
 static int
-add_invalid_neighbor6(neighbor_struct_t *neighbor_struct, struct in6_addr *ip,
+add_invalid_neighbor6(neighbor_struct_t* neighbor_struct,
+		      struct in6_addr* ip,
 		      uint16_t dst_port)
 {
 	struct ether_addr invalid_mac = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
@@ -767,11 +813,17 @@ add_invalid_neighbor6(neighbor_struct_t *neighbor_struct, struct in6_addr *ip,
 	return 0;
 }
 
-void *
+static void
+netl_log(const char* msg, uint32_t lvl)
+{
+	rte_log(lvl, RTE_LOGTYPE_PKTJ_CTRL1, "PKTJ_CRTL1: %s\n", msg);
+}
+
+void*
 control_init(int32_t socket_id, unsigned events)
 {
-	struct netl_handle *netl_h;
-	struct handle_res *res;
+	struct netl_handle* netl_h;
+	struct handle_res* res;
 
 	netl_h = netl_create(events);
 	if (netl_h == NULL) {
@@ -800,6 +852,7 @@ control_init(int32_t socket_id, unsigned events)
 	netl_h->cb.route4 = route4;
 	netl_h->cb.route6 = route6;
 	netl_h->cb.link = eth_link;
+	netl_h->cb.log = netl_log;
 
 	struct in_addr invalid_ip = {INADDR_ANY};
 	struct in6_addr invalid_ip6 = IN6ADDR_ANY_INIT;
@@ -827,10 +880,10 @@ err:
 }
 
 void
-control_stop(void *data)
+control_stop(void* data)
 {
-	struct handle_res *res;
-	struct netl_handle *netl_h;
+	struct handle_res* res;
+	struct netl_handle* netl_h;
 
 	res = data;
 	netl_h = res->netl_h;
@@ -838,9 +891,9 @@ control_stop(void *data)
 }
 
 void
-control_terminate(void *data)
+control_terminate(void* data)
 {
-	struct handle_res *res;
+	struct handle_res* res;
 
 	res = data;
 	netl_free(res->netl_h);
@@ -848,10 +901,10 @@ control_terminate(void *data)
 }
 
 int
-control_main(void *data)
+control_main(void* data)
 {
-	struct handle_res *res;
-	struct netl_handle *netl_h;
+	struct handle_res* res;
+	struct netl_handle* netl_h;
 	struct control_handle handle;
 
 	res = data;
@@ -866,8 +919,11 @@ control_main(void *data)
 }
 
 int
-control_add_ipv4_local_entry(struct in_addr *nexthop, struct in_addr *saddr,
-			     uint8_t depth, uint32_t port_id, int32_t socket_id)
+control_add_ipv4_local_entry(struct in_addr* nexthop,
+			     struct in_addr* saddr,
+			     uint8_t depth,
+			     uint32_t port_id,
+			     int32_t socket_id)
 {
 	int s;
 	uint8_t nexthop_id;
@@ -898,8 +954,11 @@ control_add_ipv4_local_entry(struct in_addr *nexthop, struct in_addr *saddr,
 }
 
 int
-control_add_ipv6_local_entry(struct in6_addr *nexthop, struct in6_addr *saddr,
-			     uint8_t depth, uint32_t port_id, int32_t socket_id)
+control_add_ipv6_local_entry(struct in6_addr* nexthop,
+			     struct in6_addr* saddr,
+			     uint8_t depth,
+			     uint32_t port_id,
+			     int32_t socket_id)
 {
 	int s;
 	uint8_t nexthop_id;
@@ -933,13 +992,13 @@ control_add_ipv6_local_entry(struct in6_addr *nexthop, struct in6_addr *saddr,
 }
 
 int
-control_callback_setup(const char *cb, uint8_t nb_ports)
+control_callback_setup(const char* cb, uint8_t nb_ports)
 {
 	char cmd[CTRL_CBK_MAX_SIZE];
 	int len;
 	char ether1[ETHER_ADDR_FMT_SIZE];
 	uint8_t port;
-	const char *argv[4];
+	const char* argv[4];
 
 	len = snprintf(cmd, CTRL_CBK_MAX_SIZE, "%s", cb);
 
@@ -960,6 +1019,6 @@ control_callback_setup(const char *cb, uint8_t nb_ports)
 	argv[3] = NULL;
 
 	RTE_LOG(INFO, PKTJ_CTRL1, "executing command `%s`\n", cmd);
-	return posix_spawn(NULL, "/bin/sh", NULL, NULL,
-			   __DECONST(char **, argv), environ);
+	return posix_spawn(NULL, "/bin/sh", NULL, NULL, __DECONST(char**, argv),
+			   environ);
 }

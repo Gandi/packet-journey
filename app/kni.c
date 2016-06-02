@@ -117,7 +117,7 @@
 /* Total octets in the FCS */
 #define KNI_ENET_FCS_SIZE 4
 
-struct kni_port_params *kni_port_params_array[RTE_MAX_ETHPORTS];
+struct kni_port_params* kni_port_params_array[RTE_MAX_ETHPORTS];
 uint8_t kni_port_rdy[RTE_MAX_ETHPORTS] = {0};
 
 static int kni_change_mtu(uint8_t port_id, unsigned new_mtu);
@@ -126,7 +126,7 @@ static int kni_config_network_interface(uint8_t port_id, uint8_t if_up);
 static rte_atomic32_t kni_stop = RTE_ATOMIC32_INIT(0);
 
 void
-kni_burst_free_mbufs(struct rte_mbuf **pkts, unsigned num)
+kni_burst_free_mbufs(struct rte_mbuf** pkts, unsigned num)
 {
 	unsigned i;
 
@@ -149,12 +149,12 @@ kni_stop_loop(void)
  * Interface to dequeue mbufs from tx_q and burst tx
  */
 static void
-kni_egress(struct kni_port_params *p, uint32_t lcore_id)
+kni_egress(struct kni_port_params* p, uint32_t lcore_id)
 {
 	uint8_t i, port_id;
 	unsigned nb_tx, num;
 	uint32_t nb_kni;
-	struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
+	struct rte_mbuf* pkts_burst[MAX_PKT_BURST];
 	uint16_t queue_num;
 
 	if (p == NULL)
@@ -185,7 +185,7 @@ kni_egress(struct kni_port_params *p, uint32_t lcore_id)
 }
 
 int
-kni_main_loop(void *arg)
+kni_main_loop(void* arg)
 {
 	uint8_t i, nb_ports = rte_eth_dev_count();
 	int32_t f_stop;
@@ -212,7 +212,7 @@ void
 init_kni(void)
 {
 	unsigned int num_of_kni_ports = 0, i;
-	struct kni_port_params **params = kni_port_params_array;
+	struct kni_port_params** params = kni_port_params_array;
 
 	/* Calculate the maximum number of KNI interfaces that will be used */
 	for (i = 0; i < RTE_MAX_ETHPORTS; i++) {
@@ -309,12 +309,12 @@ kni_config_network_interface(uint8_t port_id, uint8_t if_up)
 }
 
 int
-kni_alloc(uint8_t port_id, struct rte_mempool *pktmbuf_pool)
+kni_alloc(uint8_t port_id, struct rte_mempool* pktmbuf_pool)
 {
 	uint8_t i;
-	struct rte_kni *kni;
+	struct rte_kni* kni;
 	struct rte_kni_conf conf;
-	struct kni_port_params **params = kni_port_params_array;
+	struct kni_port_params** params = kni_port_params_array;
 
 	if (port_id >= RTE_MAX_ETHPORTS || !params[port_id])
 		return -1;
@@ -359,8 +359,9 @@ kni_alloc(uint8_t port_id, struct rte_mempool *pktmbuf_pool)
 			kni = rte_kni_alloc(pktmbuf_pool, &conf, NULL);
 
 		if (!kni)
-			rte_exit(EXIT_FAILURE, "Fail to create kni for "
-					       "port: %d\n",
+			rte_exit(EXIT_FAILURE,
+				 "Fail to create kni for "
+				 "port: %d\n",
 				 port_id);
 		params[port_id]->kni[i] = kni;
 	}
@@ -372,7 +373,7 @@ int
 kni_free_kni(uint8_t port_id)
 {
 	uint8_t i;
-	struct kni_port_params **p = kni_port_params_array;
+	struct kni_port_params** p = kni_port_params_array;
 
 	if (port_id >= RTE_MAX_ETHPORTS || !p[port_id])
 		return -1;
