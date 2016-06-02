@@ -100,7 +100,6 @@ netl_handler(struct netl_handle *h,
 			 pktj_unused(struct sockaddr_nl *nladdr),
 			 struct nlmsghdr *hdr, void *args)
 {
-  h->cb.log("This is a log callback", INFO);
 	int len = hdr->nlmsg_len;
 
 	switch (hdr->nlmsg_type) {
@@ -367,6 +366,7 @@ int netl_terminate(struct netl_handle *h)
 int netl_listen(struct netl_handle *h, void *args)
 {
 	int len, buflen, err;
+  char* logmsg = "";
 	ssize_t status;
 	struct nlmsghdr *hdr;
 	struct sockaddr_nl nladdr;
@@ -394,53 +394,57 @@ int netl_listen(struct netl_handle *h, void *args)
 	fds[0].fd = h->fd;
 
 	while (h->closing != 1) {
-		int res = poll(fds, 1, NETL_POLL_TIMEOUT);
-		if (res < 0 && errno != EINTR) {
-			perror("error during cmdline_run poll");
-			return 0;
-		}
-		if (fds[0].revents & POLLIN) {
-			iov.iov_len = sizeof(buf);
-			status = recvmsg(h->fd, &msg, 0);
-			if (status < 0) {
-				// TODO: EINT / EAGAIN / ENOBUF should continue
-				return -1;
-			}
+    if (poll(fds, 1, NETL_POLL_TIMEOUT) > 0) {
+    
+      if (fds[0].revents & POLLIN) {
+        iov.iov_len = sizeof(buf);
+        status = recvmsg(h->fd, &msg, 0);
+        if (status < 0) {
+          if (errno == EINTR || errno == EAGAIN)
+            continue;
+          sprintf(logmsg, "error receiving netlink %s (%d)",
+              strerror(errno), errno);
+          h->cb.log(logmsg, ERR);
+          if (errno == ENOBUFS)
+            continue;
+          return -1;
+        }
 
-			if (status == 0) {
-				// EOF
-				return -1;
-			}
+        if (status == 0) {
+          h->cb.log("EOF on netlink", ERR);
+          return -1;
+        }
 
-			if (msg.msg_namelen != sizeof(nladdr)) {
-				// Invalid length
-				return -1;
-			}
+        if (msg.msg_namelen != sizeof(nladdr)) {
+          // Invalid length
+          return -1;
+        }
 
-			for (hdr = (struct nlmsghdr *) buf;
-				 (size_t) status >= sizeof(*hdr);) {
-				len = hdr->nlmsg_len;
-				buflen = len - sizeof(*hdr);
+        for (hdr = (struct nlmsghdr *) buf;
+           (size_t) status >= sizeof(*hdr);) {
+          len = hdr->nlmsg_len;
+          buflen = len - sizeof(*hdr);
 
-				if (buflen < 0 || buflen > status) {
-					// truncated
-					return -1;
-				}
+          if (buflen < 0 || buflen > status) {
+            // truncated
+            return -1;
+          }
 
-				err = netl_handler(h, &nladdr, hdr, args);
-				if (err < 0)
-					return err;
+          err = netl_handler(h, &nladdr, hdr, args);
+          if (err < 0)
+            return err;
 
-				status -= NLMSG_ALIGN(len);
-				hdr =
-					(struct nlmsghdr *) ((char *) hdr + NLMSG_ALIGN(len));
-			}
+          status -= NLMSG_ALIGN(len);
+          hdr =
+            (struct nlmsghdr *) ((char *) hdr + NLMSG_ALIGN(len));
+        }
 
-			if (status) {
-				// content not read
-				return -1;
-			}
-		}
+        if (status) {
+          // content not read
+          return -1;
+        }
+      }
+    }
 	}
 
 	return 1;
