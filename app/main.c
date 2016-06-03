@@ -292,8 +292,9 @@ struct nei_entry kni_neighbor[RTE_MAX_ETHPORTS];
 static rte_spinlock_t spinlock_kni[RTE_MAX_ETHPORTS] = {
     RTE_SPINLOCK_INITIALIZER};
 
-#define IPV4_L3FWD_LPM_MAX_RULES (1 << 20)  // 1048576
-#define IPV6_L3FWD_LPM_MAX_RULES (1 << 19)  // 524288
+#define IPV4_L3FWD_LPM_MAX_RULES (1 << 20) // 1048576
+#define IPV4_L3FWD_LPM_NUMBER_TBL8S (1 << 16)
+#define IPV6_L3FWD_LPM_MAX_RULES (1 << 19) // 524288
 #define IPV6_L3FWD_LPM_NUMBER_TBL8S (1 << 16)
 
 struct lcore_stats stats[RTE_MAX_LCORE];
@@ -405,34 +406,31 @@ send_packetsx4(struct lcore_conf* qconf,
 	qconf->tx_mbufs[port].len = len;
 }
 
-static inline uint8_t
-get_ipv4_dst_port(void* ipv4_hdr,
-		  uint8_t portid,
-		  lookup_struct_t* ipv4_pktj_lookup_struct)
+static inline uint32_t
+get_ipv4_dst_port(void *ipv4_hdr, uint8_t portid,
+		  lookup_struct_t *ipv4_pktj_lookup_struct)
 {
-	uint8_t next_hop;
+	uint32_t next_hop;
 
-	return (uint8_t)(
+	return
 	    (rte_lpm_lookup(
 		 ipv4_pktj_lookup_struct,
 		 rte_be_to_cpu_32(((struct ipv4_hdr*)ipv4_hdr)->dst_addr),
 		 &next_hop) == 0)
 		? next_hop
-		: portid);
+		: portid;
 }
 
-static inline uint8_t
-get_ipv6_dst_port(void* ipv6_hdr,
-		  uint8_t portid,
-		  lookup6_struct_t* ipv6_pktj_lookup_struct)
+static inline uint16_t
+get_ipv6_dst_port(void *ipv6_hdr, uint8_t portid,
+		  lookup6_struct_t *ipv6_pktj_lookup_struct)
 {
-	uint8_t next_hop;
-	return (uint8_t)(
-	    (rte_lpm6_lookup(ipv6_pktj_lookup_struct,
-			     ((struct ipv6_hdr*)ipv6_hdr)->dst_addr,
+	uint16_t next_hop;
+	return (rte_lpm6_lookup(ipv6_pktj_lookup_struct,
+			     ((struct ipv6_hdr *)ipv6_hdr)->dst_addr,
 			     &next_hop) == 0)
 		? next_hop
-		: portid);
+		: portid;
 }
 
 #define IPV4_MIN_VER_IHL 0x45
@@ -485,9 +483,10 @@ get_dst_port(const struct lcore_conf* qconf,
 	     uint32_t dst_ipv4,
 	     struct nei_entry* kni_neighbor)
 {
-	uint8_t next_hop;
-	struct ipv6_hdr* ipv6_hdr;
-	struct ether_hdr* eth_hdr;
+	uint32_t next_hop;
+	uint16_t next_hop6;
+	struct ipv6_hdr *ipv6_hdr;
+	struct ether_hdr *eth_hdr;
 
 	if (PKTJ_TEST_IPV4_HDR(pkt)) {
 		if (rte_lpm_lookup(qconf->ipv4_lookup_struct, dst_ipv4,
@@ -497,13 +496,14 @@ get_dst_port(const struct lcore_conf* qconf,
 		eth_hdr = rte_pktmbuf_mtod(pkt, struct ether_hdr*);
 		ipv6_hdr = (struct ipv6_hdr*)(eth_hdr + 1);
 		if (rte_lpm6_lookup(qconf->ipv6_lookup_struct,
-				    ipv6_hdr->dst_addr, &next_hop) != 0)
-			next_hop = 0;
+				    ipv6_hdr->dst_addr, &next_hop6) != 0)
+			next_hop6 = 0;
+        return next_hop6;
 	} else {
 		next_hop = kni_neighbor->port_id;
 	}
 
-	return next_hop;
+	return (uint16_t) next_hop;
 }
 
 static inline int
@@ -684,7 +684,9 @@ processx4_step2(const struct lcore_conf* qconf,
 
 	/* if all 4 packets are IPV4. */
 	if (likely(flag != 0)) {
-		rte_lpm_lookupx4(qconf->ipv4_lookup_struct, dip, neighbor, 0);
+		rte_lpm_lookupx4(qconf->ipv4_lookup_struct, dip, dst.u32, 0);
+		dst.x = _mm_packs_epi32(dst.x, dst.x);
+		*(uint64_t *)neighbor = dst.u64[0];
 		RTE_LOG(DEBUG, PKTJ1, "lookpx4 res %d:%d:%d:%d\n", neighbor[0],
 			neighbor[1], neighbor[2], neighbor[3]);
 	} else {
@@ -1251,6 +1253,7 @@ filter_packets(uint32_t lcore_id,
 	return nb_pkts;
 }
 
+#ifdef ATOMIC_ACL
 static inline int
 rte_atomic64_cmpswap(volatile uintptr_t* dst, uintptr_t* exp, uintptr_t src)
 {
@@ -1267,6 +1270,7 @@ rte_atomic64_cmpswap(volatile uintptr_t* dst, uintptr_t* exp, uintptr_t src)
 		     : "memory", "cc"); /* no-clobber list */
 	return res;
 }
+#endif
 
 /* main processing loop */
 static int
@@ -1684,13 +1688,19 @@ init_lcore_rx_queues(void)
 static void
 setup_lpm(int socketid)
 {
-	struct rte_lpm6_config config;
+	struct rte_lpm6_config config6;
+	struct rte_lpm_config config4;
 	char s[64];
 
 	/* create the LPM table */
 	snprintf(s, sizeof(s), "IPV4_L3FWD_LPM_%d", socketid);
+
+	config4.max_rules = IPV4_L3FWD_LPM_MAX_RULES;
+	config4.number_tbl8s = IPV4_L3FWD_LPM_NUMBER_TBL8S;
+	config4.flags = 0;
+
 	ipv4_pktj_lookup_struct[socketid] =
-	    rte_lpm_create(s, socketid, IPV4_L3FWD_LPM_MAX_RULES, 0);
+	    rte_lpm_create(s, socketid, &config4);
 	if (ipv4_pktj_lookup_struct[socketid] == NULL)
 		rte_exit(EXIT_FAILURE,
 			 "Unable to create the pktj LPM table"
@@ -1700,11 +1710,10 @@ setup_lpm(int socketid)
 	/* create the LPM6 table */
 	snprintf(s, sizeof(s), "IPV6_L3FWD_LPM_%d", socketid);
 
-	config.max_rules = IPV6_L3FWD_LPM_MAX_RULES;
-	config.number_tbl8s = IPV6_L3FWD_LPM_NUMBER_TBL8S;
-	config.flags = 0;
+	config6.number_tbl8s = IPV6_L3FWD_LPM_NUMBER_TBL8S;
+	config6.flags = 0;
 	ipv6_pktj_lookup_struct[socketid] =
-	    rte_lpm6_create(s, socketid, &config);
+	    rte_lpm6_create(s, socketid, &config6);
 	if (ipv6_pktj_lookup_struct[socketid] == NULL)
 		rte_exit(EXIT_FAILURE,
 			 "Unable to create the pktj LPM6 table"

@@ -107,6 +107,8 @@
 
 void __wrap_cmdline_printf(const struct cmdline* cl, const char* fmt, ...);
 
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
 void
 __wrap_cmdline_printf(const struct cmdline* cl, const char* fmt, ...)
 {
@@ -147,8 +149,6 @@ struct client_data_t cmdline_clients[NB_SOCKETS][CMDLINE_MAX_CLIENTS];
 static volatile sig_atomic_t cmdline_thread_loop[NB_SOCKETS];
 static int cmdline_thread_unixsock[NB_SOCKETS];
 RTE_DEFINE_PER_LCORE(uint32_t, g_socket_id);
-
-typedef uint8_t portid_t;
 
 static void
 port_rss_reta_info(portid_t port_id,
@@ -790,8 +790,9 @@ cmd_obj_lpm_lkp_parsed(void* parsed_result,
 		       struct cmdline* cl,
 		       __rte_unused void* data)
 {
-	struct cmd_obj_lpm_lkp_result* res = parsed_result;
-	uint8_t next_hop;
+	struct cmd_obj_lpm_lkp_result *res = parsed_result;
+	uint32_t next_hop;
+	uint16_t next_hop6;
 	int i;
 	char buf[INET6_ADDRSTRLEN];
 
@@ -813,13 +814,13 @@ cmd_obj_lpm_lkp_parsed(void* parsed_result,
 	} else if (res->ip.family == AF_INET6) {
 		i = rte_lpm6_lookup(
 		    ipv6_pktj_lookup_struct[RTE_PER_LCORE(g_socket_id)],
-		    res->ip.addr.ipv6.s6_addr, &next_hop);
+		    res->ip.addr.ipv6.s6_addr, &next_hop6);
 		if (i < 0) {
 			cmdline_printf(cl, "not found\n");
 		} else {
 			struct in6_addr* addr =
 			    &neighbor6_struct[RTE_PER_LCORE(g_socket_id)]
-				 ->entries.t6[next_hop]
+				 ->entries.t6[next_hop6]
 				 .addr;
 			cmdline_printf(
 			    cl, "present, next_hop %s\n",

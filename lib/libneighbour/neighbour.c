@@ -10,7 +10,7 @@ inline static void neighbor6_free(struct nei_entry6 *e)
 
 int
 neighbor6_lookup_nexthop(struct nei_table *t, struct in6_addr *nexthop,
-						 uint8_t * nexthop_id)
+						 uint16_t *nexthop_id)
 {
 	int i;
 	struct nei_entry6 *entry;
@@ -30,7 +30,7 @@ neighbor6_lookup_nexthop(struct nei_table *t, struct in6_addr *nexthop,
 
 int
 neighbor6_add_nexthop(struct nei_table *t, struct in6_addr *nexthop,
-					  uint8_t * nexthop_id, uint8_t action)
+					  uint16_t * nexthop_id, uint8_t action)
 {
 	int i;
 	struct nei_entry6 *entry;
@@ -55,7 +55,7 @@ neighbor6_add_nexthop(struct nei_table *t, struct in6_addr *nexthop,
 	return -1;
 }
 
-int neighbor6_refcount_incr(struct nei_table *t, uint8_t nexthop_id)
+int neighbor6_refcount_incr(struct nei_table *t, uint16_t nexthop_id)
 {
 	struct nei_entry6 *entry;
 
@@ -67,7 +67,7 @@ int neighbor6_refcount_incr(struct nei_table *t, uint8_t nexthop_id)
 	return ++entry->neighbor.refcnt;
 }
 
-int neighbor6_refcount_decr(struct nei_table *t, uint8_t nexthop_id)
+int neighbor6_refcount_decr(struct nei_table *t, uint16_t nexthop_id)
 {
 	struct nei_entry6 *entry;
 
@@ -83,7 +83,7 @@ int neighbor6_refcount_decr(struct nei_table *t, uint8_t nexthop_id)
 }
 
 int
-neighbor6_set_lladdr_port(struct nei_table *t, uint8_t nexthop_id,
+neighbor6_set_lladdr_port(struct nei_table *t, uint16_t nexthop_id,
 						  struct ether_addr *port_addr,
 						  struct ether_addr *lladdr, int16_t port_id,
 						  int16_t vlan_id)
@@ -105,7 +105,7 @@ neighbor6_set_lladdr_port(struct nei_table *t, uint8_t nexthop_id,
 }
 
 int
-neighbor6_set_state(struct nei_table *t, uint8_t nexthop_id, uint8_t flags)
+neighbor6_set_state(struct nei_table *t, uint16_t nexthop_id, uint8_t flags)
 {
 	struct nei_entry6 *entry;
 
@@ -119,7 +119,7 @@ neighbor6_set_state(struct nei_table *t, uint8_t nexthop_id, uint8_t flags)
 }
 
 int
-neighbor6_set_action(struct nei_table *t, uint8_t nexthop_id, uint8_t action)
+neighbor6_set_action(struct nei_table *t, uint16_t nexthop_id, uint8_t action)
 {
 	struct nei_entry6 *entry;
 
@@ -133,7 +133,7 @@ neighbor6_set_action(struct nei_table *t, uint8_t nexthop_id, uint8_t action)
 }
 
 int
-neighbor6_set_port(struct nei_table *t, uint8_t nexthop_id,
+neighbor6_set_port(struct nei_table *t, uint16_t nexthop_id,
 				   int32_t port_id)
 {
 	struct nei_entry6 *entry;
@@ -147,7 +147,7 @@ neighbor6_set_port(struct nei_table *t, uint8_t nexthop_id,
 	return 0;
 }
 
-int neighbor6_delete(struct nei_table *t, uint8_t nexthop_id)
+int neighbor6_delete(struct nei_table *t, uint16_t nexthop_id)
 {
 	struct nei_entry6 *entry;
 
@@ -174,7 +174,7 @@ inline static void neighbor4_free(struct nei_entry4 *e)
 
 int
 neighbor4_lookup_nexthop(struct nei_table *t, struct in_addr *nexthop,
-						 uint8_t * nexthop_id)
+						 uint16_t *nexthop_id)
 {
 	int i;
 	struct nei_entry4 *entry;
@@ -193,7 +193,7 @@ neighbor4_lookup_nexthop(struct nei_table *t, struct in_addr *nexthop,
 
 int
 neighbor4_add_nexthop(struct nei_table *t, struct in_addr *nexthop,
-					  uint8_t * nexthop_id, uint8_t action)
+					  uint16_t *nexthop_id, uint8_t action)
 {
 	int i;
 	struct nei_entry4 *entry;
@@ -217,7 +217,7 @@ neighbor4_add_nexthop(struct nei_table *t, struct in_addr *nexthop,
 	return -1;
 }
 
-int neighbor4_refcount_incr(struct nei_table *t, uint8_t nexthop_id)
+int neighbor4_refcount_incr(struct nei_table *t, uint16_t nexthop_id)
 {
 	struct nei_entry4 *entry;
 
@@ -229,7 +229,7 @@ int neighbor4_refcount_incr(struct nei_table *t, uint8_t nexthop_id)
 	return ++entry->neighbor.refcnt;
 }
 
-int neighbor4_refcount_decr(struct nei_table *t, uint8_t nexthop_id)
+int neighbor4_refcount_decr(struct nei_table *t, uint16_t nexthop_id)
 {
 	struct nei_entry4 *entry;
 
@@ -245,7 +245,7 @@ int neighbor4_refcount_decr(struct nei_table *t, uint8_t nexthop_id)
 }
 
 int
-neighbor4_set_lladdr_port(struct nei_table *t, uint8_t nexthop_id,
+neighbor4_set_lladdr_port(struct nei_table *t, uint16_t nexthop_id,
 						  struct ether_addr *port_addr,
 						  struct ether_addr *lladdr, int16_t port_id,
 						  int16_t vlan_id)
@@ -267,7 +267,7 @@ neighbor4_set_lladdr_port(struct nei_table *t, uint8_t nexthop_id,
 }
 
 int
-neighbor4_set_state(struct nei_table *t, uint8_t nexthop_id, uint8_t flags)
+neighbor4_set_state(struct nei_table *t, uint16_t nexthop_id, uint8_t flags)
 {
 	struct nei_entry4 *entry;
 
@@ -281,7 +281,7 @@ neighbor4_set_state(struct nei_table *t, uint8_t nexthop_id, uint8_t flags)
 }
 
 int
-neighbor4_set_action(struct nei_table *t, uint8_t nexthop_id, uint8_t action)
+neighbor4_set_action(struct nei_table *t, uint16_t nexthop_id, uint8_t action)
 {
 	struct nei_entry4 *entry;
 
@@ -295,7 +295,7 @@ neighbor4_set_action(struct nei_table *t, uint8_t nexthop_id, uint8_t action)
 }
 
 int
-neighbor4_set_port(struct nei_table *t, uint8_t nexthop_id,
+neighbor4_set_port(struct nei_table *t, uint16_t nexthop_id,
 				   int32_t port_id)
 {
 	struct nei_entry4 *entry;
@@ -309,7 +309,7 @@ neighbor4_set_port(struct nei_table *t, uint8_t nexthop_id,
 	return 0;
 }
 
-int neighbor4_delete(struct nei_table *t, uint8_t nexthop_id)
+int neighbor4_delete(struct nei_table *t, uint16_t nexthop_id)
 {
 	struct nei_entry4 *entry;
 
