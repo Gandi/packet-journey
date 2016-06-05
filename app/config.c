@@ -85,7 +85,7 @@
 
 static struct lcore_params lcore_params_array[MAX_LCORE_PARAMS];
 
-struct lcore_params *lcore_params;
+struct lcore_params* lcore_params;
 uint16_t nb_lcore_params;
 
 /* mask of enabled ports */
@@ -93,9 +93,9 @@ uint32_t enabled_port_mask = 0;
 int promiscuous_on = 0; /**< Ports set in promiscuous mode off by default. */
 int numa_on = 1;	/**< NUMA is enabled by default. */
 uint32_t kni_rate_limit = UINT32_MAX;
-const char *callback_setup = NULL;
-const char *unixsock_path = "/tmp/pktj.sock";
-const char *ratelimit_file = NULL;
+const char* callback_setup = NULL;
+const char* unixsock_path = "/tmp/pktj.sock";
+const char* ratelimit_file = NULL;
 
 struct rte_eth_conf port_conf = {
     .rxmode =
@@ -124,7 +124,8 @@ struct rte_eth_conf port_conf = {
 	{
 	    .rss_conf =
 		{
-		    .rss_key = NULL, .rss_hf = ETH_RSS_PROTO_MASK,
+		    .rss_key = NULL,
+		    .rss_hf = ETH_RSS_PROTO_MASK,
 		},
 	},
     .txmode =
@@ -135,7 +136,7 @@ struct rte_eth_conf port_conf = {
 
 /* display usage */
 void
-print_usage(const char *prgname)
+print_usage(const char* prgname)
 {
 	RTE_LOG(
 	    ERR, PKTJ1,
@@ -159,9 +160,9 @@ print_usage(const char *prgname)
 }
 
 static int
-parse_max_pkt_len(const char *pktlen)
+parse_max_pkt_len(const char* pktlen)
 {
-	char *end = NULL;
+	char* end = NULL;
 	unsigned long len;
 
 	/* parse decimal string */
@@ -176,9 +177,9 @@ parse_max_pkt_len(const char *pktlen)
 }
 
 static int
-parse_portmask(const char *portmask)
+parse_portmask(const char* portmask)
 {
-	char *end = NULL;
+	char* end = NULL;
 	unsigned long pm;
 
 	/* parse hexadecimal string */
@@ -196,7 +197,7 @@ static void
 print_kni_config(void)
 {
 	uint32_t i, j;
-	struct kni_port_params **p = kni_port_params_array;
+	struct kni_port_params** p = kni_port_params_array;
 
 	for (i = 0; i < RTE_MAX_ETHPORTS; i++) {
 		if (!p[i])
@@ -210,7 +211,7 @@ print_kni_config(void)
 }
 
 static int
-kni_parse_config(const char *arg)
+kni_parse_config(const char* arg)
 {
 	const char *p, *p0 = arg;
 	char s[256], *end;
@@ -221,7 +222,7 @@ kni_parse_config(const char *arg)
 		_NUM_FLD = KNI_MAX_KTHREAD + 3,
 	};
 	int i, j, nb_token;
-	char *str_fld[_NUM_FLD];
+	char* str_fld[_NUM_FLD];
 	unsigned long int_fld[_NUM_FLD];
 	uint8_t port_id, nb_kni_port_params = 0;
 
@@ -265,7 +266,7 @@ kni_parse_config(const char *arg)
 			goto fail;
 		}
 		kni_port_params_array[port_id] =
-		    (struct kni_port_params *)rte_zmalloc(
+		    (struct kni_port_params*)rte_zmalloc(
 			"KNI_port_params", sizeof(struct kni_port_params),
 			RTE_CACHE_LINE_SIZE);
 		kni_port_params_array[port_id]->port_id = port_id;
@@ -276,8 +277,9 @@ kni_parse_config(const char *arg)
 		kni_port_params_array[port_id]->lcore_tx =
 		    (uint8_t)int_fld[FLD_LCORE_TX];
 		if (kni_port_params_array[port_id]->lcore_tx >= RTE_MAX_LCORE) {
-			RTE_LOG(ERR, KNI, "lcore_tx %u ID could not "
-					  "exceed the maximum %u\n",
+			RTE_LOG(ERR, KNI,
+				"lcore_tx %u ID could not "
+				"exceed the maximum %u\n",
 				kni_port_params_array[port_id]->lcore_tx,
 				(unsigned)RTE_MAX_LCORE);
 			goto fail;
@@ -304,15 +306,15 @@ fail:
 }
 
 static int
-kni_parse_config_from_file(uint8_t port_id, char *q_arg)
+kni_parse_config_from_file(uint8_t port_id, char* q_arg)
 {
-	char *end;
+	char* end;
 	enum fieldnames {
 		FLD_LCORE = 0,
 		_NUM_FLD = KNI_MAX_KTHREAD + 3,
 	};
 	int i, j, nb_token;
-	char *str_fld[_NUM_FLD];
+	char* str_fld[_NUM_FLD];
 	unsigned long int_fld[_NUM_FLD];
 
 	nb_token = rte_strsplit(q_arg, strlen(q_arg), str_fld, _NUM_FLD, ',');
@@ -341,7 +343,7 @@ kni_parse_config_from_file(uint8_t port_id, char *q_arg)
 			port_id);
 		goto fail;
 	}
-	kni_port_params_array[port_id] = (struct kni_port_params *)rte_zmalloc(
+	kni_port_params_array[port_id] = (struct kni_port_params*)rte_zmalloc(
 	    "KNI_port_params", sizeof(struct kni_port_params),
 	    RTE_CACHE_LINE_SIZE);
 	kni_port_params_array[port_id]->port_id = port_id;
@@ -351,8 +353,9 @@ kni_parse_config_from_file(uint8_t port_id, char *q_arg)
 
 	kni_port_params_array[port_id]->lcore_tx = (uint8_t)int_fld[FLD_LCORE];
 	if (kni_port_params_array[port_id]->lcore_tx >= RTE_MAX_LCORE) {
-		RTE_LOG(ERR, KNI, "lcore_tx %u ID could not "
-				  "exceed the maximum %u\n",
+		RTE_LOG(ERR, KNI,
+			"lcore_tx %u ID could not "
+			"exceed the maximum %u\n",
 			kni_port_params_array[port_id]->lcore_tx,
 			(unsigned)RTE_MAX_LCORE);
 		goto kni_fail;
@@ -405,14 +408,14 @@ kni_validate_parameters(uint32_t portmask)
 }
 
 static int
-parse_config(const char *q_arg)
+parse_config(const char* q_arg)
 {
 	char s[256];
 	const char *p, *p0 = q_arg;
-	char *end;
+	char* end;
 	enum fieldnames { FLD_PORT = 0, FLD_QUEUE, FLD_LCORE, _NUM_FLD };
 	unsigned long int_fld[_NUM_FLD];
-	char *str_fld[_NUM_FLD];
+	char* str_fld[_NUM_FLD];
 	int i;
 	unsigned size;
 
@@ -456,13 +459,13 @@ parse_config(const char *q_arg)
 }
 
 static int
-parse_config_from_file(uint8_t port_id, char *q_arg)
+parse_config_from_file(uint8_t port_id, char* q_arg)
 {
-	char *end;
+	char* end;
 	enum fieldnames { FLD_QUEUE = 0, FLD_LCORE, _NUM_FLD };
 	unsigned long int_fld[_NUM_FLD];
-	char *str_fld[_NUM_FLD];
-	char *str_tuples[MAX_LCORE_PARAMS];
+	char* str_fld[_NUM_FLD];
+	char* str_tuples[MAX_LCORE_PARAMS];
 	int i, j, nb_tuples;
 
 	nb_tuples = rte_strsplit(q_arg, strlen(q_arg), str_tuples,
@@ -502,7 +505,7 @@ parse_config_from_file(uint8_t port_id, char *q_arg)
 }
 
 static int
-rate_limit_ipv4(union rlimit_addr *addr, uint32_t num, int socket_id)
+rate_limit_ipv4(union rlimit_addr* addr, uint32_t num, int socket_id)
 {
 	uint8_t range_id;
 	static uint8_t next_range_id[NB_SOCKETS] = {0};
@@ -512,7 +515,7 @@ rate_limit_ipv4(union rlimit_addr *addr, uint32_t num, int socket_id)
 	if (range_id == INVALID_RLIMIT_RANGE) {
 		range_id = next_range_id[socket_id]++;
 
-		if (range_id >= MAX_RLIMIT_RANGE) { // if not found
+		if (range_id >= MAX_RLIMIT_RANGE) {  // if not found
 			return -1;
 		}
 	}
@@ -526,7 +529,7 @@ rate_limit_ipv4(union rlimit_addr *addr, uint32_t num, int socket_id)
 }
 
 static int
-rate_limit_ipv6(cmdline_ipaddr_t *ip, uint32_t num, int socket_id)
+rate_limit_ipv6(cmdline_ipaddr_t* ip, uint32_t num, int socket_id)
 {
 	static uint8_t next_hop_count[NB_SOCKETS] = {0};
 	uint16_t next_hop = 0;
@@ -558,7 +561,7 @@ rate_limit_ipv6(cmdline_ipaddr_t *ip, uint32_t num, int socket_id)
 	rlimit6_lookup_table[socket_id][next_hop].num = num;
 
 	if (rte_lpm6_lookup(ipv6_pktj_lookup_struct[socket_id],
-			    ip->addr.ipv6.s6_addr, (uint8_t *)&next_hop) == 0) {
+			    ip->addr.ipv6.s6_addr, (uint8_t*)&next_hop) == 0) {
 		// set the max packet rate for this neighbor
 		rlimit6_max[socket_id][next_hop] = num;
 	}
@@ -567,7 +570,7 @@ rate_limit_ipv6(cmdline_ipaddr_t *ip, uint32_t num, int socket_id)
 }
 
 int
-rate_limit_address(cmdline_ipaddr_t *ip, uint32_t num, int socket_id)
+rate_limit_address(cmdline_ipaddr_t* ip, uint32_t num, int socket_id)
 {
 	int i, res;
 	uint32_t netmask, netaddr, maxhost, j;
@@ -584,13 +587,13 @@ rate_limit_address(cmdline_ipaddr_t *ip, uint32_t num, int socket_id)
 				for (i = 0; i < NB_SOCKETS; i++) {
 					for (j = netaddr; j < maxhost; j++) {
 						rate_limit_ipv4(
-						    (union rlimit_addr *)&j,
-						    num, i);
+						    (union rlimit_addr*)&j, num,
+						    i);
 					}
 				}
 			} else {
 				for (j = netaddr; j < maxhost; j++) {
-					rate_limit_ipv4((union rlimit_addr *)&j,
+					rate_limit_ipv4((union rlimit_addr*)&j,
 							num, socket_id);
 				}
 			}
@@ -599,17 +602,17 @@ rate_limit_address(cmdline_ipaddr_t *ip, uint32_t num, int socket_id)
 			if (socket_id == SOCKET_ID_ANY) {
 				for (i = 0; i < NB_SOCKETS; i++) {
 					res += rate_limit_ipv4(
-					    (union rlimit_addr *)&netaddr, num,
+					    (union rlimit_addr*)&netaddr, num,
 					    i);
 				}
 			} else {
 				res = rate_limit_ipv4(
-				    (union rlimit_addr *)&netaddr, num,
+				    (union rlimit_addr*)&netaddr, num,
 				    socket_id);
 			}
 		}
 	} else if (ip->family == AF_INET6) {
-		if (socket_id == SOCKET_ID_ANY) { // rate limit for all sockets
+		if (socket_id == SOCKET_ID_ANY) {  // rate limit for all sockets
 			for (i = 0; i < NB_SOCKETS; i++) {
 				res += rate_limit_ipv6(ip, num, i);
 			}
@@ -622,16 +625,16 @@ rate_limit_address(cmdline_ipaddr_t *ip, uint32_t num, int socket_id)
 }
 
 void
-rate_limit_config_from_file(const char *file_name)
+rate_limit_config_from_file(const char* file_name)
 {
 	char buff[LINE_MAX];
 	enum fieldnames { FLD_ADDRESS = 0, FLD_RATE, _NUM_FLD };
-	char *str_fld[_NUM_FLD];
+	char* str_fld[_NUM_FLD];
 	cmdline_parse_token_ipaddr_t tk, tk_net;
 	cmdline_ipaddr_t ip_addr;
 	uint32_t num;
 
-	FILE *fh = fopen(file_name, "rb");
+	FILE* fh = fopen(file_name, "rb");
 
 	if (fh == NULL) {
 		RTE_LOG(ERR, PKTJ1,
@@ -651,10 +654,10 @@ rate_limit_config_from_file(const char *file_name)
 		}
 
 		sscanf(str_fld[FLD_RATE], "%u", &num);
-		if (cmdline_parse_ipaddr((cmdline_parse_token_hdr_t *)&tk_net,
+		if (cmdline_parse_ipaddr((cmdline_parse_token_hdr_t*)&tk_net,
 					 str_fld[FLD_ADDRESS], &ip_addr,
 					 sizeof(ip_addr)) > 0 ||
-		    cmdline_parse_ipaddr((cmdline_parse_token_hdr_t *)&tk,
+		    cmdline_parse_ipaddr((cmdline_parse_token_hdr_t*)&tk,
 					 str_fld[FLD_ADDRESS], &ip_addr,
 					 sizeof(ip_addr)) > 0) {
 			if (rate_limit_address(&ip_addr, num, SOCKET_ID_ANY) ==
@@ -662,7 +665,7 @@ rate_limit_config_from_file(const char *file_name)
 				RTE_LOG(INFO, PKTJ1, "rate limited %s to %d\n",
 					str_fld[FLD_ADDRESS], num);
 			}
-		} else { // invalid address
+		} else {  // invalid address
 			RTE_LOG(ERR, PKTJ1, "could not rate limit %s to %d\n",
 				str_fld[FLD_ADDRESS], num);
 		}
@@ -672,11 +675,11 @@ rate_limit_config_from_file(const char *file_name)
 }
 
 static int
-install_cfgfile(const char *file_name, char *prgname)
+install_cfgfile(const char* file_name, char* prgname)
 {
-	struct rte_cfgfile *file;
+	struct rte_cfgfile* file;
 	uint32_t n_ports, i, ret;
-	const char *entry;
+	const char* entry;
 	char section_name[16], *ptr;
 
 	if (file_name[0] == '\0')
@@ -702,7 +705,6 @@ install_cfgfile(const char *file_name, char *prgname)
 	memset(&kni_port_params_array, 0, sizeof(kni_port_params_array));
 
 	for (i = 0; i < n_ports; i++) {
-
 		snprintf(section_name, sizeof(section_name), "port %u", i);
 		if (!rte_cfgfile_has_section(file, section_name)) {
 			rte_exit(EXIT_FAILURE,
@@ -726,9 +728,10 @@ install_cfgfile(const char *file_name, char *prgname)
 
 		ptr = strdup(entry);
 		if (!ptr) {
-			rte_exit(EXIT_FAILURE, "Config file parse error: Could "
-					       "not allocate memory for "
-					       "strdup\n");
+			rte_exit(EXIT_FAILURE,
+				 "Config file parse error: Could "
+				 "not allocate memory for "
+				 "strdup\n");
 			return -1;
 		}
 		ret = parse_config_from_file(i, ptr);
@@ -742,18 +745,20 @@ install_cfgfile(const char *file_name, char *prgname)
 
 		entry = rte_cfgfile_get_entry(file, section_name, "kni");
 		if (!entry) {
-			rte_exit(EXIT_FAILURE, "Config file parse error: KNI "
-					       "core queues for port %u "
-					       "not defined\n",
+			rte_exit(EXIT_FAILURE,
+				 "Config file parse error: KNI "
+				 "core queues for port %u "
+				 "not defined\n",
 				 i);
 			return -1;
 		}
 
 		ptr = strdup(entry);
 		if (!ptr) {
-			rte_exit(EXIT_FAILURE, "Config file parse error: Could "
-					       "not allocate memory for "
-					       "strdup\n");
+			rte_exit(EXIT_FAILURE,
+				 "Config file parse error: Could "
+				 "not allocate memory for "
+				 "strdup\n");
 			return -1;
 		}
 		ret = kni_parse_config_from_file(i, ptr);
@@ -834,10 +839,10 @@ install_cfgfile(const char *file_name, char *prgname)
 	entry = rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
 				      CMD_LINE_OPT_ENABLE_JUMBO);
 	if (entry) {
-
 		if (strtoul(entry, NULL, 0)) {
-			RTE_LOG(INFO, PKTJ1, "jumbo frame is enabled - "
-					     "disabling simple TX path\n");
+			RTE_LOG(INFO, PKTJ1,
+				"jumbo frame is enabled - "
+				"disabling simple TX path\n");
 			port_conf.rxmode.jumbo_frame = 1;
 
 			entry = rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
@@ -868,13 +873,13 @@ install_cfgfile(const char *file_name, char *prgname)
 
 /* Parse the argument given in the command line of the application */
 int
-parse_args(int argc, char **argv)
+parse_args(int argc, char** argv)
 {
 	int opt, ret;
-	char **argvopt;
+	char** argvopt;
 	int option_index;
-	char *prgname = argv[0];
-	char *end;
+	char* prgname = argv[0];
+	char* end;
 	static struct option lgopts[] = {{CMD_LINE_OPT_CONFIG, 1, 0, 0},
 					 {CMD_LINE_OPT_KNICONFIG, 1, 0, 0},
 					 {CMD_LINE_OPT_CALLBACK_SETUP, 1, 0, 0},
@@ -907,7 +912,6 @@ parse_args(int argc, char **argv)
 
 	while ((opt = getopt_long(argc, argvopt, "", lgopts, &option_index)) !=
 	       EOF) {
-
 		switch (opt) {
 		/* long options */
 		case 0:
@@ -1001,9 +1005,10 @@ parse_args(int argc, char **argv)
 				    CMD_LINE_OPT_MAXPKT_LEN, required_argument,
 				    0, 0};
 
-				RTE_LOG(INFO, PKTJ1, "jumbo frame is enabled "
-						     "- disabling simple TX "
-						     "path\n");
+				RTE_LOG(INFO, PKTJ1,
+					"jumbo frame is enabled "
+					"- disabling simple TX "
+					"path\n");
 				port_conf.rxmode.jumbo_frame = 1;
 
 				/* if no max-pkt-len set, use the default value

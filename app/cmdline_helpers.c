@@ -79,16 +79,16 @@
 #include "cmdline.h"
 
 #define STATS_JSON_PRE "{\"lcores\": ["
-#define STATS_JSON_LCORE                                                       \
-	"{\"time\": %lu, \"lcore\": %u, \"portid\": %lu, \"loop\": "           \
-	"%lu, \"tx\": %lu, \"rx\": %lu, \"kni_tx\": "                          \
-	"%lu, \"kni_rx\": %lu, \"drop\": %lu, "                                \
+#define STATS_JSON_LCORE                                             \
+	"{\"time\": %lu, \"lcore\": %u, \"portid\": %lu, \"loop\": " \
+	"%lu, \"tx\": %lu, \"rx\": %lu, \"kni_tx\": "                \
+	"%lu, \"kni_rx\": %lu, \"drop\": %lu, "                      \
 	"\"kni_drop\": %lu, \"acl_drop\": %lu, \"rate_drop\": %lu}, "
 #define STATS_JSON_MID "{}"
-#define STATS_JSON_TOTAL                                                       \
-	"], \"total\": {\"tx\": %lu, \"rx\": %lu, "                            \
-	"\"kni_tx\": %lu, \"kni_rx\": %lu, "                                   \
-	"\"drop\": %lu, \"kni_drop\": %lu, "                                   \
+#define STATS_JSON_TOTAL                            \
+	"], \"total\": {\"tx\": %lu, \"rx\": %lu, " \
+	"\"kni_tx\": %lu, \"kni_rx\": %lu, "        \
+	"\"drop\": %lu, \"kni_drop\": %lu, "        \
 	"\"acl_drop\": %lu, \"rate_drop\": %lu}}\n"
 
 #define STATS_CSV_PRE ""
@@ -97,34 +97,35 @@
 #define STATS_CSV_TOTAL ""
 
 #define STATS_HUM_PRE "Lcore statistics ===================================="
-#define STATS_HUM_LCORE                                                        \
-	"\nTime %lu: lcore %u portid %lu "                                     \
-	"---------------"                                                      \
-	"\nLoop iteration: %lu"                                                \
-	"\nPackets sent: %lu"                                                  \
-	"\nPackets received: %lu"                                              \
-	"\nPackets kni sent: %lu"                                              \
-	"\nPackets kni received: %lu"                                          \
-	"\nPackets dropped: %lu"                                               \
-	"\nPackets kni dropped: %lu"                                           \
-	"\nPackets acl dropped: %lu"                                           \
+#define STATS_HUM_LCORE                    \
+	"\nTime %lu: lcore %u portid %lu " \
+	"---------------"                  \
+	"\nLoop iteration: %lu"            \
+	"\nPackets sent: %lu"              \
+	"\nPackets received: %lu"          \
+	"\nPackets kni sent: %lu"          \
+	"\nPackets kni received: %lu"      \
+	"\nPackets dropped: %lu"           \
+	"\nPackets kni dropped: %lu"       \
+	"\nPackets acl dropped: %lu"       \
 	"\nPackets ratel dropped: %lu"
 #define STATS_HUM_MID ""
-#define STATS_HUM_TOTAL                                                        \
-	"\nAggregate statistics ==============================="               \
-	"\nTotal packets sent: %lu"                                            \
-	"\nTotal packets received: %lu"                                        \
-	"\nTotal packets kni sent: %lu"                                        \
-	"\nTotal packets kni received: %lu"                                    \
-	"\nTotal packets dropped: %lu"                                         \
-	"\nTotal packets kni dropped: %lu"                                     \
-	"\nTotal packets acl dropped: %lu"                                     \
-	"\nTotal packets ratel dropped: %lu"                                   \
+#define STATS_HUM_TOTAL                                          \
+	"\nAggregate statistics ===============================" \
+	"\nTotal packets sent: %lu"                              \
+	"\nTotal packets received: %lu"                          \
+	"\nTotal packets kni sent: %lu"                          \
+	"\nTotal packets kni received: %lu"                      \
+	"\nTotal packets dropped: %lu"                           \
+	"\nTotal packets kni dropped: %lu"                       \
+	"\nTotal packets acl dropped: %lu"                       \
+	"\nTotal packets ratel dropped: %lu"                     \
 	"\n====================================================\n"
 
 static void
-print_ethaddr(struct cmdline *cl, const char *name,
-	      const struct ether_addr *eth_addr)
+print_ethaddr(struct cmdline* cl,
+	      const char* name,
+	      const struct ether_addr* eth_addr)
 {
 	char buf[ETHER_ADDR_FMT_SIZE];
 	ether_format_addr(buf, ETHER_ADDR_FMT_SIZE, eth_addr);
@@ -137,7 +138,7 @@ print_ethaddr(struct cmdline *cl, const char *name,
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
 
 void
-pktj_stats_display(struct cmdline *cl, int option, int delay)
+pktj_stats_display(struct cmdline* cl, int option, int delay)
 {
 	uint64_t total_packets_dropped, total_packets_tx, total_packets_rx;
 	uint64_t total_packets_kni_tx, total_packets_kni_rx,
@@ -156,12 +157,12 @@ pktj_stats_display(struct cmdline *cl, int option, int delay)
 	total_packets_acl_dropped = 0;
 	total_packets_ratel_dropped = 0;
 
-	if (option == CMD_STATS_JSON) { // json
+	if (option == CMD_STATS_JSON) {  // json
 		fmt_pre = STATS_JSON_PRE;
 		fmt_lcore = STATS_JSON_LCORE;
 		fmt_mid = STATS_JSON_MID;
 		fmt_total = STATS_JSON_TOTAL;
-	} else if (option == CMD_STATS_CSV) { // csv
+	} else if (option == CMD_STATS_CSV) {  // csv
 		fmt_pre = STATS_CSV_PRE;
 		fmt_lcore = STATS_CSV_LCORE;
 		fmt_mid = STATS_CSV_MID;
@@ -223,28 +224,30 @@ pktj_stats_display(struct cmdline *cl, int option, int delay)
 #pragma GCC diagnostic pop
 
 void
-pktj_lpm_stats_display(struct cmdline *cl, int is_ipv4, int option)
+pktj_lpm_stats_display(struct cmdline* cl, int is_ipv4, int option)
 {
-	struct lpm_stats_t *stats;
+	struct lpm_stats_t* stats;
 
 	stats = is_ipv4 ? &lpm4_stats[RTE_PER_LCORE(g_socket_id)]
 			: &lpm6_stats[RTE_PER_LCORE(g_socket_id)];
 
 	if (option == CMD_LPM_STATS_JSON) {
-		cmdline_printf(cl, "{\"current\": %lu, \"add\": {\"success\": "
-				   "%lu, \"failure\": %lu}, \"del\": "
-				   "{\"success\": %lu, \"failure\": %lu}}\n",
+		cmdline_printf(cl,
+			       "{\"current\": %lu, \"add\": {\"success\": "
+			       "%lu, \"failure\": %lu}, \"del\": "
+			       "{\"success\": %lu, \"failure\": %lu}}\n",
 			       (stats->nb_add_ok - stats->nb_del_ok),
 			       stats->nb_add_ok, stats->nb_add_ko,
 			       stats->nb_del_ok, stats->nb_del_ko);
 	} else {
 		cmdline_printf(
-		    cl, "\nLPM statistics ====================================="
-			"\nCurrent routes: %lu"
-			"\nTotal routes added successfully: %lu"
-			"\nTotal route add failures: %lu"
-			"\nTotal routes deleted successfully: %lu"
-			"\nTotal route delete failures: %lu",
+		    cl,
+		    "\nLPM statistics ====================================="
+		    "\nCurrent routes: %lu"
+		    "\nTotal routes added successfully: %lu"
+		    "\nTotal route add failures: %lu"
+		    "\nTotal routes deleted successfully: %lu"
+		    "\nTotal route delete failures: %lu",
 		    (stats->nb_add_ok - stats->nb_del_ok), stats->nb_add_ok,
 		    stats->nb_add_ko, stats->nb_del_ok, stats->nb_del_ko);
 		cmdline_printf(
@@ -254,12 +257,12 @@ pktj_lpm_stats_display(struct cmdline *cl, int is_ipv4, int option)
 }
 
 void
-port_infos_display(struct cmdline *cl, portid_t port_id)
+port_infos_display(struct cmdline* cl, portid_t port_id)
 {
 	struct ether_addr mac_addr;
 	struct rte_eth_link link;
 	int vlan_offload;
-	static const char *info_border = "=====================";
+	static const char* info_border = "=====================";
 
 	rte_eth_link_get_nowait(port_id, &link);
 	cmdline_printf(cl, "\n%s Infos for port %-2d %s\n", info_border,
@@ -274,12 +277,12 @@ port_infos_display(struct cmdline *cl, portid_t port_id)
 		       (link.link_duplex == ETH_LINK_FULL_DUPLEX)
 			   ? ("full-duplex")
 			   : ("half-duplex"));
-	cmdline_printf(cl, "Promiscuous mode: %s\n",
-		       rte_eth_promiscuous_get(port_id) ? "enabled"
-							: "disabled");
-	cmdline_printf(cl, "Allmulticast mode: %s\n",
-		       rte_eth_allmulticast_get(port_id) ? "enabled"
-							 : "disabled");
+	cmdline_printf(
+	    cl, "Promiscuous mode: %s\n",
+	    rte_eth_promiscuous_get(port_id) ? "enabled" : "disabled");
+	cmdline_printf(
+	    cl, "Allmulticast mode: %s\n",
+	    rte_eth_allmulticast_get(port_id) ? "enabled" : "disabled");
 
 	vlan_offload = rte_eth_dev_get_vlan_offload(port_id);
 	if (vlan_offload >= 0) {
@@ -302,37 +305,41 @@ port_infos_display(struct cmdline *cl, portid_t port_id)
 }
 
 void
-nic_stats_display(struct cmdline *cl, portid_t port_id, int option)
+nic_stats_display(struct cmdline* cl, portid_t port_id, int option)
 {
 	struct rte_eth_stats stats;
 	uint8_t i;
 
-	static const char *nic_stats_border = "=======================";
+	static const char* nic_stats_border = "=======================";
 
 	rte_eth_stats_get(port_id, &stats);
 
 	if (option) {
-
-		cmdline_printf(
-		    cl, "{\"portid\": %d, "
-			"\"rx\": {\"packets\": %" PRIu64
-			", \"errors\": %" PRIu64 ", \"bytes\": %" PRIu64 ", "
-			", \"nombuf\": %" PRIu64 ", "
-			"\"tx\": {\"packets\": %" PRIu64
-			", \"errors\": %" PRIu64 ", \"bytes\": %" PRIu64 ", ",
-		    port_id, stats.ipackets, stats.ierrors, stats.ibytes,
-		    stats.rx_nombuf, stats.opackets, stats.oerrors,
-		    stats.obytes);
+		cmdline_printf(cl,
+			       "{\"portid\": %d, "
+			       "\"rx\": {\"packets\": %" PRIu64
+			       ", \"errors\": %" PRIu64 ", \"bytes\": %" PRIu64
+			       ", "
+			       ", \"nombuf\": %" PRIu64
+			       ", "
+			       "\"tx\": {\"packets\": %" PRIu64
+			       ", \"errors\": %" PRIu64 ", \"bytes\": %" PRIu64
+			       ", ",
+			       port_id, stats.ipackets, stats.ierrors,
+			       stats.ibytes, stats.rx_nombuf, stats.opackets,
+			       stats.oerrors, stats.obytes);
 
 		cmdline_printf(cl, "\"queues\": [");
 
 		for (i = 0; i < RTE_ETHDEV_QUEUE_STAT_CNTRS; i++) {
-			cmdline_printf(cl, "{\"queueid\": %d, "
-					   "\"rx\": {\"packets\": %" PRIu64
-					   ", \"errors\": %" PRIu64
-					   ", \"bytes\": %" PRIu64 "}, "
-					   "\"tx\": {\"packets\": %" PRIu64
-					   ", \"bytes\": %" PRIu64 "}}, ",
+			cmdline_printf(cl,
+				       "{\"queueid\": %d, "
+				       "\"rx\": {\"packets\": %" PRIu64
+				       ", \"errors\": %" PRIu64
+				       ", \"bytes\": %" PRIu64
+				       "}, "
+				       "\"tx\": {\"packets\": %" PRIu64
+				       ", \"bytes\": %" PRIu64 "}}, ",
 				       i, stats.q_ipackets[i],
 				       stats.q_errors[i], stats.q_ibytes[i],
 				       stats.q_opackets[i], stats.q_obytes[i]);
@@ -344,7 +351,6 @@ nic_stats_display(struct cmdline *cl, portid_t port_id, int option)
 		cmdline_printf(cl, "]}\n");
 
 	} else {
-
 		cmdline_printf(cl, "\n  %s NIC statistics for port %-2d %s\n",
 			       nic_stats_border, port_id, nic_stats_border);
 
@@ -384,16 +390,16 @@ nic_stats_display(struct cmdline *cl, portid_t port_id, int option)
 }
 
 void
-nic_stats_clear(struct cmdline *cl, portid_t port_id)
+nic_stats_clear(struct cmdline* cl, portid_t port_id)
 {
 	rte_eth_stats_reset(port_id);
 	cmdline_printf(cl, "\n  NIC statistics for port %d cleared\n", port_id);
 }
 
 void
-nic_xstats_display(struct cmdline *cl, portid_t port_id, int option)
+nic_xstats_display(struct cmdline* cl, portid_t port_id, int option)
 {
-	struct rte_eth_xstats *xstats;
+	struct rte_eth_xstats* xstats;
 	int len, ret, i;
 
 	len = rte_eth_xstats_get(port_id, NULL, 0);
@@ -414,7 +420,6 @@ nic_xstats_display(struct cmdline *cl, portid_t port_id, int option)
 	}
 
 	if (option) {
-
 		cmdline_printf(cl, "{\"portid\": %d, ", port_id);
 
 		for (i = 0; i < len; i++)
@@ -438,7 +443,7 @@ nic_xstats_display(struct cmdline *cl, portid_t port_id, int option)
 }
 
 void
-nic_xstats_clear(struct cmdline *cl, portid_t port_id)
+nic_xstats_clear(struct cmdline* cl, portid_t port_id)
 {
 	rte_eth_xstats_reset(port_id);
 	cmdline_printf(cl, "\n  NIC extra statistics for port %d cleared\n",
@@ -446,7 +451,7 @@ nic_xstats_clear(struct cmdline *cl, portid_t port_id)
 }
 
 void
-port_rss_hash_conf_show(struct cmdline *cl, portid_t port_id, int show_rss_key)
+port_rss_hash_conf_show(struct cmdline* cl, portid_t port_id, int show_rss_key)
 {
 	struct rss_type_info {
 		char str[32];
@@ -516,8 +521,9 @@ port_rss_hash_conf_show(struct cmdline *cl, portid_t port_id, int show_rss_key)
 }
 
 void
-port_rss_hash_key_update(struct cmdline *cl, portid_t port_id,
-			 uint8_t *hash_key)
+port_rss_hash_key_update(struct cmdline* cl,
+			 portid_t port_id,
+			 uint8_t* hash_key)
 {
 	struct rte_eth_rss_conf rss_conf;
 	int diag;
