@@ -365,7 +365,7 @@ int netl_terminate(struct netl_handle *h)
 
 int netl_listen(struct netl_handle *h, void *args)
 {
-	int len, buflen, err;
+	int len, err;
 	char logmsg[256];
 	int msg_count;
 	ssize_t status;
@@ -420,22 +420,17 @@ int netl_listen(struct netl_handle *h, void *args)
 				h->cb.log("Wrong address length", ERR);
 				continue;
 			}
+
+			if (iov.iov_len < ((size_t) status) || (msg.msg_flags & MSG_TRUNC)) {
+				h->cb.log("Malformatted or truncated message, skipping", ERR);
+				continue;
+			}
+
 			msg_count = 0;
-			h->cb.log("Receive netlink msg", INFO);
+			h->cb.log("Parsing netlink msg", INFO);
 			for (hdr = (struct nlmsghdr *) buf;
 				 (size_t) status >= sizeof(*hdr);) {
 				len = hdr->nlmsg_len;
-				buflen = len - sizeof(*hdr);
-
-				if (buflen < 0 || len > status) {
-					if (msg.msg_flags & MSG_TRUNC) {
-						// Should not happen with buf size of 8KB
-						h->cb.log("Truncated message, skipping", ERR);
-						break;
-					}
-					h->cb.log("Malformatted message, skipping", ERR);
-					break;
-				}
 
 				snprintf(logmsg, 256, "Processing netlink msg of %d length", len);
 				h->cb.log(logmsg, RTE_LOG_INFO);
