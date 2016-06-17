@@ -817,7 +817,7 @@ add_invalid_neighbor6(neighbor_struct_t* neighbor_struct,
 static void
 netl_log(const char *msg, uint32_t lvl)
 {
-	rte_log(lvl, RTE_LOGTYPE_PKTJ_CTRL1, "PKTJ_CRTL1: ", msg);
+	rte_log(lvl, RTE_LOGTYPE_PKTJ_CTRL1, "PKTJ_CRTL1: %s\n", msg);
 }
 
 void *

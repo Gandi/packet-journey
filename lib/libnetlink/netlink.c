@@ -100,7 +100,6 @@ netl_handler(struct netl_handle *h,
 			 pktj_unused(struct sockaddr_nl *nladdr),
 			 struct nlmsghdr *hdr, void *args)
 {
-  h->cb.log("This is a log callback", INFO)
 	int len = hdr->nlmsg_len;
 
 	switch (hdr->nlmsg_type) {
@@ -367,6 +366,8 @@ int netl_terminate(struct netl_handle *h)
 int netl_listen(struct netl_handle *h, void *args)
 {
 	int len, buflen, err;
+	char logmsg[256];
+	int msg_count;
 	ssize_t status;
 	struct nlmsghdr *hdr;
 	struct sockaddr_nl nladdr;
@@ -396,49 +397,65 @@ int netl_listen(struct netl_handle *h, void *args)
 	while (h->closing != 1) {
 		int res = poll(fds, 1, NETL_POLL_TIMEOUT);
 		if (res < 0 && errno != EINTR) {
-			perror("error during cmdline_run poll");
-			return 0;
+			h->cb.log("Error while polling netlink socket", ERR);
+			continue;
 		}
+
 		if (fds[0].revents & POLLIN) {
 			iov.iov_len = sizeof(buf);
 			status = recvmsg(h->fd, &msg, 0);
 			if (status < 0) {
-				// TODO: EINT / EAGAIN / ENOBUF should continue
-				return -1;
+				snprintf(logmsg, 256, "error receiving netlink %s (%d)",
+						strerror(errno), errno);
+				h->cb.log(logmsg, ERR);
+				continue;
 			}
 
 			if (status == 0) {
-				// EOF
+				h->cb.log("EOF on netlink", ERR);
 				return -1;
 			}
 
 			if (msg.msg_namelen != sizeof(nladdr)) {
-				// Invalid length
-				return -1;
+				h->cb.log("Wrong address length", ERR);
+				continue;
 			}
-
+			msg_count = 0;
+			h->cb.log("Receive netlink msg", INFO);
 			for (hdr = (struct nlmsghdr *) buf;
 				 (size_t) status >= sizeof(*hdr);) {
 				len = hdr->nlmsg_len;
 				buflen = len - sizeof(*hdr);
 
-				if (buflen < 0 || buflen > status) {
-					// truncated
-					return -1;
+				if (buflen < 0 || len > status) {
+					if (msg.msg_flags & MSG_TRUNC) {
+						// Should not happen with buf size of 8KB
+						h->cb.log("Truncated message, skipping", ERR);
+						break;
+					}
+					h->cb.log("Malformatted message, skipping", ERR);
+					break;
 				}
+
+				snprintf(logmsg, 256, "Processing netlink msg of %d length", len);
+				h->cb.log(logmsg, RTE_LOG_INFO);
 
 				err = netl_handler(h, &nladdr, hdr, args);
 				if (err < 0)
 					return err;
 
+				msg_count++;
 				status -= NLMSG_ALIGN(len);
 				hdr =
 					(struct nlmsghdr *) ((char *) hdr + NLMSG_ALIGN(len));
 			}
+			snprintf(logmsg, 256, "processed %d netlink msg in buffer",
+					msg_count);
+			h->cb.log(logmsg, RTE_LOG_INFO);
 
 			if (status) {
-				// content not read
-				return -1;
+				h->cb.log("Remnant data not read", ERR);
+				continue;
 			}
 		}
 	}
