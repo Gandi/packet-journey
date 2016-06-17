@@ -221,7 +221,7 @@ route4(__rte_unused struct rtmsg* route,
 		s = neighbor4_lookup_nexthop(neighbor4_struct[socket_id],
 					     nexthop, &nexthop_id);
 		if (s < 0) {
-			RTE_LOG(ERR, PKTJ_CTRL1,
+			RTE_LOG(INFO, PKTJ_CTRL1,
 				"failed to find nexthop "
 				"during route deletion...\n");
 			return -1;
@@ -231,7 +231,7 @@ route4(__rte_unused struct rtmsg* route,
 				   rte_be_to_cpu_32(addr->s_addr), depth);
 		if (s < 0) {
 			lpm4_stats[socket_id].nb_del_ko++;
-			RTE_LOG(ERR, PKTJ_CTRL1, "failed to delete route...\n");
+			RTE_LOG(INFO, PKTJ_CTRL1, "failed to delete route...\n");
 			return -1;
 		}
 		neighbor4_refcount_decr(neighbor4_struct[socket_id],
@@ -321,7 +321,7 @@ route6(__rte_unused struct rtmsg* route,
 		s = neighbor6_lookup_nexthop(neighbor6_struct[socket_id],
 					     nexthop, &nexthop_id);
 		if (s < 0) {
-			RTE_LOG(ERR, PKTJ_CTRL1,
+			RTE_LOG(INFO, PKTJ_CTRL1,
 				"failed to find nexthop "
 				"during route deletion...\n");
 			return -1;
@@ -331,7 +331,7 @@ route6(__rte_unused struct rtmsg* route,
 				    addr->s6_addr, depth);
 		if (s < 0) {
 			lpm6_stats[socket_id].nb_del_ko++;
-			RTE_LOG(ERR, PKTJ_CTRL1, "failed to delete route...\n");
+			RTE_LOG(INFO, PKTJ_CTRL1, "failed to delete route...\n");
 			return -1;
 		}
 		neighbor6_refcount_decr(neighbor6_struct[socket_id],
@@ -481,7 +481,7 @@ neighbor4(neighbor_action_t action,
 		s = neighbor4_lookup_nexthop(neighbor4_struct[socket_id], addr,
 					     &nexthop_id);
 		if (s < 0) {
-			RTE_LOG(ERR, PKTJ_CTRL1,
+			RTE_LOG(INFO, PKTJ_CTRL1,
 				"failed to find a nexthop to "
 				"delete in neighbor "
 				"table...\n");
@@ -649,7 +649,7 @@ neighbor6(neighbor_action_t action,
 		s = neighbor6_lookup_nexthop(neighbor6_struct[socket_id], addr,
 					     &nexthop_id);
 		if (s < 0) {
-			RTE_LOG(ERR, PKTJ_CTRL1,
+			RTE_LOG(INFO, PKTJ_CTRL1,
 				"failed to find a nexthop to "
 				"delete in neighbor "
 				"table...\n");
@@ -913,9 +913,8 @@ control_main(void* data)
 	handle.socket_id = res->socket_id;
 
 	RTE_LOG(INFO, PKTJ_CTRL1, "init ok\n");
-	netl_listen(netl_h, &handle);
-	RTE_LOG(INFO, PKTJ_CTRL1, "netl_listen returned...\n");
-
+	int res_listen = netl_listen(netl_h, &handle);
+	RTE_LOG(ERR, PKTJ_CTRL1, "netl_listen returned %d\n", res_listen);
 	return 0;
 }
 

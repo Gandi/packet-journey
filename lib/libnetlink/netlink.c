@@ -3,10 +3,8 @@
 #include <sys/socket.h>
 #include <linux/if_arp.h>
 #include <poll.h>
+#include <rte_log.h>
 
-#define ERR 4
-#define INFO 7
-#define DEBUG 8
 #include "pktj_common.h"
 
 #include "libnetlink.h"
@@ -64,15 +62,6 @@ static int parse_rtattr_flags(struct rtattr *tb[], int max,
 	return 0;
 }
 
-#if 0
-static unsigned int get_ifa_flags(struct ifaddrmsg *ifa,
-								  struct rtattr *ifa_flags_attr)
-{
-	return ifa_flags_attr ? rta_getattr_u32(ifa_flags_attr) :
-		ifa->ifa_flags;
-}
-#endif
-
 static uint16_t get_vlan_id(struct rtattr *linkinfo[])
 {
 	struct rtattr *vlaninfo[IFLA_VLAN_MAX + 1];
@@ -85,13 +74,6 @@ static uint16_t get_vlan_id(struct rtattr *linkinfo[])
 	if (!vlaninfo[IFLA_VLAN_ID] ||
 		RTA_PAYLOAD(vlaninfo[IFLA_VLAN_ID]) < sizeof(__u16))
 		return 0;
-#if 0
-	if (vlaninfo[IFLA_VLAN_PROTOCOL])
-		fprintf(stderr, "protocol id %d ",
-				rta_getattr_u16(vlaninfo[IFLA_VLAN_PROTOCOL]));
-	else
-		fprintf(stderr, "protocol 802.1q ");
-#endif
 	return rta_getattr_u16(vlaninfo[IFLA_VLAN_ID]);
 }
 
@@ -120,7 +102,7 @@ netl_handler(struct netl_handle *h,
 			len -= NLMSG_LENGTH(sizeof(*ifi));
 
 			if (len < 0) {
-				// incomplete message
+				h->cb.log("Bad length", RTE_LOG_DEBUG);
 				return -1;
 			}
 
@@ -128,9 +110,10 @@ netl_handler(struct netl_handle *h,
 
 			if (ifi->ifi_type != ARPHRD_ETHER)
 				return 0;		// This is not ethernet
-			if (rta_tb[IFLA_IFNAME] == NULL)
+			if (rta_tb[IFLA_IFNAME] == NULL) {
+				h->cb.log("No if name", RTE_LOG_DEBUG);
 				return -1;		// There should be a name, this is a bug
-
+			}
 			if (hdr->nlmsg_type == RTM_DELLINK)
 				action = LINK_DELETE;
 
@@ -153,8 +136,6 @@ netl_handler(struct netl_handle *h,
 					//XXX only handle vlan type for now
 					if (!strcmp(kind, "vlan")) {
 						vlanid = get_vlan_id(linkinfo);
-					} else {
-						//TODO receive an IF without vlan id
 					}
 				}
 
@@ -171,16 +152,14 @@ netl_handler(struct netl_handle *h,
 
 
 	if (hdr->nlmsg_type == RTM_NEWADDR || hdr->nlmsg_type == RTM_DELADDR) {
-		//struct if_rtattrs attrs;
 		struct rtattr *rta_tb[IFA_MAX + 1];
 		struct ifaddrmsg *ifa = NLMSG_DATA(hdr);
-		//unsigned int ifa_flags;
 		unsigned char buf_addr[sizeof(struct in6_addr)];
 		addr_action_t action;
 		len -= NLMSG_LENGTH(sizeof(*ifa));
 
 		if (len < 0) {
-			// incomplete message
+			h->cb.log("Bad length", RTE_LOG_DEBUG);
 			return -1;
 		}
 
@@ -188,12 +167,12 @@ netl_handler(struct netl_handle *h,
 			action = ADDR_ADD;
 		else if (hdr->nlmsg_type == RTM_DELADDR)
 			action = ADDR_DELETE;
-		else
+		else {
+			h->cb.log("Bad msg type", RTE_LOG_DEBUG);
 			return -1;
-
+		}
 
 		parse_rtattr_flags(rta_tb, IFA_MAX, IFA_RTA(ifa), len, 0);
-		//ifa_flags = get_ifa_flags(ifa, rta_tb[IFA_FLAGS]);
 
 		if (!rta_tb[IFA_LOCAL])
 			rta_tb[IFA_LOCAL] = rta_tb[IFA_ADDRESS];
@@ -221,7 +200,7 @@ netl_handler(struct netl_handle *h,
 			}
 			break;
 		default:
-			//only handling IP
+			h->cb.log("Bad protocol", RTE_LOG_DEBUG);
 			return -1;
 		}
 	}
@@ -229,11 +208,10 @@ netl_handler(struct netl_handle *h,
 	if (hdr->nlmsg_type == RTM_NEWROUTE || hdr->nlmsg_type == RTM_DELROUTE) {
 		struct rtattr *tb[RTA_MAX + 1];
 		struct rtmsg *r = NLMSG_DATA(hdr);
-		//__u32 table;
 		len -= NLMSG_LENGTH(sizeof(*r));
 
 		if (len < 0) {
-			// incomplete message
+			h->cb.log("Bad length", RTE_LOG_DEBUG);
 			return -1;
 		}
 
@@ -247,7 +225,6 @@ netl_handler(struct netl_handle *h,
 				action = ROUTE_DELETE;
 
 			parse_rtattr_flags(tb, RTA_MAX, RTM_RTA(r), len, 0);
-			//table = rtm_get_table(r, tb);
 
 			switch(r->rtm_type) {
 				case RTN_UNICAST:
@@ -278,8 +255,8 @@ netl_handler(struct netl_handle *h,
 				}
 				break;
 			default:
-				//only handling IP
-				return 0;
+				h->cb.log("Bad protocol", RTE_LOG_DEBUG);
+				return -1;
 			}
 		}
 	}
@@ -292,14 +269,15 @@ netl_handler(struct netl_handle *h,
 		len -= NLMSG_LENGTH(sizeof(*neighbor));
 
 		if (len < 0) {
-			// incomplete message
+			h->cb.log("Bad length", RTE_LOG_DEBUG);
 			return -1;
 		}
 		// Ignore non-ip
 		if (neighbor->ndm_family != AF_INET &&
-			neighbor->ndm_family != AF_INET6)
+			neighbor->ndm_family != AF_INET6) {
+			h->cb.log("Bad protocol", RTE_LOG_DEBUG);
 			return 0;
-
+		}
 		parse_rtattr_flags(tb, NDA_MAX, RTM_RTA(neighbor), len, 0);
 
 		neighbor_action_t action;
@@ -341,8 +319,8 @@ netl_handler(struct netl_handle *h,
 			}
 			break;
 		default:
-			//only handling IP
-			return 0;
+			h->cb.log("Bad protocol", RTE_LOG_DEBUG);
+			return -1;
 		}
 	}
 
@@ -397,7 +375,7 @@ int netl_listen(struct netl_handle *h, void *args)
 	while (h->closing != 1) {
 		int res = poll(fds, 1, NETL_POLL_TIMEOUT);
 		if (res < 0 && errno != EINTR) {
-			h->cb.log("Error while polling netlink socket", ERR);
+			h->cb.log("Error while polling netlink socket", RTE_LOG_ERR);
 			continue;
 		}
 
@@ -407,27 +385,27 @@ int netl_listen(struct netl_handle *h, void *args)
 			if (status < 0) {
 				snprintf(logmsg, 256, "error receiving netlink %s (%d)",
 						strerror(errno), errno);
-				h->cb.log(logmsg, ERR);
+				h->cb.log(logmsg, RTE_LOG_ERR);
 				continue;
 			}
 
 			if (status == 0) {
-				h->cb.log("EOF on netlink", ERR);
+				h->cb.log("EOF on netlink", RTE_LOG_ERR);
 				return -1;
 			}
 
 			if (msg.msg_namelen != sizeof(nladdr)) {
-				h->cb.log("Wrong address length", ERR);
+				h->cb.log("Wrong address length", RTE_LOG_ERR);
 				continue;
 			}
 
 			if (iov.iov_len < ((size_t) status) || (msg.msg_flags & MSG_TRUNC)) {
-				h->cb.log("Malformatted or truncated message, skipping", ERR);
+				h->cb.log("Malformatted or truncated message, skipping", RTE_LOG_ERR);
 				continue;
 			}
 
 			msg_count = 0;
-			h->cb.log("Parsing netlink msg", INFO);
+			h->cb.log("Parsing netlink msg", RTE_LOG_INFO);
 			for (hdr = (struct nlmsghdr *) buf;
 				 (size_t) status >= sizeof(*hdr);) {
 				len = hdr->nlmsg_len;
@@ -437,7 +415,7 @@ int netl_listen(struct netl_handle *h, void *args)
 
 				err = netl_handler(h, &nladdr, hdr, args);
 				if (err < 0)
-					return err;
+					h->cb.log("netl_handler failed", RTE_LOG_ERR);
 
 				msg_count++;
 				status -= NLMSG_ALIGN(len);
@@ -449,7 +427,7 @@ int netl_listen(struct netl_handle *h, void *args)
 			h->cb.log(logmsg, RTE_LOG_INFO);
 
 			if (status) {
-				h->cb.log("Remnant data not read", ERR);
+				h->cb.log("Remnant data not read", RTE_LOG_ERR);
 				continue;
 			}
 		}
