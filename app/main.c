@@ -154,34 +154,19 @@ struct control_params_t {
 struct control_params_t control_handle4[NB_SOCKETS];
 struct control_params_t control_handle6[NB_SOCKETS];
 
-#ifdef RTE_NEXT_ABI
 #define PKTJ_PKT_TYPE(m) (m)->packet_type
 #define PKTJ_IP_MASK (RTE_PTYPE_L3_IPV4 | RTE_PTYPE_L3_IPV6)
 #define PKTJ_IPV4_MASK RTE_PTYPE_L3_IPV4
 #define PKTJ_IPV6_MASK RTE_PTYPE_L3_IPV6
-#else
-#define PKTJ_PKT_TYPE(m) (m)->ol_flags
-#define PKTJ_IP_MASK (PKT_RX_IPV4_HDR | PKT_RX_IPV6_HDR)
-#define PKTJ_IPV4_MASK PKT_RX_IPV4_HDR
-#define PKTJ_IPV6_MASK PKT_RX_IPV6_HDR
-#endif
 
 #define ETHER_TYPE_BE_IPv4 0x0008
 #define ETHER_TYPE_BE_IPv6 0xDD86
 #define ETHER_TYPE_BE_VLAN 0x0081
 #define ETHER_TYPE_BE_ARP 0x0608
 
-#ifdef RTE_NEXT_ABI
 #define PKTJ_TEST_IPV4_HDR(m) RTE_ETH_IS_IPV4_HDR((m)->packet_type)
 #define PKTJ_TEST_IPV6_HDR(m) RTE_ETH_IS_IPV6_HDR((m)->packet_type)
 #define PKTJ_TEST_ARP_HDR(m) ((m)->packet_type & RTE_PTYPE_L2_ETHER_ARP)
-#else
-#define PKTJ_TEST_IPV4_HDR(m) (m)->ol_flags& PKT_RX_IPV4_HDR
-#define PKTJ_TEST_IPV6_HDR(m) (m)->ol_flags& PKT_RX_IPV6_HDR
-#define PKTJ_TEST_ARP_HDR(m)                                      \
-	((rte_pktmbuf_mtod((m), struct ether_hdr*)->ether_type) & \
-	 ETHER_TYPE_BE_ARP)
-#endif
 
 #ifdef PKTJ_QEMU
 #define pktj_mm_load_si128 _mm_loadu_si128
@@ -205,23 +190,13 @@ __wrap_virtio_recv_mergeable_pkts(void* rx_queue,
 	for (i = 0; i < res; i++) {
 		if ((rte_pktmbuf_mtod(rx_pkts[i], struct ether_hdr*)
 			 ->ether_type) == ETHER_TYPE_BE_IPv4) {
-#ifdef RTE_NEXT_ABI
 			rx_pkts[i]->packet_type = PKTJ_IPV4_MASK;
-#else
-			rx_pkts[i]->ol_flags = PKT_RX_IPV4_HDR;
-#endif
-		} else if ((rte_pktmbuf_mtod(rx_pkts[i], struct ether_hdr*)
+		} else if ((rte_pktmbuf_mtod(rx_pkts[i], struct ether_hdr *)
 				->ether_type) == ETHER_TYPE_BE_IPv6) {
-#ifdef RTE_NEXT_ABI
 			rx_pkts[i]->packet_type = PKTJ_IPV6_MASK;
-#else
-			rx_pkts[i]->ol_flags = PKT_RX_IPV6_HDR;
-#endif
-		} else if ((rte_pktmbuf_mtod(rx_pkts[i], struct ether_hdr*)
+		} else if ((rte_pktmbuf_mtod(rx_pkts[i], struct ether_hdr *)
 				->ether_type) == ETHER_TYPE_BE_ARP) {
-#ifdef RTE_NEXT_ABI
 			rx_pkts[i]->packet_type = RTE_PTYPE_L2_ETHER_ARP;
-#endif
 		}
 	}
 
