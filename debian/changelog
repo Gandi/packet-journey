@@ -1,3 +1,9 @@
+pktj (0.1.26) unstable; urgency=medium
+
+  * Use dpdk ubuntu dpdk 16.04 packages.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Sun, 19 Jun 2016 17:46:51 +0200
+
 pktj (0.1.25) unstable; urgency=medium
 
   * Rewrite control thread spawning logic.
