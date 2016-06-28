@@ -27,8 +27,8 @@ print_usage()
 
 void print_tbl(struct rte_lpm6_tbl_entry tbl, uint32_t tbl_idx)
 {
-		fprintf(stdout, "%d next_hop: %d, depth %d, valid: %d, valid_group: %d, ext_entry %d\n",
-			tbl_idx, tbl.next_hop, tbl.depth, tbl.valid, tbl.valid_group, tbl.ext_entry);
+		fprintf(stdout, "idx %d, tbl %d, next_hop: %d, depth %d, valid: %d, valid_group: %d, ext_entry %d\n",
+			tbl_idx, tbl_idx / 256, tbl.next_hop, tbl.depth, tbl.valid, tbl.valid_group, tbl.ext_entry);
 }
 
 int main(int argc, const char *argv[])
@@ -121,7 +121,6 @@ int main(int argc, const char *argv[])
 					print_tbl(tbl[tbl_idx], tbl_idx);
 				break;
 		}
-		
 	}
 	
 	return EXIT_SUCCESS;
