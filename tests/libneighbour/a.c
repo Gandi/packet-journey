@@ -18,7 +18,7 @@ int main(void)
 	int s;
 	struct nei_table *t;
 	struct in_addr nexthop;
-	uint8_t id;
+	uint16_t id;
 
 	char *argv[7] = { "test", "-l", "0", "-n", "1", "--log-level", "0" };
 

@@ -531,14 +531,14 @@ rate_limit_ipv4(union rlimit_addr* addr, uint32_t num, int socket_id)
 static int
 rate_limit_ipv6(cmdline_ipaddr_t* ip, uint32_t num, int socket_id)
 {
-	static uint8_t next_hop_count[NB_SOCKETS] = {0};
+	static uint16_t next_hop_count[NB_SOCKETS] = {0};
 	uint16_t next_hop = 0;
 
 	// store the rule so it can applied once
 	// it is added if it is not already
 
 	// check if this address is already stored
-	for (next_hop = 0; next_hop < NEI_NUM_ENTRIES; next_hop++) {
+	for (next_hop = 0; next_hop < NEI_NUM_ENTRIES - 1; next_hop++) {
 		// if addresses match
 		if (!memcmp(&rlimit6_lookup_table[socket_id][next_hop].addr,
 			    &ip->addr.ipv6, sizeof(struct in6_addr))) {
@@ -547,9 +547,9 @@ rate_limit_ipv6(cmdline_ipaddr_t* ip, uint32_t num, int socket_id)
 	}
 
 	// otherwise try to allocate new slot for storage
-	if (next_hop == NEI_NUM_ENTRIES) {
+	if (next_hop == NEI_NUM_ENTRIES - 1) {
 		// no more slot available
-		if (next_hop_count[socket_id] == NEI_NUM_ENTRIES - 1) {
+		if (next_hop_count[socket_id] == NEI_NUM_ENTRIES - 2) {
 			return -1;
 		}
 
@@ -561,7 +561,7 @@ rate_limit_ipv6(cmdline_ipaddr_t* ip, uint32_t num, int socket_id)
 	rlimit6_lookup_table[socket_id][next_hop].num = num;
 
 	if (rte_lpm6_lookup(ipv6_pktj_lookup_struct[socket_id],
-			    ip->addr.ipv6.s6_addr, (uint8_t*)&next_hop) == 0) {
+			    ip->addr.ipv6.s6_addr, &next_hop) == 0) {
 		// set the max packet rate for this neighbor
 		rlimit6_max[socket_id][next_hop] = num;
 	}

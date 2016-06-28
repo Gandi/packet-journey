@@ -173,7 +173,7 @@ route4(__rte_unused struct rtmsg* route,
 
 	struct control_handle* handle = args;
 	assert(handle != NULL);
-	uint8_t nexthop_id;
+	uint16_t nexthop_id;
 	int s;
 	int32_t socket_id = handle->socket_id;
 	struct in_addr blackhole_addr4 = {rte_be_to_cpu_32(INADDR_ANY)};
@@ -270,7 +270,7 @@ route6(__rte_unused struct rtmsg* route,
 
 	struct control_handle* handle = args;
 	assert(handle != NULL);
-	uint8_t nexthop_id;
+	uint16_t nexthop_id;
 	int s;
 	int32_t socket_id = handle->socket_id;
 	static struct in6_addr blackhole_addr6 = IN6ADDR_ANY_INIT;
@@ -375,7 +375,8 @@ neighbor4(neighbor_action_t action,
 	struct control_handle* handle = args;
 	assert(handle != NULL);
 	int s;
-	uint8_t nexthop_id, find_id;
+	uint16_t nexthop_id;
+    uint32_t find_id;
 	int32_t socket_id = handle->socket_id;
 	char ipbuf[INET_ADDRSTRLEN];
 
@@ -539,7 +540,7 @@ neighbor6(neighbor_action_t action,
 	struct control_handle* handle = args;
 	assert(handle != NULL);
 	int s;
-	uint8_t nexthop_id, find_id;
+	uint16_t nexthop_id, find_id;
 	int32_t socket_id = handle->socket_id;
 	char ipbuf[INET6_ADDRSTRLEN];
 
@@ -782,7 +783,7 @@ add_invalid_neighbor4(neighbor_struct_t* neighbor_struct,
 		      uint16_t dst_port)
 {
 	struct ether_addr invalid_mac = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
-	uint8_t nexthop_id;
+	uint16_t nexthop_id;
 
 	if (neighbor4_add_nexthop(neighbor_struct, ip, &nexthop_id,
 				  NEI_ACTION_DROP) < 0) {
@@ -800,7 +801,7 @@ add_invalid_neighbor6(neighbor_struct_t* neighbor_struct,
 		      uint16_t dst_port)
 {
 	struct ether_addr invalid_mac = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
-	uint8_t nexthop_id;
+	uint16_t nexthop_id;
 
 	if (neighbor6_add_nexthop(neighbor_struct, ip, &nexthop_id,
 				  NEI_ACTION_DROP) < 0) {
@@ -919,7 +920,7 @@ control_add_ipv4_local_entry(struct in_addr* nexthop,
 			     int32_t socket_id)
 {
 	int s;
-	uint8_t nexthop_id;
+	uint16_t nexthop_id;
 
 	s = neighbor4_lookup_nexthop(neighbor4_struct[socket_id], nexthop,
 				     &nexthop_id);
@@ -954,7 +955,7 @@ control_add_ipv6_local_entry(struct in6_addr* nexthop,
 			     int32_t socket_id)
 {
 	int s;
-	uint8_t nexthop_id;
+	uint16_t nexthop_id;
 
 	s = neighbor6_lookup_nexthop(neighbor6_struct[socket_id], nexthop,
 				     &nexthop_id);
