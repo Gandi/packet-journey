@@ -177,13 +177,17 @@ route4(__rte_unused struct rtmsg* route,
 	int s;
 	int32_t socket_id = handle->socket_id;
 	struct in_addr blackhole_addr4 = {rte_be_to_cpu_32(INADDR_ANY)};
+	char buf[INET6_ADDRSTRLEN];
 
 	if (type == RTN_BLACKHOLE) {
 		nexthop = &blackhole_addr4;
 	}
 
 	if (action == ROUTE_ADD) {
-		RTE_LOG(DEBUG, PKTJ_CTRL1, "adding an ipv4 route...\n");
+		RTE_LOG(INFO, PKTJ_CTRL1, "adding an ipv4 route %s with hop %s type %d\n",
+			inet_ntop(AF_INET, addr, buf, INET6_ADDRSTRLEN),
+			inet_ntop(AF_INET, nexthop, buf, INET6_ADDRSTRLEN),
+			type);
 		// lookup nexthop
 		s = neighbor4_lookup_nexthop(neighbor4_struct[socket_id],
 					     nexthop, &nexthop_id);
@@ -216,7 +220,10 @@ route4(__rte_unused struct rtmsg* route,
 	}
 
 	if (action == ROUTE_DELETE) {
-		RTE_LOG(DEBUG, PKTJ_CTRL1, "deleting an ipv4 route...\n");
+		RTE_LOG(INFO, PKTJ_CTRL1, "deleting an ipv4 route %s with hop %s type %d\n",
+			inet_ntop(AF_INET, addr, buf, INET6_ADDRSTRLEN),
+			inet_ntop(AF_INET, nexthop, buf, INET6_ADDRSTRLEN),
+			type);
 		// lookup nexthop
 		s = neighbor4_lookup_nexthop(neighbor4_struct[socket_id],
 					     nexthop, &nexthop_id);
@@ -395,7 +402,7 @@ neighbor4(neighbor_action_t action,
 		if_indextoname(port_id, ibuf);
 		s = sscanf(ibuf, "dpdk%10u.%10u", &port_id, &kni_vlan);
 		if (s <= 0) {
-			RTE_LOG(ERR, PKTJ_CTRL1,
+			RTE_LOG(INFO, PKTJ_CTRL1,
 				"received a neighbor "
 				"announce for an unmanaged "
 				"iface %s\n",
@@ -403,24 +410,21 @@ neighbor4(neighbor_action_t action,
 			return -1;
 		}
 
-		s = neighbor4_lookup_nexthop(neighbor4_struct[socket_id], addr,
-					     &nexthop_id);
-		if (s < 0) {
-			if (flags != NUD_NONE && flags != NUD_NOARP &&
-			    flags != NUD_STALE) {
-				RTE_LOG(ERR, PKTJ_CTRL1,
-					"failed to change state in neighbor4 "
-					"table (state %d, %s)...\n",
+		if (flags != NUD_REACHABLE && flags != NUD_FAILED
+				&& flags != NUD_PERMANENT) {
+			RTE_LOG(INFO, PKTJ_CTRL1,
+					"don't handle state of neighbor4 "
+					"(state %d, %s)...\n",
 					flags, ipbuf);
-				return -1;
-			}
-
-			{
-				RTE_LOG(DEBUG, PKTJ_CTRL1,
+			return -1;
+		}
+		s = neighbor4_lookup_nexthop(neighbor4_struct[socket_id], addr,
+				&nexthop_id);
+		if (s < 0) {
+			RTE_LOG(DEBUG, PKTJ_CTRL1,
 					"adding ipv4 neighbor %s with port %s "
 					"vlan_id %d...\n",
 					ipbuf, ibuf, kni_vlan);
-			}
 
 			s = neighbor4_add_nexthop(neighbor4_struct[socket_id],
 						  addr, &nexthop_id,
@@ -567,26 +571,23 @@ neighbor6(neighbor_action_t action,
 				ibuf);
 			return -1;
 		}
+		if (flags != NUD_REACHABLE && flags != NUD_FAILED
+				&& flags != NUD_PERMANENT) {
+			RTE_LOG(ERR, PKTJ_CTRL1,
+					"don't handle state of neighbor4 "
+					"(state %d, %s)...\n",
+					flags, ipbuf);
+			return -1;
+		}
 
 		s = neighbor6_lookup_nexthop(neighbor6_struct[socket_id], addr,
 					     &nexthop_id);
 		if (s < 0) {
-			if (flags != NUD_NONE && flags != NUD_NOARP &&
-			    flags != NUD_STALE) {
-				RTE_LOG(ERR, PKTJ_CTRL1,
-					"failed to change state in neighbor6 "
-					"table (state %d, %s)...\n",
-					flags, ipbuf);
-				return -1;
-			}
-
-			{
-				RTE_LOG(
-				    DEBUG, PKTJ_CTRL1,
-				    "adding ipv6 neighbor %s with port_id %d "
-				    "vlan_id %d...\n",
-				    ipbuf, port_id, kni_vlan);
-			}
+			RTE_LOG(
+					DEBUG, PKTJ_CTRL1,
+					"adding ipv6 neighbor %s with port_id %d "
+					"vlan_id %d...\n",
+					ipbuf, port_id, kni_vlan);
 
 			s = neighbor6_add_nexthop(neighbor6_struct[socket_id],
 						  addr, &nexthop_id,
