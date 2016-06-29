@@ -106,9 +106,11 @@
 #define CMDLINE_POLL_TIMEOUT 500
 
 void __wrap_cmdline_printf(const struct cmdline* cl, const char* fmt, ...);
-
-#pragma clang diagnostic ignored "-Wformat-nonliteral"
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#ifdef __clang__
+# pragma clang diagnostic ignored "-Wformat-nonliteral"
+#elif __GNUC__
+# pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
 void
 __wrap_cmdline_printf(const struct cmdline* cl, const char* fmt, ...)
 {
