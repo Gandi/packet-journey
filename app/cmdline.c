@@ -1079,11 +1079,11 @@ struct cmd_neigh_result {
 };
 
 static void
-cmd_neigh_parsed(__attribute__((unused)) void* parsed_result,
+cmd_neigh_parsed(void* parsed_result,
 		 struct cmdline* cl,
-		 __attribute__((unused)) void* data)
+		 __rte_unused void* data)
 {
-	struct cmd_obj_acl_add_result* res = parsed_result;
+	struct cmd_neigh_result* res = parsed_result;
 	int is_ipv4;
 	int i;
 	struct nei_table* t;
@@ -1156,6 +1156,115 @@ cmdline_parse_inst_t cmd_neigh = {
 	},
 };
 
+//----- CMD DUMP lpm
+struct cmd_dump_lpm_result {
+	cmdline_fixed_string_t lpm;
+	cmdline_fixed_string_t proto;
+	cmdline_fixed_string_t path;
+};
+
+static void
+cmd_dump_lpm_parsed(void* parsed_result,
+		 struct cmdline* cl,
+		 __rte_unused void* data)
+{
+	struct cmd_dump_lpm_result* res = parsed_result;
+	int is_ipv4;
+	FILE * flpm;
+
+	flpm = fopen(res->path, "w");
+	if (flpm == NULL) {
+		cmdline_printf(cl, "failed to open file %s\n", res->path);
+		return;
+	}
+	is_ipv4 = !strcmp(res->proto, "ipv4");
+	if (is_ipv4) {
+		struct rte_lpm *t = ipv4_pktj_lookup_struct[RTE_PER_LCORE(g_socket_id)];
+		fwrite(t, sizeof(*t), 1, flpm);
+		fwrite("1234567890", 1, 10, flpm);
+		fwrite(t->tbl8, sizeof(*t->tbl8), t->number_tbl8s, flpm);
+	}/* else {
+		struct rte_lpm6 *t = ipv6_pktj_lookup_struct[RTE_PER_LCORE(g_socket_id)];
+		fwrite(t, sizeof(*t), 1, flpm);
+		fwrite("1234567890", 1, 10, flpm);
+		fwrite(t->tbl8, sizeof(*t->tbl8), t->number_tbl8s, flpm);
+	}*/
+}
+
+cmdline_parse_token_string_t cmd_dump_lpm_lpm =
+    TOKEN_STRING_INITIALIZER(struct cmd_dump_lpm_result, lpm, "lpm");
+cmdline_parse_token_string_t cmd_dump_lpm_proto =
+    TOKEN_STRING_INITIALIZER(struct cmd_dump_lpm_result, proto, "ipv4#ipv6");
+cmdline_parse_token_string_t cmd_dump_lpm_path =
+    TOKEN_STRING_INITIALIZER(struct cmd_dump_lpm_result, path, NULL);
+
+cmdline_parse_inst_t cmd_dump_lpm = {
+    .f = cmd_dump_lpm_parsed, /* function to call */
+    .data = NULL,	  /* 2nd arg of func */
+    .help_str = "dump_lpm ipv4#ipv6",
+    .tokens =
+	{
+		/* token list, NULL terminated */
+		(void *)&cmd_dump_lpm_lpm,
+		(void *)&cmd_dump_lpm_proto,
+		(void *)&cmd_dump_lpm_path,
+		NULL,
+	},
+};
+
+
+//----- CMD DUMP NEIGH
+struct cmd_dump_neigh_result {
+	cmdline_fixed_string_t neigh;
+	cmdline_fixed_string_t proto;
+	cmdline_fixed_string_t path;
+};
+
+static void
+cmd_dump_neigh_parsed(void* parsed_result,
+		 struct cmdline* cl,
+		 __rte_unused void* data)
+{
+	struct cmd_dump_neigh_result* res = parsed_result;
+	int is_ipv4;
+	struct nei_table* t;
+	FILE * fneigh;
+
+	fneigh = fopen(res->path, "w");
+	if (fneigh == NULL) {
+		cmdline_printf(cl, "failed to open file %s\n", res->path);
+		return;
+	}
+	is_ipv4 = !strcmp(res->proto, "ipv4");
+	if (is_ipv4) {
+		t = neighbor4_struct[RTE_PER_LCORE(g_socket_id)];
+	} else {
+		t = neighbor6_struct[RTE_PER_LCORE(g_socket_id)];
+	}
+	fwrite(t, sizeof(*t), 1, fneigh);
+}
+
+cmdline_parse_token_string_t cmd_dump_neigh_neigh =
+    TOKEN_STRING_INITIALIZER(struct cmd_dump_neigh_result, neigh, "neigh");
+cmdline_parse_token_string_t cmd_dump_neigh_proto =
+    TOKEN_STRING_INITIALIZER(struct cmd_dump_neigh_result, proto, "ipv4#ipv6");
+cmdline_parse_token_string_t cmd_dump_neigh_path =
+    TOKEN_STRING_INITIALIZER(struct cmd_dump_neigh_result, path, NULL);
+
+cmdline_parse_inst_t cmd_dump_neigh = {
+    .f = cmd_dump_neigh_parsed, /* function to call */
+    .data = NULL,	  /* 2nd arg of func */
+    .help_str = "dump_neigh ipv4#ipv6",
+    .tokens =
+	{
+		/* token list, NULL terminated */
+		(void *)&cmd_dump_neigh_neigh,
+		(void *)&cmd_dump_neigh_proto,
+		(void *)&cmd_dump_neigh_path,
+		NULL,
+	},
+};
+
 //----- CMD HELP
 
 struct cmd_help_result {
@@ -1170,7 +1279,6 @@ cmd_help_parsed(__attribute__((unused)) void* parsed_result,
 	cmdline_printf(
 	    cl,
 	    "commands:\n"
-	    "- acl_add ipv4|ipv6 file_path\n"
 	    "- stats [-j , -c sec]\n"
 	    "- { show | clear } port { info | stats | xstats } port_id\n"
 	    "- show port X rss-hash key\n"
@@ -1179,14 +1287,15 @@ cmd_help_parsed(__attribute__((unused)) void* parsed_result,
 	    "- port config X rss-hash-key 104 hexa digits\n"
 	    "- port config X rss reta (hash,queue)[,(hash,queue)]\n"
 	    "- show port X rss reta (size) (mask0,mask1,...)\n"
-	    "- neigh ipv4|ipv6\n"
+	    "- neigh { ipv4 | ipv6 }\n"
 	    "- acl_add { ipv4 | ipv6 } file_path\n"
 	    "- lpm_lkp IP[/DEPTH]\n"
-	    "- lpm_stats {ipv4 | ipv6}\n"
+	    "- lpm_stats { ipv4 | ipv6 }\n"
 	    "- loglevel level\n"
 	    "- logtype type_id { 0 | 1 }\n"
 	    "- rlimit IP rate\n"
-
+	    "- dump_lpm { ipv4 | ipv6 } file_path\n"
+	    "- dump_neigh { ipv4 | ipv6 } file_path\n"
 	    "- help\n\n");
 }
 
@@ -1228,6 +1337,8 @@ cmdline_parse_ctx_t main_ctx[] = {
     (cmdline_parse_inst_t*)&cmd_help,
     (cmdline_parse_inst_t*)&cmd_lpm_stats,
     (cmdline_parse_inst_t*)&cmd_lpm_stats_json,
+    (cmdline_parse_inst_t*)&cmd_dump_lpm,
+    (cmdline_parse_inst_t*)&cmd_dump_neigh,
     NULL,
 };
 
