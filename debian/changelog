@@ -1,3 +1,9 @@
+pktj (0.1.27) unstable; urgency=medium
+
+  * Improve netlink handling and lpm6 speed.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Wed, 29 Jun 2016 11:21:51 +0200
+
 pktj (0.1.26) unstable; urgency=medium
 
   * Use dpdk ubuntu dpdk 16.04 packages.

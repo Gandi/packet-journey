@@ -19,13 +19,21 @@ struct rte_lpm6_tbl_entry {
 		uint32_t ext_entry :1;   /**< External entry. */
 };
 
+struct rte_lpm_tbl_entry {
+	uint32_t next_hop    :23;
+	uint32_t ext_entry   :1; /**XXX: dirty hack, not really present */
+	uint32_t valid       :1;   /**< Validation flag. */
+	uint32_t valid_group :1;
+	uint32_t depth       :6; /**< Rule depth. */
+};
+
 void
 print_usage()
 {
 	fprintf(stdout, "tbl_dumper tbl_dump_file {nexthop|valid|valid_group|ext_entry|depth|dump|dumprange|nonfree} value");
 }
 
-void print_tbl(struct rte_lpm6_tbl_entry tbl, uint32_t tbl_idx)
+void print_tbl(struct rte_lpm_tbl_entry tbl, uint32_t tbl_idx)
 {
 		fprintf(stdout, "idx %d, tbl %d, next_hop: %d, depth %d, valid: %d, valid_group: %d, ext_entry %d\n",
 			tbl_idx, tbl_idx / 256, tbl.next_hop, tbl.depth, tbl.valid, tbl.valid_group, tbl.ext_entry);
@@ -39,7 +47,7 @@ int main(int argc, const char *argv[])
 	struct stat sb;
 	size_t tbl_size;
 	uint32_t tbl_idx;
-	struct rte_lpm6_tbl_entry *tbl;
+	struct rte_lpm_tbl_entry *tbl;
 	char *opts_str[] = {
 		"nexthop",
 		"valid",
@@ -85,7 +93,6 @@ int main(int argc, const char *argv[])
 
 	tbl = mmap(NULL, tbl_size, PROT_READ, MAP_PRIVATE, fd, 0);
 
-	
 	for (tbl_idx = 0; tbl_idx < tbl_size / sizeof(*tbl); ++tbl_idx) {
 		switch (opt_idx) {
 			case 0:

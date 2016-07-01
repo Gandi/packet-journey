@@ -8,6 +8,9 @@ export DH_OPTIONS
 # see EXAMPLES in dpkg-buildflags(1) and read /usr/share/dpkg/*
 DPKG_EXPORT_BUILDFLAGS = 1
 
+RTE_TARGET ?= pktj
+RTE_SDK    ?= /usr/share/dpdk
+
 include /usr/share/dpkg/default.mk
 
 # main packaging script based on dh7 syntax
@@ -20,7 +23,7 @@ override_dh_auto_build: dh_auto_build/pktj
 
 .PHONY: dh_auto_build/pktj
 dh_auto_build/pktj:
-	RTE_SDK=/usr/share/dpdk RTE_TARGET=x86_64-hsw-linuxapp-gcc RTE_INCLUDE=/usr/include/dpdk make
+	make
 
 override_dh_auto_test:
 override_dh_auto_clean:
@@ -33,9 +36,9 @@ dh_auto_install/pktj:
 	mkdir -p $(CURDIR)/debian/pktj/usr/sbin
 	mkdir -p $(CURDIR)/debian/pktj/usr/lib
 	cp $(CURDIR)/scripts/*.py $(CURDIR)/debian/pktj/usr/sbin/
-	mv $(CURDIR)/build/app/x86_64-hsw-linuxapp-gcc/pktj $(CURDIR)/debian/pktj/usr/sbin/
-	mv $(CURDIR)/build/lib/libnetlink/x86_64-hsw-linuxapp-gcc/lib/* $(CURDIR)/debian/pktj/usr/lib
-	mv $(CURDIR)/build/lib/libneighbour/x86_64-hsw-linuxapp-gcc/lib/* $(CURDIR)/debian/pktj/usr/lib
+	mv $(CURDIR)/build/app/$(RTE_TARGET)/pktj $(CURDIR)/debian/pktj/usr/sbin/
+	mv $(CURDIR)/build/lib/libnetlink/$(RTE_TARGET)/lib/* $(CURDIR)/debian/pktj/usr/lib
+	mv $(CURDIR)/build/lib/libneighbour/$(RTE_TARGET)/lib/* $(CURDIR)/debian/pktj/usr/lib
 
 override_dh_shlibdeps:
 
