@@ -23,7 +23,7 @@ override_dh_auto_build: dh_auto_build/pktj
 
 .PHONY: dh_auto_build/pktj
 dh_auto_build/pktj:
-	make
+	make BUILD_TARGET=release V=1
 
 override_dh_auto_test:
 override_dh_auto_clean:

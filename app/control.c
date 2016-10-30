@@ -564,7 +564,7 @@ neighbor6(neighbor_action_t action,
 		s = sscanf(ibuf, "dpdk%10u.%10u", &port_id, &kni_vlan);
 
 		if (s <= 0) {
-			RTE_LOG(ERR, PKTJ_CTRL1,
+			RTE_LOG(INFO, PKTJ_CTRL1,
 				"received a neighbor "
 				"announce for an unmanaged "
 				"iface %s\n",
@@ -573,8 +573,8 @@ neighbor6(neighbor_action_t action,
 		}
 		if (flags != NUD_REACHABLE && flags != NUD_FAILED
 				&& flags != NUD_PERMANENT) {
-			RTE_LOG(ERR, PKTJ_CTRL1,
-					"don't handle state of neighbor4 "
+			RTE_LOG(INFO, PKTJ_CTRL1,
+					"don't handle state of neighbor6 "
 					"(state %d, %s)...\n",
 					flags, ipbuf);
 			return -1;
