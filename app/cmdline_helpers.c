@@ -399,10 +399,11 @@ nic_stats_clear(struct cmdline* cl, portid_t port_id)
 void
 nic_xstats_display(struct cmdline* cl, portid_t port_id, int option)
 {
-	struct rte_eth_xstats* xstats;
+	struct rte_eth_xstat_name *xstats_names;
+	struct rte_eth_xstat* xstats;
 	int len, ret, i;
 
-	len = rte_eth_xstats_get(port_id, NULL, 0);
+	len = rte_eth_xstats_get_names(port_id, NULL, 0);
 	if (len < 0) {
 		cmdline_printf(cl, "Cannot get xstats count\n");
 		return;
@@ -412,10 +413,24 @@ nic_xstats_display(struct cmdline* cl, portid_t port_id, int option)
 		cmdline_printf(cl, "Cannot allocate memory for xstats\n");
 		return;
 	}
+	xstats_names = malloc(sizeof(struct rte_eth_xstat_name) * len);
+	if (xstats_names == NULL) {
+		printf("Cannot allocate memory for xstat names\n");
+		free(xstats);
+		return;
+	}
+	if (len != rte_eth_xstats_get_names(
+			port_id, xstats_names, len)) {
+		printf("Cannot get xstat names\n");
+		free(xstats);
+		free(xstats_names);
+		return;
+	}
 	ret = rte_eth_xstats_get(port_id, xstats, len);
 	if (ret < 0 || ret > len) {
 		cmdline_printf(cl, "Cannot get xstats\n");
 		free(xstats);
+		free(xstats_names);
 		return;
 	}
 
@@ -424,7 +439,7 @@ nic_xstats_display(struct cmdline* cl, portid_t port_id, int option)
 
 		for (i = 0; i < len; i++)
 			cmdline_printf(cl, "%s\"%s\": %" PRIu64,
-				       (i != 0) ? ", " : "", xstats[i].name,
+				       (i != 0) ? ", " : "", xstats_names[i].name,
 				       xstats[i].value);
 
 		cmdline_printf(cl, "}\n");
@@ -435,10 +450,10 @@ nic_xstats_display(struct cmdline* cl, portid_t port_id, int option)
 			       port_id);
 
 		for (i = 0; i < len; i++)
-			cmdline_printf(cl, "%s: %" PRIu64 "\n", xstats[i].name,
+			cmdline_printf(cl, "%s: %" PRIu64 "\n", xstats_names[i].name,
 				       xstats[i].value);
 	}
-
+	free(xstats_names);
 	free(xstats);
 }
 
