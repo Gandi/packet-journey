@@ -2,7 +2,11 @@
 #include <netinet/in.h>
 #include <linux/types.h>
 
+#ifdef LPM6_16BIT
 #define NEI_NUM_ENTRIES (1 << 16)
+#else
+#define NEI_NUM_ENTRIES (1 << 8)
+#endif
 
 struct nei_entry {
 	struct ether_addr nexthop_hwaddr;	/* 6 bytes */

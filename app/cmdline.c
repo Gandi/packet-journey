@@ -794,7 +794,7 @@ cmd_obj_lpm_lkp_parsed(void* parsed_result,
 {
 	struct cmd_obj_lpm_lkp_result *res = parsed_result;
 	uint32_t next_hop;
-	uint16_t next_hop6;
+	lpm6_neigh next_hop6;
 	int i;
 	char buf[INET6_ADDRSTRLEN];
 

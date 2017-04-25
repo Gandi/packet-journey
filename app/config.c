@@ -532,7 +532,7 @@ static int
 rate_limit_ipv6(cmdline_ipaddr_t* ip, uint32_t num, int socket_id)
 {
 	static uint16_t next_hop_count[NB_SOCKETS] = {0};
-	uint16_t next_hop = 0;
+	lpm6_neigh next_hop = 0;
 
 	// store the rule so it can applied once
 	// it is added if it is not already
