@@ -1685,6 +1685,7 @@ setup_lpm(int socketid)
 	/* create the LPM6 table */
 	snprintf(s, sizeof(s), "IPV6_L3FWD_LPM_%d", socketid);
 
+	config6.max_rules = IPV6_L3FWD_LPM_MAX_RULES;
 	config6.number_tbl8s = IPV6_L3FWD_LPM_NUMBER_TBL8S;
 	config6.flags = 0;
 	ipv6_pktj_lookup_struct[socketid] =
