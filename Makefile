@@ -27,6 +27,8 @@ DIRS-y += lib
 DIRS-y += app
 DIRS-y += tests
 
+DEPDIRS-tests = lib
+
 .PHONY: default
 default: all
 
