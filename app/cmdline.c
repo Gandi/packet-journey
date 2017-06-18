@@ -190,7 +190,7 @@ cmd_loglevel_parsed(void* parsed_result,
 		    __rte_unused void* data)
 {
 	struct cmd_loglevel_result* res = parsed_result;
-	rte_set_log_level(res->level);
+	rte_log_set_global_level(res->level);
 }
 
 cmdline_parse_token_string_t cmd_loglevel_loglevel =
@@ -221,7 +221,7 @@ cmd_logtype_parsed(void* parsed_result,
 		   __rte_unused void* data)
 {
 	struct cmd_logtype_result* res = parsed_result;
-	rte_set_log_type(res->type, res->enable);
+	rte_log_set_level(res->type, res->enable ? RTE_LOG_DEBUG : 0);
 }
 
 cmdline_parse_token_string_t cmd_logtype_logtype =
