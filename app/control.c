@@ -65,6 +65,7 @@
 #include <arpa/inet.h>
 #include <spawn.h>
 
+#include <rte_version.h>
 #include <rte_common.h>
 #include <rte_malloc.h>
 #include <rte_log.h>

@@ -58,6 +58,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <rte_version.h>
 #include <rte_common.h>
 #include <rte_byteorder.h>
 #include <rte_debug.h>
