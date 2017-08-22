@@ -73,6 +73,7 @@
 #include <poll.h>
 #include <signal.h>
 
+#include <rte_version.h>
 #include <rte_common.h>
 #include <rte_log.h>
 #include <rte_lcore.h>
@@ -190,7 +191,11 @@ cmd_loglevel_parsed(void* parsed_result,
 		    __rte_unused void* data)
 {
 	struct cmd_loglevel_result* res = parsed_result;
+#if RTE_VERSION >= RTE_VERSION_NUM(17,5,0,0)
 	rte_log_set_global_level(res->level);
+#else
+	rte_set_log_level(res->level);
+#endif
 }
 
 cmdline_parse_token_string_t cmd_loglevel_loglevel =
@@ -221,7 +226,11 @@ cmd_logtype_parsed(void* parsed_result,
 		   __rte_unused void* data)
 {
 	struct cmd_logtype_result* res = parsed_result;
+#if RTE_VERSION >= RTE_VERSION_NUM(17,5,0,0)
 	rte_log_set_level(res->type, res->enable ? RTE_LOG_DEBUG : 0);
+#else
+	rte_set_log_type(res->type, res->enable);
+#endif
 }
 
 cmdline_parse_token_string_t cmd_logtype_logtype =
