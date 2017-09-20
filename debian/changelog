@@ -1,3 +1,9 @@
+pktj (0.1.29) unstable; urgency=medium
+
+  * Fix rte_lpm_delete speed.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Sun, 30 Oct 2016 17:41:51 +0200
+
 pktj (0.1.28) unstable; urgency=medium
 
   * Fix NUD status handling in neighbor4/neighbor6.
