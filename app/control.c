@@ -412,7 +412,7 @@ neighbor4(neighbor_action_t action,
 		}
 
 		if (flags != NUD_REACHABLE && flags != NUD_FAILED
-				&& flags != NUD_PERMANENT) {
+				&& flags != NUD_PERMANENT && flags != NUD_STALE) {
 			RTE_LOG(INFO, PKTJ_CTRL1,
 					"don't handle state of neighbor4 "
 					"(state %d, %s)...\n",
