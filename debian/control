@@ -2,7 +2,7 @@ Source: pktj
 Section: net
 Priority: optional
 Maintainer: Nikita Kozlov <nikita@gandi.net>
-Build-Depends: debhelper (>= 9), libdpdk-dev, dpdk-dev
+Build-Depends: debhelper (>= 9), libdpdk-dev, dpdk-dev, libxenstore3.0, libxen-dev
 Standards-Version: 3.9.6
 Homepage: http://dpdk.org/
 
