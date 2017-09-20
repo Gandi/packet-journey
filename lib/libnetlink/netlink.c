@@ -228,7 +228,8 @@ netl_handler(struct netl_handle *h,
 
 			switch(r->rtm_type) {
 				case RTN_UNICAST:
-					if (!tb[RTA_DST])
+					// null RTA_DST should only happen on default route
+					if (!tb[RTA_DST] && r->rtm_dst_len)
 						return 0;
 
 					if (!tb[RTA_GATEWAY])
