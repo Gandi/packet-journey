@@ -1,3 +1,9 @@
+pktj (0.1.30) unstable; urgency=medium
+
+  * Authorize NUD_STALE update for gratuitous arp.
+
+ -- Nikita Kozlov <nikita@gandi.net>  Tue, 29 Nov 2016 14:20:51 +0100
+
 pktj (0.1.29) unstable; urgency=medium
 
   * Fix rte_lpm_delete speed.
