@@ -66,6 +66,7 @@
 #include <string.h>
 #include <getopt.h>
 
+#include <rte_version.h>
 #include <rte_string_fns.h>
 #include <rte_mempool.h>
 #include <rte_ethdev.h>

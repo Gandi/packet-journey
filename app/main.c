@@ -75,6 +75,7 @@
 #include <sys/prctl.h>
 #include <unistd.h>
 
+#include <rte_version.h>
 #include <rte_common.h>
 #include <rte_vect.h>
 #include <rte_byteorder.h>

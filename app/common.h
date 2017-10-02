@@ -102,10 +102,14 @@ extern struct lpm_stats_t lpm6_stats[NB_SOCKETS];
 
 typedef uint8_t portid_t;
 
+#if RTE_VERSION >= RTE_VERSION_NUM(17,5,0,0)
+typedef uint32_t lpm6_neigh;
+#else
 #ifdef LPM6_16BIT
 typedef uint16_t lpm6_neigh;
 #else
 typedef uint8_t lpm6_neigh;
+#endif
 #endif
 
 #endif

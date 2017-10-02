@@ -69,6 +69,7 @@
 #include <errno.h>
 #include <getopt.h>
 
+#include <rte_version.h>
 #include <rte_common.h>
 #include <rte_byteorder.h>
 #include <rte_log.h>

@@ -74,7 +74,7 @@ extern struct acl_parm acl_parm_config;
 extern struct rte_acl_ctx* ipv4_acx[NB_SOCKETS];
 extern struct rte_acl_ctx* ipv6_acx[NB_SOCKETS];
 
-#if RTE_VER_MINOR > 1 && RTE_VER_MAJOR == 2
+#if RTE_VER_MONTH > 1 && RTE_VER_YEAR == 2
 /*
  * That effectively defines order of IPV4VLAN classifications:
  *  - PROTO
