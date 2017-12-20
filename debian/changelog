@@ -1,3 +1,9 @@
+pktj (0.1.32) unstable; urgency=medium
+
+  * main: fix endianness issue with ipv4 packets
+
+ -- Fatih Acar <fatih@gandi.net>  Wed, 20 Dec 2017 14:09:29 +0100
+
 pktj (0.1.31) unstable; urgency=medium
 
   * control: handle default routes
