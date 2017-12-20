@@ -413,8 +413,7 @@ get_ipv6_dst_port(void *ipv6_hdr, uint8_t portid,
 #define IPV4_MAX_VER_IHL 0x4f
 #define IPV4_MAX_VER_IHL_DIFF (IPV4_MAX_VER_IHL - IPV4_MIN_VER_IHL)
 
-/* Minimum value of IPV4 total length (20B) in network byte order. */
-#define IPV4_MIN_LEN_BE (sizeof(struct ipv4_hdr) << 8)
+#define IPV4_MIN_LEN sizeof(struct ipv4_hdr)
 
 static inline __attribute__((always_inline)) uint8_t
 ip_process(void* hdr, uint16_t* dp, uint32_t flags, struct lcore_conf* qconf)
@@ -430,7 +429,7 @@ ip_process(void* hdr, uint16_t* dp, uint32_t flags, struct lcore_conf* qconf)
 		ipv4_hdr->hdr_checksum++;
 
 		if (ihl > IPV4_MAX_VER_IHL_DIFF ||
-		    ipv4_hdr->total_length < IPV4_MIN_LEN_BE ||
+		    rte_be_to_cpu_16(ipv4_hdr->total_length) < IPV4_MIN_LEN ||
 		    ipv4_hdr->time_to_live <= 0) {
 			dp[0] = BAD_PORT;
 			return 1;
