@@ -2296,6 +2296,9 @@ main(int argc, char** argv)
 
 	/* initialize all ports */
 	for (portid = 0; portid < nb_ports; portid++) {
+		if ((enabled_port_mask & (1 << portid)) == 0) {
+			continue;
+		}
 		init_port(portid);
 	}
 
@@ -2352,6 +2355,9 @@ main(int argc, char** argv)
 		}
 
 		for (portid = 0; portid < nb_ports; portid++) {
+			if ((enabled_port_mask & (1 << portid)) == 0) {
+				continue;
+			}
 			if (kni_port_params_array[portid]->lcore_tx ==
 			    lcore_id) {
 				pthread_t kni_tid;

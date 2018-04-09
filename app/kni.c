@@ -90,7 +90,7 @@
 #include <rte_lcore.h>
 #include <rte_branch_prediction.h>
 #include <rte_interrupts.h>
-#include <rte_pci.h>
+#include <rte_bus_pci.h>
 #include <rte_debug.h>
 #include <rte_ether.h>
 #include <rte_ethdev.h>
@@ -121,8 +121,8 @@
 struct kni_port_params* kni_port_params_array[RTE_MAX_ETHPORTS];
 uint8_t kni_port_rdy[RTE_MAX_ETHPORTS] = {0};
 
-static int kni_change_mtu(uint8_t port_id, unsigned new_mtu);
-static int kni_config_network_interface(uint8_t port_id, uint8_t if_up);
+static int kni_change_mtu(uint16_t port_id, unsigned new_mtu);
+static int kni_config_network_interface(uint16_t port_id, uint8_t if_up);
 
 static rte_atomic32_t kni_stop = RTE_ATOMIC32_INIT(0);
 
@@ -152,7 +152,8 @@ kni_stop_loop(void)
 static void
 kni_egress(struct kni_port_params* p, uint32_t lcore_id)
 {
-	uint8_t i, port_id;
+	uint8_t i;
+	uint16_t port_id;
 	unsigned nb_tx, num;
 	uint32_t nb_kni;
 	struct rte_mbuf* pkts_burst[MAX_PKT_BURST];
@@ -233,7 +234,7 @@ init_kni(void)
 
 /* Callback for request of changing MTU */
 static int
-kni_change_mtu(uint8_t port_id, unsigned new_mtu)
+kni_change_mtu(uint16_t port_id, unsigned new_mtu)
 {
 	int ret;
 	uint16_t nb_rx_queue;
@@ -282,7 +283,7 @@ kni_change_mtu(uint8_t port_id, unsigned new_mtu)
 
 /* Callback for request of configuring network interface up/down */
 static int
-kni_config_network_interface(uint8_t port_id, uint8_t if_up)
+kni_config_network_interface(uint16_t port_id, uint8_t if_up)
 {
 	int ret = 0;
 
@@ -310,18 +311,18 @@ kni_config_network_interface(uint8_t port_id, uint8_t if_up)
 }
 
 int
-kni_alloc(uint8_t port_id, struct rte_mempool* pktmbuf_pool)
+kni_alloc(uint16_t port_id, struct rte_mempool* pktmbuf_pool)
 {
 	uint8_t i;
-	struct rte_kni* kni;
+	struct rte_kni *kni;
 	struct rte_kni_conf conf;
-	struct kni_port_params** params = kni_port_params_array;
+	struct kni_port_params **params = kni_port_params_array;
 
 	if (port_id >= RTE_MAX_ETHPORTS || !params[port_id])
 		return -1;
 
-	params[port_id]->nb_kni =
-	    params[port_id]->nb_lcore_k ? params[port_id]->nb_lcore_k : 1;
+	params[port_id]->nb_kni = params[port_id]->nb_lcore_k ? 
+				params[port_id]->nb_lcore_k : 1;
 
 	for (i = 0; i < params[port_id]->nb_kni; i++) {
 		/* Clear conf at first */
@@ -347,8 +348,11 @@ kni_alloc(uint8_t port_id, struct rte_mempool* pktmbuf_pool)
 
 			memset(&dev_info, 0, sizeof(dev_info));
 			rte_eth_dev_info_get(port_id, &dev_info);
-			conf.addr = dev_info.pci_dev->addr;
-			conf.id = dev_info.pci_dev->id;
+			
+			if (dev_info.pci_dev) {
+				conf.addr = dev_info.pci_dev->addr;
+				conf.id = dev_info.pci_dev->id;
+			}
 
 			memset(&ops, 0, sizeof(ops));
 			ops.port_id = port_id;
@@ -371,7 +375,7 @@ kni_alloc(uint8_t port_id, struct rte_mempool* pktmbuf_pool)
 }
 
 int
-kni_free_kni(uint8_t port_id)
+kni_free_kni(uint16_t port_id)
 {
 	uint8_t i;
 	struct kni_port_params** p = kni_port_params_array;
