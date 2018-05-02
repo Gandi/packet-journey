@@ -32,8 +32,8 @@
 #define KNI_MAX_KTHREAD 32
 void init_kni(void);
 
-int kni_alloc(uint8_t port_id, struct rte_mempool* pktmbuf_pool);
-int kni_free_kni(uint8_t port_id);
+int kni_alloc(uint16_t port_id, struct rte_mempool* pktmbuf_pool);
+int kni_free_kni(uint16_t port_id);
 int kni_main_loop(__rte_unused void* arg);
 void kni_burst_free_mbufs(struct rte_mbuf** pkts, unsigned num);
 void kni_stop_loop(void);
@@ -41,7 +41,7 @@ void kni_stop_loop(void);
  * Structure of port parameters
  */
 struct kni_port_params {
-	uint8_t port_id; /* Port ID */
+	uint16_t port_id; /* Port ID */
 	uint8_t tx_queue_id;
 	unsigned lcore_tx;   /* lcore ID for TX */
 	uint32_t nb_lcore_k; /* Number of lcores for KNI multi kernel threads */
