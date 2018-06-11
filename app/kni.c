@@ -336,7 +336,8 @@ kni_alloc(uint16_t port_id, struct rte_mempool* pktmbuf_pool)
 			snprintf(conf.name, RTE_KNI_NAMESIZE, "dpdk%u",
 				 port_id);
 		conf.group_id = (uint16_t)port_id;
-		conf.mbuf_size = MAX_PACKET_SZ;
+		conf.mbuf_size = port_conf.rxmode.max_rx_pkt_len > MAX_PACKET_SZ ?
+					port_conf.rxmode.max_rx_pkt_len : MAX_PACKET_SZ;
 		/*
 		 * The first KNI device associated to a port
 		 * is the master, for multiple kernel thread

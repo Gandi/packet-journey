@@ -1746,7 +1746,10 @@ init_mem(uint8_t nb_ports)
 			snprintf(s, sizeof(s), "mbuf_pool_%d", socketid);
 			pktmbuf_pool[socketid] = rte_pktmbuf_pool_create(
 			    s, nb_mbuf, MEMPOOL_CACHE_SIZE, 0,
-			    RTE_MBUF_DEFAULT_BUF_SIZE, socketid);
+			    (port_conf.rxmode.max_rx_pkt_len > RTE_MBUF_DEFAULT_DATAROOM ?
+				port_conf.rxmode.max_rx_pkt_len + RTE_PKTMBUF_HEADROOM :
+				RTE_MBUF_DEFAULT_BUF_SIZE),
+			    socketid);
 			if (pktmbuf_pool[socketid] == NULL)
 				rte_exit(EXIT_FAILURE,
 					 "Cannot init mbuf pool on socket %d\n",
@@ -1762,7 +1765,10 @@ init_mem(uint8_t nb_ports)
 			snprintf(s, sizeof(s), "knimbuf_pool_%d", socketid);
 			knimbuf_pool[socketid] = rte_pktmbuf_pool_create(
 			    s, nb_mbuf, MEMPOOL_CACHE_SIZE, 0,
-			    RTE_MBUF_DEFAULT_BUF_SIZE, socketid);
+			    (port_conf.rxmode.max_rx_pkt_len > RTE_MBUF_DEFAULT_DATAROOM ?
+				port_conf.rxmode.max_rx_pkt_len + RTE_PKTMBUF_HEADROOM :
+				RTE_MBUF_DEFAULT_BUF_SIZE),
+			    socketid);
 			if (knimbuf_pool[socketid] == NULL)
 				rte_exit(
 				    EXIT_FAILURE,
