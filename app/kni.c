@@ -286,6 +286,7 @@ static int
 kni_config_network_interface(uint16_t port_id, uint8_t if_up)
 {
 	int ret = 0;
+	int dev_started;
 
 	RTE_LOG(INFO, KNI, "----   kni_config_network_interface\n");
 	if (port_id >= rte_eth_dev_count() || port_id >= RTE_MAX_ETHPORTS) {
@@ -293,15 +294,21 @@ kni_config_network_interface(uint16_t port_id, uint8_t if_up)
 		return -EINVAL;
 	}
 
+	dev_started = rte_eth_devices[port_id].data->dev_started;
+
 	RTE_LOG(INFO, KNI, "Configure network interface of %d %s\n", port_id,
 		if_up ? "up" : "down");
 
 	if (if_up != 0) { /* Configure network interface up */
-		rte_eth_dev_stop(port_id);
-		ret = rte_eth_dev_start(port_id);
+		if (!dev_started) {
+			ret = rte_eth_dev_start(port_id);
+		}
 		kni_port_rdy[port_id]++;
-	} else /* Configure network interface down */
-		rte_eth_dev_stop(port_id);
+	} else { /* Configure network interface down */
+		if (dev_started) {
+			rte_eth_dev_stop(port_id);
+		}
+	}
 
 	if (ret < 0)
 		RTE_LOG(ERR, KNI, "Failed to start port %d\n", port_id);
