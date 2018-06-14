@@ -1,3 +1,11 @@
+pktj (0.1.33) unstable; urgency=medium
+
+  * Support for DPDK 18.02
+  * Allow jumbo frames through KNI
+  * Fix naming issue of dump commands
+
+ -- Fatih Acar <fatih@gandi.net>  Thu, 14 Jun 2018 10:52:52 +0200
+
 pktj (0.1.32) unstable; urgency=medium
 
   * main: fix endianness issue with ipv4 packets
