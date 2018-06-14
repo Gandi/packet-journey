@@ -8,7 +8,7 @@ Homepage: http://dpdk.org/
 
 Package: pktj
 Architecture: any
-Depends: ${misc:Depends}, libdpdk-libethdev3, libdpdk-librte-acl2, libdpdk-librte-cfgfile2, libdpdk-librte-cmdline2, libdpdk-librte-lpm2,libdpdk-librte-pmd-i40e1, libdpdk-librte-pmd-ixgbe1
+Depends: ${misc:Depends}, librte-ethdev18.02, librte-acl18.02, librte-cfgfile18.02, librte-cmdline18.02, librte-lpm18.02, librte-pmd-i40e18.02, librte-pmd-ixgbe18.02
 Description: Packet-journey
  Packet-journey is doing packet processing using the Data Plane Development Kit (DPDK).
 

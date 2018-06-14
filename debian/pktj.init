@@ -43,7 +43,7 @@ do_start()
 	# Create namespace if not exists
 
 	if [ -n "$DEVICE_BOUND_OPT" ]; then
-		/sbin/dpdk_nic_bind $DEVICE_BOUND_OPT
+		/sbin/dpdk-devbind $DEVICE_BOUND_OPT
 	fi
 
 	[ ! -f /var/run/netns/$NSNAME ] && ip netns add $NSNAME
@@ -95,7 +95,7 @@ do_stop()
 	[ -f /var/run/netns/$NSNAME ] && ip netns delete $NSNAME
 
 	if [ -n "$DEVICE_UNBOUND_OPT" ]; then
-		/sbin/dpdk_nic_bind $DEVICE_UNBOUND_OPT
+		/sbin/dpdk-devbind $DEVICE_UNBOUND_OPT
 	fi
 
 	return "$RETVAL"
