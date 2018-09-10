@@ -414,8 +414,13 @@ cmd_config_rss_parsed(void* parsed_result,
 		return;
 	}
 	rss_conf.rss_key = NULL;
+#ifdef RTE_ETH_FOREACH_DEV
+	RTE_ETH_FOREACH_DEV(i)
+		rte_eth_dev_rss_hash_update(i, &rss_conf);
+#else
 	for (i = 0; i < rte_eth_dev_count(); i++)
 		rte_eth_dev_rss_hash_update(i, &rss_conf);
+#endif
 }
 
 cmdline_parse_token_string_t cmd_config_rss_port =

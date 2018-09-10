@@ -104,6 +104,7 @@ struct rte_eth_conf port_conf = {
 	    .mq_mode = ETH_MQ_RX_RSS,
 	    .max_rx_pkt_len = ETHER_MAX_LEN,
 	    .split_hdr_size = 0,
+#if RTE_VERSION < RTE_VERSION_NUM(18,8,0,0)
 	    .header_split = 0,
 /**< Header Split disabled */
 #ifdef PKTJ_QEMU
@@ -120,6 +121,9 @@ struct rte_eth_conf port_conf = {
 	    /**< Jumbo Frame Support disabled */
 	    .hw_strip_crc = 0,
 	    /**< CRC stripped by hardware */
+#else
+	    .offloads = DEV_RX_OFFLOAD_CHECKSUM | DEV_RX_OFFLOAD_VLAN_STRIP,
+#endif
 	},
     .rx_adv_conf =
 	{
@@ -844,8 +848,11 @@ install_cfgfile(const char* file_name, char* prgname)
 			RTE_LOG(INFO, PKTJ1,
 				"jumbo frame is enabled - "
 				"disabling simple TX path\n");
+#if RTE_VERSION >= RTE_VERSION_NUM(18,8,0,0)
+			port_conf.rxmode.offloads |= DEV_RX_OFFLOAD_JUMBO_FRAME;
+#else
 			port_conf.rxmode.jumbo_frame = 1;
-
+#endif
 			entry = rte_cfgfile_get_entry(file, FILE_MAIN_CONFIG,
 						      CMD_LINE_OPT_MAXPKT_LEN);
 			if (entry) {
@@ -1010,7 +1017,11 @@ parse_args(int argc, char** argv)
 					"jumbo frame is enabled "
 					"- disabling simple TX "
 					"path\n");
+#if RTE_VERSION >= RTE_VERSION_NUM(18,8,0,0)
+				port_conf.rxmode.offloads |= DEV_RX_OFFLOAD_JUMBO_FRAME;
+#else
 				port_conf.rxmode.jumbo_frame = 1;
+#endif
 
 				/* if no max-pkt-len set, use the default value
 				 * ETHER_MAX_LEN */

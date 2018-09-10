@@ -189,7 +189,10 @@ kni_egress(struct kni_port_params* p, uint32_t lcore_id)
 int
 kni_main_loop(void* arg)
 {
-	uint8_t i, nb_ports = rte_eth_dev_count();
+	uint8_t i;
+#ifndef RTE_ETH_FOREACH_DEV
+	uint8_t nb_ports = rte_eth_dev_count();
+#endif
 	int32_t f_stop;
 	const unsigned lcore_id = (uintptr_t)arg;
 
@@ -199,7 +202,11 @@ kni_main_loop(void* arg)
 		f_stop = rte_atomic32_read(&kni_stop);
 		if (f_stop)
 			break;
+#ifdef RTE_ETH_FOREACH_DEV
+		RTE_ETH_FOREACH_DEV(i) {
+#else
 		for (i = 0; i < nb_ports; i++) {
+#endif
 			kni_egress(kni_port_params_array[i], lcore_id);
 		}
 		usleep(1000);
@@ -240,7 +247,11 @@ kni_change_mtu(uint16_t port_id, unsigned new_mtu)
 	uint16_t nb_rx_queue;
 	struct rte_eth_conf conf;
 
+#ifdef rte_eth_dev_count
 	if (port_id >= rte_eth_dev_count()) {
+#else
+	if (port_id >= rte_eth_dev_count_avail()) {
+#endif
 		RTE_LOG(ERR, KNI, "Invalid port id %d\n", port_id);
 		return -EINVAL;
 	}
@@ -253,10 +264,11 @@ kni_change_mtu(uint16_t port_id, unsigned new_mtu)
 
 	memcpy(&conf, &port_conf, sizeof(conf));
 	/* Set new MTU */
-	if (new_mtu > ETHER_MAX_LEN)
-		conf.rxmode.jumbo_frame = 1;
-	else
-		conf.rxmode.jumbo_frame = 0;
+#if RTE_VERSION < RTE_VERSION_NUM(18,8,0,0)
+	conf.rxmode.jumbo_frame = new_mtu > ETHER_MAX_LEN;
+#else
+	conf.rxmode.offloads |= (new_mtu > ETHER_MAX_LEN) ? DEV_RX_OFFLOAD_JUMBO_FRAME : 0;
+#endif
 
 	/* mtu + length of header + length of FCS = max pkt length */
 	conf.rxmode.max_rx_pkt_len =
@@ -289,7 +301,11 @@ kni_config_network_interface(uint16_t port_id, uint8_t if_up)
 	int dev_started;
 
 	RTE_LOG(INFO, KNI, "----   kni_config_network_interface\n");
+#ifdef rte_eth_dev_count
 	if (port_id >= rte_eth_dev_count() || port_id >= RTE_MAX_ETHPORTS) {
+#else
+	if (port_id >= rte_eth_dev_count_avail() || port_id >= RTE_MAX_ETHPORTS) {
+#endif
 		RTE_LOG(ERR, KNI, "Invalid port id %d\n", port_id);
 		return -EINVAL;
 	}
@@ -324,6 +340,7 @@ kni_alloc(uint16_t port_id, struct rte_mempool* pktmbuf_pool)
 	struct rte_kni *kni;
 	struct rte_kni_conf conf;
 	struct kni_port_params **params = kni_port_params_array;
+	struct rte_pci_device *pci_dev;
 
 	if (port_id >= RTE_MAX_ETHPORTS || !params[port_id])
 		return -1;
@@ -358,9 +375,10 @@ kni_alloc(uint16_t port_id, struct rte_mempool* pktmbuf_pool)
 			memset(&dev_info, 0, sizeof(dev_info));
 			rte_eth_dev_info_get(port_id, &dev_info);
 			
-			if (dev_info.pci_dev) {
-				conf.addr = dev_info.pci_dev->addr;
-				conf.id = dev_info.pci_dev->id;
+			if (dev_info.device) {
+				pci_dev = container_of(dev_info.device, struct rte_pci_device, device);
+				conf.addr = pci_dev->addr;
+				conf.id = pci_dev->id;
 			}
 
 			memset(&ops, 0, sizeof(ops));
