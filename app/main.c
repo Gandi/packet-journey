@@ -1747,7 +1747,7 @@ init_mem(uint8_t nb_ports)
 			pktmbuf_pool[socketid] = rte_pktmbuf_pool_create(
 			    s, nb_mbuf, MEMPOOL_CACHE_SIZE, 0,
 			    (port_conf.rxmode.max_rx_pkt_len > RTE_MBUF_DEFAULT_DATAROOM ?
-				port_conf.rxmode.max_rx_pkt_len + RTE_PKTMBUF_HEADROOM :
+				port_conf.rxmode.max_rx_pkt_len + (RTE_PKTMBUF_HEADROOM * 2) :
 				RTE_MBUF_DEFAULT_BUF_SIZE),
 			    socketid);
 			if (pktmbuf_pool[socketid] == NULL)
@@ -1766,7 +1766,7 @@ init_mem(uint8_t nb_ports)
 			knimbuf_pool[socketid] = rte_pktmbuf_pool_create(
 			    s, nb_mbuf, MEMPOOL_CACHE_SIZE, 0,
 			    (port_conf.rxmode.max_rx_pkt_len > RTE_MBUF_DEFAULT_DATAROOM ?
-				port_conf.rxmode.max_rx_pkt_len + RTE_PKTMBUF_HEADROOM :
+				port_conf.rxmode.max_rx_pkt_len + (RTE_PKTMBUF_HEADROOM * 2) :
 				RTE_MBUF_DEFAULT_BUF_SIZE),
 			    socketid);
 			if (knimbuf_pool[socketid] == NULL)
